@@ -1,4 +1,4 @@
-package moreight.Funtion;
+package Funtion;
 
 import java.io.File;
 
