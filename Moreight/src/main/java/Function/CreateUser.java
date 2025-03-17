@@ -1,4 +1,4 @@
-package Funtion;
+package Function;
 
 import java.io.File;
 
@@ -9,11 +9,7 @@ public class CreateUser {
         if(!folder.exists()) {
             if(folder.mkdirs()) {
                 System.out.println("CreateUser Successfully : " + folder.getAbsolutePath());
-            } else {
-                System.out.println("CreateUser failed.");
-            }
-        } else {
-            System.out.println("The user has already existed : " + folder.getAbsolutePath());
-        }
+            } else System.out.println("CreateUser failed.");
+        } else System.out.println("The user has already existed : " + folder.getAbsolutePath());
     }
 }

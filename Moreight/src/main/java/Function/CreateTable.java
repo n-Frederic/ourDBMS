@@ -1,7 +1,5 @@
-package Funtion;
+package Function;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
