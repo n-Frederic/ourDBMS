@@ -50,14 +50,16 @@ public class DatabaseManager {
     }
 
     public static void dropDatabase(String dbName){
-        File folder = new File("../TestData"+dbName);
+        File folder = new File("../TestData/" + dbName);
         if(!folder.exists()||!folder.isDirectory()){
             System.out.println("not exist");
+            return;
         }
         deleteDir(folder);
         System.out.println("Database "+dbName+" deleted successfully.");
     }
 
+    // 递归调用，删除文件夹里的文件
     private static void deleteDir(File file){
         if(file.isDirectory()){
             File[] files = file.listFiles();
