@@ -14,7 +14,7 @@ public class DatabaseManager {
 
     public static void createDataBase(String dbName) {
         currentDatabase = dbName;
-        File folder =  new File("../TestData/DatabaseManager" + dbName);
+        File folder =  new File("../TestData/DatabaseManager/" + dbName);
 
         if(!folder.exists()) {
             if(folder.mkdirs()) {
