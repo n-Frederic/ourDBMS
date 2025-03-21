@@ -16,36 +16,21 @@ public class TableManager {
 
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
-    // (1) type (2) PRIMARY KEY (3) NOT NULL (4) UNIQUE (5) DEFAULT
+    // (1) type (2) PRIMARY KEY (3) UNIQUE (4) NOT NULL (5) DEFAULT
     public static void CreateTable(String table, ArrayList<Field> args) {
         try {
-            final Path schemaPath = Paths.get(DIRECTORY,DatabaseManager.getCurrentDatabase(), table + "_schema.json");
-            if(!Files.exists(schemaPath)) {
+            final Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
+            if (!Files.exists(schemaPath)) {
                 JsonObject schemaJson = new JsonObject();
-                for(Field field : args) {
+                for (Field field : args) {
                     schemaJson.addProperty("name", field.getName());
-                    JsonObject type = new JsonObject();
-                    JsonObject primaryKey = new JsonObject();
-                    JsonObject unique = new JsonObject();
-                    JsonObject notNull = new JsonObject();
-                    JsonObject Default = new JsonObject();
-                    type.addProperty("Type", field.getType());
-                    primaryKey.addProperty("PRIMARY KEY", field.isPrimaryKey());
-                    unique.addProperty("UNIQUE", field.isUnique());
-                    notNull.addProperty("NOT NULL", field.isNotnull());
-                    Default.addProperty("Default", field.getDefault());
-                    JsonArray constraints = new JsonArray();
-                    constraints.add(type);
-                    constraints.add(primaryKey);
-                    constraints.add(unique);
-                    constraints.add(notNull);
-                    constraints.add(Default);
-//                    schemaJson.addProperty("constraint");
+                    JsonArray constraints = getJsonElements(field);
+                    schemaJson.add("constraint", constraints);
                 }
 
                 try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
                     Gson gson = new Gson();
-                    gson.toJson(schemaJson,writer);
+                    gson.toJson(schemaJson, writer);
                     writer.flush();
                 }
             } else System.out.println("The table has existed.");
@@ -54,10 +39,32 @@ public class TableManager {
         }
     }
 
-    public static void DropTable(String table,int userLevel) {
-        if(userLevel==1){return;}
-        Path filePath = Paths.get(DIRECTORY,DatabaseManager.getCurrentDatabase(), table +".json");
-        Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table +"_schema.json");
+    private static JsonArray getJsonElements(Field field) {
+        JsonObject type = new JsonObject();
+        JsonObject primaryKey = new JsonObject();
+        JsonObject unique = new JsonObject();
+        JsonObject notNull = new JsonObject();
+        JsonObject Default = new JsonObject();
+        type.addProperty("Type", field.getType());
+        primaryKey.addProperty("PRIMARY KEY", field.isPrimaryKey());
+        unique.addProperty("UNIQUE", field.isUnique());
+        notNull.addProperty("NOT NULL", field.isNotnull());
+        Default.addProperty("Default", field.getDefault());
+        JsonArray constraints = new JsonArray();
+        constraints.add(type);
+        constraints.add(primaryKey);
+        constraints.add(unique);
+        constraints.add(notNull);
+        constraints.add(Default);
+        return constraints;
+    }
+
+    public static void DropTable(String table, int userLevel) {
+        if (userLevel == 1) {
+            return;
+        }
+        Path filePath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + ".json");
+        Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
         try {
             // 删除文件
             Files.delete(schemaPath);
