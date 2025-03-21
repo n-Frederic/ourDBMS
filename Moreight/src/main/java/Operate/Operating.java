@@ -1,27 +1,31 @@
 package Operate;
+import Parser.Field;
+import Function.DatabaseManager;
 import Function.TableManager;
 import Function.UserManager;
 import Function.UserManager;
+import Parser.StringParser;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 public class Operating {
 
-        private static final Pattern PATTERN_INSERT = Pattern.compile("insert\\s+into\\s+(\\w+)(\\(((\\w+,?)+)\\))?\\s+\\w+\\((([^\\)]+,?)+)\\);?");
-        private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile("create\\stable\\s(\\w+)\\s?\\(((?:\\s?\\w+\\s\\w+,?)+)\\)\\s?;");
-        private static final Pattern PATTERN_ALTER_TABLE_ADD = Pattern.compile("alter\\stable\\s(\\w+)\\sadd\\s(\\w+\\s\\w+)\\s?;");
-        private static final Pattern PATTERN_DELETE = Pattern.compile("delete\\sfrom\\s(\\w+)(?:\\swhere\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\sand\\s(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
-        private static final Pattern PATTERN_UPDATE = Pattern.compile("update\\s(\\w+)\\sset\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\swhere\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\sand\\s(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
-        private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("drop\\stable\\s(\\w+);");
-        private static final Pattern PATTERN_SELECT = Pattern.compile("select\\s(\\*|(?:(?:\\w+(?:\\.\\w+)?)+(?:\\s?,\\s?\\w+(?:\\.\\w+)?)*))\\sfrom\\s(\\w+(?:\\s?,\\s?\\w+)*)(?:\\swhere\\s([^\\;]+\\s?;))?");
-        private static final Pattern PATTERN_DELETE_INDEX = Pattern.compile("delete\\sindex\\s(\\w+)\\s?;");
-        private static final Pattern PATTERN_GRANT_ADMIN = Pattern.compile("grant\\sadmin\\sto\\s([^;\\s]+)\\s?;");
-        private static final Pattern PATTERN_REVOKE_ADMIN = Pattern.compile("revoke\\sadmin\\sfrom\\s([^;\\s]+)\\s?;");
-        private static final Pattern PATTERN_CREATE_DATABASE = Pattern.compile("create\\s+database\\s+(\\w+)\\s*;");
-        private static final Pattern PATTERN_USE_DATABASE = Pattern.compile("use\\s+(\\w+)\\s*;");
-        private static final Pattern PATTERN_DROP_DATABASE = Pattern.compile("drop\\s+database\\s+(\\w+)\\s*;");
+        private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)(\\(((\\w+,?)+)\\))?\\s+\\w+\\((([^\\)]+,?)+)\\);?");
+        private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile("(?i)create\\s+table\\s(\\w+)\\s?\\(((?:\\s?\\w+\\s\\w+,?)+)\\)\\s?;");
+        private static final Pattern PATTERN_ALTER_TABLE_ADD = Pattern.compile("(?i)alter\\s+table\\s(\\w+)\\s+add\\s(\\w+\\s\\w+)\\s?;");
+        private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\s+and\\s+(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
+        private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)update\\s(\\w+)\\s+set\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\s+where\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\s+and\\s+(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
+        private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("(?i)drop\\s+table\\s(\\w+);");
+        private static final Pattern PATTERN_SELECT = Pattern.compile("(?i)select\\s(\\*|(?:(?:\\w+(?:\\.\\w+)?)+(?:\\s?,\\s?\\w+(?:\\.\\w+)?)*))\\s+from\\s(\\w+(?:\\s?,\\s?\\w+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
+        private static final Pattern PATTERN_DELETE_INDEX = Pattern.compile("(?i)delete\\s+index\\s(\\w+)\\s?;");
+        private static final Pattern PATTERN_GRANT_ADMIN = Pattern.compile("(?i)grant\\s+admin\\s+to\\s([^;\\s]+)\\s?;");
+        private static final Pattern PATTERN_REVOKE_ADMIN = Pattern.compile("(?i)revoke\\s+admin\\s+from\\s([^;\\s]+)\\s?;");
+        private static final Pattern PATTERN_CREATE_DATABASE = Pattern.compile("(?i)create\\s+database\\s+(\\w+)\\s*;");
+        private static final Pattern PATTERN_USE_DATABASE = Pattern.compile("(?i)use\\s+(\\w+)\\s*;");
+        private static final Pattern PATTERN_DROP_DATABASE = Pattern.compile("(?i)drop\\s+database\\s+(\\w+)\\s*;");
 
 
         private static Scanner sc = new Scanner(System.in);
@@ -32,7 +36,6 @@ public class Operating {
         public void dbms() {
 
                 do{
-
                         System.out.println("欢迎使用 SimpleDBMS");
                         System.out.println("1. 登录");
                         System.out.println("2. 注册");
@@ -54,20 +57,82 @@ public class Operating {
                 Scanner sc = new Scanner(System.in);
                 String cmd;
                 while (!"exit".equals(cmd = sc.nextLine())&&enter_database==false) {
+
+                        boolean matched = false;  // 标记是否匹配成功
                         Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(cmd);
                         Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(cmd);
-                        Matcher matcherDeleteIndex = PATTERN_DROP_DATABASE.matcher(cmd);
+                        Matcher matcherDropDB= PATTERN_DROP_DATABASE.matcher(cmd);
 
-                        while(matcherCreateDB.find()){
+                        if(matcherCreateDB.find()){
+                                matched = true;
+                                String dbName = matcherCreateDB.group(1);
+                                System.out.println("创建数据库: " + dbName);
+                                DatabaseManager.createDataBase(dbName);
+                                // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
+                                continue;
+                        }
+                        else if(matcherUserDB.find()){
+
+                                matched = true;
+                                String dbName = matcherUserDB.group(1);
+                                System.out.println("使用数据库: " + dbName);
+                                boolean dbexist=false;
+                                dbexist=DatabaseManager.useDatabase(dbName);
+                                if(dbexist){
+                                        enter_database = true;
+                                        System.out.println("使用数据库: " + dbName);
+                                }
+                                // 设置 enter_database = true，表示已进入数据库
+
+                                continue;
+                        }
+                        else if(matcherDropDB.find()){
+
+                                matched = true;
+                                String dbName = matcherDropDB.group(1);
+
+
+                                System.out.println("删除数据库: " + dbName);
+                                DatabaseManager.dropDatabase(dbName,UserManager.GetCurrentUser().getLevel());
+                                // 执行删除逻辑
+                                continue;
+                        }
+
+                        if(!matched){
+                                System.out.println("无效命令，请重新输入。");
+                                continue;
+                        }
+
+
+
+                }
+                while (!"exit".equals(cmd = sc.nextLine())) {
+
+                        boolean matched = false;  // 标记是否匹配成功
+                        Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(cmd);
+                        Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
+
+                       if(matcherCreateTable.find()){
+
+                                matched=true;
+                                String tableName=matcherDropTable.group(1);
+                                Map<String, Field> fieldMap=StringParser.parseCreateTable(matcherCreateTable.group(2));
+                                System.out.println("创建表"+tableName);
+                                //TableManager.CreateTable(tableName,convertFieldMapToArgs(fieldMap));
 
                         }
-                        while(matcherUserDB.find()){
+                        else if(matcherDropTable.find()){
 
+                                matched=true;
+                                String tableName=matcherDropTable.group(1);
+                                System.out.println("删除表"+tableName);
+                                TableManager.DropTable(tableName,UserManager.GetCurrentUser().getLevel());
                         }
-                        while(matcherDeleteIndex.find()){
 
+                        if(!matched){
+
+                                System.out.println("无效命令，请重新输入。");
                         }
-
 
                 }
 
@@ -254,6 +319,15 @@ public class Operating {
         private void useDB(Matcher matcherDropTable) {
                 String tableName = matcherDropTable.group(1);
 //                System.out.println(Table.dropTable(tableName));
+        }
+        public static ArrayList<String[]> convertFieldMapToArgs(Map<String, Field> fieldMap) {
+                ArrayList<String[]> args = new ArrayList<>();
+                for (Map.Entry<String, Field> entry : fieldMap.entrySet()) {
+                        String fieldName = entry.getKey();
+                        String fieldType = entry.getValue().getType();
+                        args.add(new String[]{fieldName, fieldType});
+                }
+                return args;
         }
 
 

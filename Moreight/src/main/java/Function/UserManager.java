@@ -17,6 +17,11 @@ public class UserManager {
     //private static Map<String, User> usersInfo = new HashMap<>();
 
     // 0是失败 1是重名 2是成功
+
+    public static User GetCurrentUser(){
+        return currentUser;
+    }
+
     public static int CreateUser(String user, String password) {
         JsonObject newUser = new JsonObject();
         newUser.addProperty("userName", user);

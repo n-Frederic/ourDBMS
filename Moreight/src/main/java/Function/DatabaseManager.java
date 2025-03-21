@@ -14,7 +14,7 @@ public class DatabaseManager {
 
     public static void createDataBase(String dbName) {
         currentDatabase = dbName;
-        File folder =  new File("../TestData/" + dbName);
+        File folder =  new File("../TestData/DatabaseManager" + dbName);
 
         if(!folder.exists()) {
             if(folder.mkdirs()) {
@@ -27,13 +27,18 @@ public class DatabaseManager {
         }
     }
 
-    public static void useDatabase(String dbName){
-        currentDatabase = dbName;
+    public static boolean useDatabase(String dbName){
+        File folder =  new File("../TestData/DatabaseManager" + dbName);
+        if(!folder.exists()){
+            return false;
+        } else {
+            currentDatabase = dbName;
+            return true;
+        }
     }
 
-    // 未测试版
-    public static List<String> showDatabases(String dbName){
-        File folder =  new File("../TestData/");
+    public static List<String> showDatabases(){
+        File folder =  new File("../TestData/DatabaseManager");
         List<String> databases = new ArrayList<>();
 
         if(!folder.exists()||!folder.isDirectory()){
@@ -50,27 +55,32 @@ public class DatabaseManager {
         return databases;
     }
 
-    // 未测试版
-    public static void dropDatabase(String dbName){
-        File folder = new File("../TestData/" + dbName);
+    public static void dropDatabase(String dbName,int userLevel){
+        if(userLevel==1){return;}
+        File folder = new File("../TestData/DatabaseManager" + dbName);
         if(!folder.exists()||!folder.isDirectory()){
             System.out.println("not exist");
             return;
         }
-        deleteDir(folder);
-        System.out.println("Database "+dbName+" deleted successfully.");
+        if(deleteDir(folder)){
+            System.out.println("Database "+dbName+" deleted successfully.");
+        }else{
+            System.out.println("Failed to delete database "+ dbName);
+        }
     }
 
     // 递归调用，删除文件夹里的文件
-    private static void deleteDir(File file){
+    private static boolean deleteDir(File file){
         if(file.isDirectory()){
             File[] files = file.listFiles();
             if(files!=null){
                 for(File f:files){
-                    deleteDir(f);
+                    if(!deleteDir(f)){
+                        return false;
+                    }
                 }
             }
         }
-        file.delete();
+        return file.delete();
     }
 }

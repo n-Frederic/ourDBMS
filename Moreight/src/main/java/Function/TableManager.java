@@ -1,6 +1,8 @@
 package Function;
 
+import Parser.Field;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.io.File;
@@ -12,15 +14,33 @@ import java.io.IOException;
 
 public class TableManager {
 
-    private static final String DIRECTORY = "../TestData";
+    private static final String DIRECTORY = "../TestData/DatabaseManager";
 
-    public static void CreateTable(String table, ArrayList<String[]> args) {
+    // (1) type (2) PRIMARY KEY (3) NOT NULL (4) UNIQUE (5) DEFAULT
+    public static void CreateTable(String table, ArrayList<Field> args) {
         try {
             final Path schemaPath = Paths.get(DIRECTORY,DatabaseManager.getCurrentDatabase(), table + "_schema.json");
             if(!Files.exists(schemaPath)) {
                 JsonObject schemaJson = new JsonObject();
-                for(String[] field : args) {
-                    schemaJson.addProperty(field[0], field[1]);
+                for(Field field : args) {
+                    schemaJson.addProperty("name", field.getName());
+                    JsonObject type = new JsonObject();
+                    JsonObject primaryKey = new JsonObject();
+                    JsonObject unique = new JsonObject();
+                    JsonObject notNull = new JsonObject();
+                    JsonObject Default = new JsonObject();
+                    type.addProperty("Type", field.getType());
+                    primaryKey.addProperty("PRIMARY KEY", field.isPrimaryKey());
+                    unique.addProperty("UNIQUE", field.isUnique());
+                    notNull.addProperty("NOT NULL", field.isNotnull());
+                    Default.addProperty("Default", field.getDefault());
+                    JsonArray constraints = new JsonArray();
+                    constraints.add(type);
+                    constraints.add(primaryKey);
+                    constraints.add(unique);
+                    constraints.add(notNull);
+                    constraints.add(Default);
+//                    schemaJson.addProperty("constraint");
                 }
 
                 try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
@@ -34,7 +54,8 @@ public class TableManager {
         }
     }
 
-    public static void DropTable(String table) {
+    public static void DropTable(String table,int userLevel) {
+        if(userLevel==1){return;}
         Path filePath = Paths.get(DIRECTORY,DatabaseManager.getCurrentDatabase(), table +".json");
         Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table +"_schema.json");
         try {
