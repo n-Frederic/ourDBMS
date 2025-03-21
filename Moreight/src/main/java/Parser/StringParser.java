@@ -1,7 +1,5 @@
 package Parser;
 
-import Function.TableManager;
-
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,8 +8,9 @@ import java.util.regex.Pattern;
 public class StringParser {
 
     public static Map<String, Field> parseCreateTable(String fieldsStr) {
-        String[] lines = fieldsStr.trim().split("\\s*,\\s*");
+        String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
         Map<String, Field> fieldMap = new LinkedHashMap<>();
+        //解析字段为3组
         Pattern fieldPattern = Pattern.compile(
                 "(\\w+)\\s+" +
                         "([^\\s]+(?:\\([^)]+\\))?)" +
@@ -33,14 +32,53 @@ public class StringParser {
             // 解析约束（组3）
             String constraints = matcher.group(3);
             if (constraints != null) {
-                // 将约束转为大写，统一处理大小写
                 String upperConstraints = constraints.toUpperCase();
                 field.setPrimaryKey(upperConstraints.contains("PRIMARY KEY"));
-                field.setUnique(upperConstraints.contains("UNIQUE"));
-                field.setNotNUll(upperConstraints.contains("NOT NULL"));
+                field.setUnique(upperConstraints.contains("UNIQUE") || field.isPrimaryKey());
+                field.setNotnull(upperConstraints.contains("NOT NULL") || field.isPrimaryKey());
+                if (upperConstraints.contains("DEFAULT")) {
+                    int index = upperConstraints.indexOf("DEFAULT");
+                    String defaultValue = constraints.substring(index + "DEFAULT".length()).trim();
+                    field.setDefault(defaultValue);
+                }
             }
             fieldMap.put(field.getName(), field);
         }
         return fieldMap;
     }
+
+    public static Map<String,Field> parseUpdateSet(String fieldsStr){
+        Map<String, Field> fieldMap = new LinkedHashMap<>();
+        return fieldMap;
+    }
+
+    public static List<Map<String,String>> parseWhere_join(String str, Map<String, Map<String, Field>> fieldMaps){
+        List<Map<String, String>> joinConditionList = new LinkedList<>();
+        return joinConditionList;
+    }
+
+    public static List<Map<String, String>> parseWhere(String str, String tableName, Map<String, Field> fieldMap){
+        List<Map<String, String>> filtList = new LinkedList<>();
+        return filtList;
+    }
+
+    public static List<Map<String, String>> parseWhere(String str){
+        List<Map<String, String>> filtList = new LinkedList<>();
+        return filtList;
+    }
+
+    public static List<String> parseFrom(String str){
+        String[] tableNames = str.trim().split(",");
+        List<String> tableNameList = new ArrayList<>();
+        for (String tableName : tableNames) {
+            tableNameList.add(tableName.trim());
+        }
+        return tableNameList;
+    }
+
+    public static List<String> parseProjection(String str, String tableName, Map<String, Field> fieldMap){
+        List<String> projectionList = new LinkedList<>();
+        return projectionList;
+    }
+
 }

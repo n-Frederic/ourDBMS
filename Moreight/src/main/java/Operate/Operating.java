@@ -19,29 +19,61 @@ public class Operating {
         private static final Pattern PATTERN_DELETE_INDEX = Pattern.compile("delete\\sindex\\s(\\w+)\\s?;");
         private static final Pattern PATTERN_GRANT_ADMIN = Pattern.compile("grant\\sadmin\\sto\\s([^;\\s]+)\\s?;");
         private static final Pattern PATTERN_REVOKE_ADMIN = Pattern.compile("revoke\\sadmin\\sfrom\\s([^;\\s]+)\\s?;");
+        private static final Pattern PATTERN_CREATE_DATABASE = Pattern.compile("create\\s+database\\s+(\\w+)\\s*;");
+        private static final Pattern PATTERN_USE_DATABASE = Pattern.compile("use\\s+(\\w+)\\s*;");
+        private static final Pattern PATTERN_DROP_DATABASE = Pattern.compile("drop\\s+database\\s+(\\w+)\\s*;");
+
 
         private static Scanner sc = new Scanner(System.in);
+        private  boolean login=false;
+        private boolean enter_database=false;
+
 
         public void dbms() {
 
+                do{
 
-                System.out.println("欢迎使用 SimpleDBMS");
-                System.out.println("1. 登录");
-                System.out.println("2. 注册");
-                System.out.print("请输入选项：");
+                        System.out.println("欢迎使用 SimpleDBMS");
+                        System.out.println("1. 登录");
+                        System.out.println("2. 注册");
+                        System.out.print("请输入选项：");
 
-                String choice = sc.nextLine();
-                if ("1".equals(choice)) {
-                        System.out.println(login());
-                } else if ("2".equals(choice)) {
-                        System.out.println(register());
-                } else {
-                        System.out.println("无效选项，程序退出。");
-                        return;
+                        String choice = sc.nextLine();
+                        if ("1".equals(choice)) {
+                               login();
+                        } else if ("2".equals(choice)) {
+                                register();
+                        } else {
+                                System.out.println("无效选项，程序退出。");
+                                return;
+                        }
+
+
+                } while(login==false);
+
+                Scanner sc = new Scanner(System.in);
+                String cmd;
+                while (!"exit".equals(cmd = sc.nextLine())&&enter_database==false) {
+                        Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(cmd);
+                        Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(cmd);
+                        Matcher matcherDeleteIndex = PATTERN_DROP_DATABASE.matcher(cmd);
+
+                        while(matcherCreateDB.find()){
+
+                        }
+                        while(matcherUserDB.find()){
+
+                        }
+                        while(matcherDeleteIndex.find()){
+
+                        }
+
+
                 }
 
 
 
+                /*
                 //默认进入user1用户文件夹
                 File userFolder = new File("dir", UserManager.getName());
 
@@ -158,27 +190,75 @@ public class Operating {
                 }
 
         }
-        private static String login() {
+
+                 */
+
+        }
+        private  void login() {
                 System.out.print("用户名：");
                 String username = sc.nextLine();
                 System.out.print("密码：");
                 String password = sc.nextLine();
+                Integer result=UserManager.checkUserExists(username,password);
+                if(result==1){
+                        System.out.println("user name not exist!");
+                }else if(result==2){
+                        System.out.println("password is not correct!");
+                }else if(result==3){
+                        login=true;
+                        System.out.println("login successful! welcome "+username);
+                }else{
+                        System.out.println("error.exiting......");
+                }
                 // 在此实现登录逻辑
-                System.out.println("登录成功，欢迎 " + username + "！");
-                return UserManager.GetUser(username,password);
+
+
 
         }
 
-        private static String register() {
+        private  void register()  {
                 System.out.print("设置用户名：");
-                String username = sc.nextLine();
+               String username = sc.nextLine();
                 System.out.print("设置密码：");
-                String password = sc.nextLine();
-                // 在此实现注册逻辑
-                return UserManager.CreateUser(username,password);
+               String password = sc.nextLine();
+                Integer result=UserManager.CreateUser(username,password);
+               if(result==2){
+                        login=true;
+                        System.out.println("login successful! welcome "+username);
+
+               }else if(result==0){
+                       System.out.println("register failed ,please check !");
+
+                }else{
+                         System.out.println("you have already registered, please log in!");
+
+                }
+
+
+              // 在此实现注册逻辑
+
         }
+
+//        private void createDB(Matcher matcherCreateTable) {
+//                String tableName = matcherCreate.group(1);
+//                String propertys = matcherCreateTable.group(2);
+//                Map<String, Field> fieldMap = StringUtil.parseCreateTable(propertys);
+//                System.out.println(TableManager.CreateTable(tableName, fieldMap));
+//        }
+
+        private void dropDB(Matcher matcherDropTable) {
+                String tableName = matcherDropTable.group(1);
+//                System.out.println(TableManager.DropTable(tableName));
+        }
+
+        private void useDB(Matcher matcherDropTable) {
+                String tableName = matcherDropTable.group(1);
+//                System.out.println(Table.dropTable(tableName));
+        }
+
+
 }
 
 
-    }
+
 

@@ -6,6 +6,8 @@ public class Field {
     private boolean primaryKey;
     private boolean unique;
     private boolean notNUll;
+    private String Default;
+
 
     
     public String getName() {
@@ -40,11 +42,19 @@ public class Field {
         this.unique = unique;
     }
 
-    public boolean isNotNUll() {
-        return isNotNUll();
+    public boolean isNotnull() {
+        return notNUll;
     }
 
-    public void setNotNUll(boolean notNUll) {
+    public void setNotnull(boolean notNUll) {
         this.notNUll =notNUll;
+    }
+
+    public String getDefault() {
+        return Default;
+    }
+
+    public void setDefault(String aDefault) {
+        Default = aDefault;
     }
 }

@@ -6,7 +6,7 @@ import java.util.List;
 
 public class DatabaseManager {
 
-    protected static String currentDatabase;
+    private static String currentDatabase;
 
     public static String getCurrentDatabase(){
         return currentDatabase;
@@ -28,9 +28,10 @@ public class DatabaseManager {
     }
 
     public static void useDatabase(String dbName){
-        currentDatabase=dbName;
+        currentDatabase = dbName;
     }
 
+    // 未测试版
     public static List<String> showDatabases(String dbName){
         File folder =  new File("../TestData/");
         List<String> databases = new ArrayList<>();
@@ -49,6 +50,7 @@ public class DatabaseManager {
         return databases;
     }
 
+    // 未测试版
     public static void dropDatabase(String dbName){
         File folder = new File("../TestData"+dbName);
         if(!folder.exists()||!folder.isDirectory()){
