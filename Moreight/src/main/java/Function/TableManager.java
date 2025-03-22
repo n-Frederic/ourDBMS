@@ -5,11 +5,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.io.IOException;
 
 public class TableManager {
@@ -22,24 +21,32 @@ public class TableManager {
             final Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
             if (!Files.exists(schemaPath)) {
                 JsonObject schemaJson = new JsonObject();
+                JsonArray fieldsArray = new JsonArray();
                 for (Field field : args) {
-                    schemaJson.addProperty("name", field.getName());
-                    JsonArray constraints = getJsonElements(field);
-                    schemaJson.add("constraint", constraints);
+                    JsonObject fieldJson = new JsonObject();
+                    fieldJson.addProperty("fieldName", field.getName());
+                    JsonArray constraints = getConstraints(field);
+                    fieldJson.add("constraint", constraints);
+                    fieldsArray.add(fieldJson);
                 }
+
+                schemaJson.addProperty("table",table);
+                schemaJson.add("fields",fieldsArray);
 
                 try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
                     Gson gson = new Gson();
+//                    System.out.println(schemaJson);
                     gson.toJson(schemaJson, writer);
                     writer.flush();
                 }
+
             } else System.out.println("The table has existed.");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static JsonArray getJsonElements(Field field) {
+    private static JsonArray getConstraints(Field field) {
         JsonObject type = new JsonObject();
         JsonObject primaryKey = new JsonObject();
         JsonObject unique = new JsonObject();

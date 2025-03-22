@@ -21,7 +21,7 @@ public class Main {
         ArrayList<Field> fields = new ArrayList<>();
         fields.add(field1);
         fields.add(field2);
-        TableManager.CreateTable("testTable1",fields);
+        TableManager.CreateTable("testTable",fields);
 
         DatabaseManager.showDatabases();
 

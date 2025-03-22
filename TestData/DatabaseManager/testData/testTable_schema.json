@@ -1,0 +1,25 @@
+{
+    "table": "testTable",
+    "fields": [
+      {
+        "fieldName": "name",
+        "constraint": [
+          { "Type": "VARCHAR(8)" },
+          { "PRIMARY KEY": false },
+          { "UNIQUE": false },
+          { "NOT NULL": false },
+          { "Default": "" }
+        ]
+      }, 
+      {
+        "fieldName": "age",
+        "constraint": [
+          { "Type": "INT" },
+          { "PRIMARY KEY": false },
+          { "UNIQUE": false },
+          { "NOT NULL": false },
+          { "Default": "" }
+        ]
+      }
+    ]
+}
