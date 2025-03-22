@@ -34,17 +34,14 @@ public class Main {
 //        DatabaseManager.dropDatabase("ndb",2);
 
         // 插入记录的测试
-        DatabaseManager.useDatabase("testData");
-
-        ArrayList<String> columns = new ArrayList<>();
-        columns.add("name");
-        columns.add("age");
-
-        ArrayList<Object> values = new ArrayList<>();
-        values.add("Alice");
-        values.add(25);
-
-        Table.InsertIntoValue("testTable", columns, values);
+//        DatabaseManager.useDatabase("testData");
+//        ArrayList<String> columns = new ArrayList<>();
+//        columns.add("name");
+//        columns.add("age");
+//        ArrayList<Object> values = new ArrayList<>();
+//        values.add("Alice");
+//        values.add(25);
+//        Table.InsertIntoValue("testTable", columns, values);
 
     }
 
