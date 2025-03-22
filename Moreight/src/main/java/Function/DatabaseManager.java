@@ -28,7 +28,7 @@ public class DatabaseManager {
     }
 
     public static boolean useDatabase(String dbName){
-        File folder =  new File("../TestData/DatabaseManager" + dbName);
+        File folder =  new File("../TestData/DatabaseManager/" + dbName);
         if(!folder.exists()){
             return false;
         } else {

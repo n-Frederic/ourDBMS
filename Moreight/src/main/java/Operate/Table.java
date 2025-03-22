@@ -1,5 +1,7 @@
 package Operate;
 
+import Parser.Field;
+
 import java.util.ArrayList;
 
 public class Table {

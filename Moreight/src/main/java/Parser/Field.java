@@ -8,6 +8,16 @@ public class Field {
     private boolean notNUll;
     private String Default;
 
+    public Field(String name, String type) {
+        this.name = name;
+        this.type = type;
+        primaryKey = false;
+        unique = false;
+        notNUll = false;
+        notNUll = false;
+        Default = "";
+    }
+
 
     
     public String getName() {

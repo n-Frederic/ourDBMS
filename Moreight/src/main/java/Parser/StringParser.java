@@ -25,9 +25,9 @@ public class StringParser {
                 throw new IllegalArgumentException("Invalid field definition: " + line);
             }
 
-            Field field = new Field();
-            field.setName(matcher.group(1));  // 字段名
-            field.setType(matcher.group(2));  // 类型
+            Field field = new Field(matcher.group(1), matcher.group(2));
+//            field.setName(matcher.group(1));  // 字段名
+//            field.setType(matcher.group(2));  // 类型
 
             // 解析约束（组3）
             String constraints = matcher.group(3);
