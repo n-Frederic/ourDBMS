@@ -115,10 +115,6 @@ public class Table {
                         columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
                     }
                 }
-//                for(String col : columnNames) {
-//                    int width = columnWidths.get(col);
-//                    System.out.println(col + " : " + width + " ");
-//                }
 
                 Runnable printSeparator = () -> {
                     System.out.print("+");
@@ -134,7 +130,7 @@ public class Table {
                     for (String col : columnNames) {
                         String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
                         int width = columnWidths.get(col);
-                        System.out.print(" " + padRight(val, width) + " |"); // 手动拼接
+                        System.out.print(" " + padRight(val, width) + " |");
                     }
                     System.out.println();
                 };
