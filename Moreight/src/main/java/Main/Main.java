@@ -15,15 +15,19 @@ public class Main {
 //       operating.dbms();
 
         // 建库建表的测试
-//        DatabaseManager.createDataBase("testDB");
-//        DatabaseManager.useDatabase("testData");
-//        Field field1 = new Field("name", "VARCHAR(8)");
-//        Field field2 = new Field("age", "INT");
+//        DatabaseManager.createDataBase("20250324testDB");
+//        DatabaseManager.useDatabase("20250324testDB");
+//        Field field = new Field("Sno","VARCHAR(8)");
+//        Field field1 = new Field("Sname", "VARCHAR(8)");
+//        Field field2 = new Field("Ssex","VARCHAR(4)");
+//        Field field3 = new Field("Sbirthday", "VARCHAR(10)");
 //        ArrayList<Field> fields = new ArrayList<>();
+//        fields.add(field);
 //        fields.add(field1);
 //        fields.add(field2);
-//        TableManager.CreateTable("testTable",fields);
-//
+//        fields.add(field3);
+//        TableManager.CreateTable("student",fields);
+
 //        DatabaseManager.showDatabases();
 
         // 删库显示库的测试
@@ -34,15 +38,30 @@ public class Main {
 //        DatabaseManager.dropDatabase("ndb",2);
 
         // 插入记录的测试
-//        DatabaseManager.useDatabase("testData");
+//        DatabaseManager.useDatabase("20250324testDB");
 //        ArrayList<String> columns = new ArrayList<>();
-//        columns.add("name");
-//        columns.add("age");
-//        ArrayList<Object> values = new ArrayList<>();
-//        values.add("Alice");
-//        values.add(25);
-//        Table.InsertIntoValue("testTable", columns, values);
+//        columns.add("Sno");
+//        columns.add("Sname");
+//        columns.add("Ssex");
+//        columns.add("Sbirthday");
+//        ArrayList<Object> value = new ArrayList<>();
+//        value.add("23301116");
+//        value.add("周学超");
+//        value.add("男");
+//        value.add("2005-01-16");
+//        ArrayList<Object> value1 = new ArrayList<>();
+//        value1.add("23301111");
+//        value1.add("未知");
+//        value1.add("女");
+//        value1.add("");
+//        Table.InsertIntoValue("student", columns, value);
+//        Table.InsertIntoValue("student",columns,value1);
 
+        DatabaseManager.useDatabase("20250324testDB");
+        Table.SelectFromTable("student");
+
+//        System.out.println("中文");
+//        System.out.println("yeye");
     }
 
 }
