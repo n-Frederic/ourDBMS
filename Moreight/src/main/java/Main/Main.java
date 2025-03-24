@@ -57,8 +57,15 @@ public class Main {
 //        Table.InsertIntoValue("student", columns, value);
 //        Table.InsertIntoValue("student",columns,value1);
 
+        // 测试select
         DatabaseManager.useDatabase("20250324testDB");
-        Table.SelectFromTable("student");
+//        Table.SelectFromTable("student");
+        ArrayList<String> columns = new ArrayList<>();
+        columns.add("Ssex");
+        ArrayList<Object> values = new ArrayList<>();
+        values.add("男");
+        Table.SelectFromTable("student",columns,values);
+
 
 //        System.out.println("中文");
 //        System.out.println("yeye");
