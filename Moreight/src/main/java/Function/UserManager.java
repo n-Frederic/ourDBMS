@@ -8,6 +8,19 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+
+
+import com.google.gson.JsonParseException;
+
+import com.google.gson.stream.JsonReader;
+
 
 public class UserManager {
     protected static User currentUser;
@@ -70,14 +83,28 @@ public class UserManager {
     // 0是存在其他错误 1是没找到该用户 2是密码错误 3是用户，密码都匹配的上
     public static int checkUserExists(String userName, String password) {
         File file = new File("../TestData/UserManager/UserManager.json");
-        try (FileReader reader = new FileReader(file)) {
-            JsonArray userArray = JsonParser.parseReader(reader).getAsJsonArray();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+
+            // 处理可能的 BOM
+            String jsonString = sb.toString().replace("\uFEFF", "");
+            System.out.println("读取到的 JSON：" + jsonString);
+
+            JsonReader jsonReader = new JsonReader(new StringReader(jsonString));
+            JsonArray userArray = JsonParser.parseReader(jsonReader).getAsJsonArray();
+
             return checkUserExists(userArray, userName, password);
-        } catch (IOException e) {
+        } catch (IOException | JsonParseException e) {
             e.printStackTrace();
         }
         return 0;
     }
+
+
 
     private static int checkUserExists(JsonArray userArray, String userName, String password) {
         for (int i = 0; i < userArray.size(); i++) {
@@ -93,6 +120,5 @@ public class UserManager {
         }
         return 1;
     }
-
 
 }

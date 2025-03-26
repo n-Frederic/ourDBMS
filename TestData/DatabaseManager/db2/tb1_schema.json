@@ -1,0 +1,1 @@
+{"table":"tb1","fields":[{"fieldName":"int","constraint":[{"Type":"age"},{"PRIMARY KEY":false},{"UNIQUE":false},{"NOT NULL":false},{"Default":""}]},{"fieldName":"string","constraint":[{"Type":"name"},{"PRIMARY KEY":false},{"UNIQUE":false},{"NOT NULL":false},{"Default":""}]}]}

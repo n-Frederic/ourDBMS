@@ -7,6 +7,9 @@ import java.util.regex.Pattern;
 
 public class StringParser {
 
+    static Set<String> validTypes = Set.of("int", "string", "float", "boolean");
+
+
     public static ArrayList<Field> parseCreateTable(String fieldsStr) {//！！！！
         String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
         ArrayList<Field>fieldList = new ArrayList<>();
@@ -28,6 +31,11 @@ public class StringParser {
             Field field = new Field(matcher.group(1), matcher.group(2));
 //            field.setName(matcher.group(1));  // 字段名
 //            field.setType(matcher.group(2));  // 类型
+            if (!validTypes.contains(field.getType())){
+                System.out.println("类型不合法");
+                return null;
+            }
+
 
             // 解析约束（组3）
             String constraints = matcher.group(3);

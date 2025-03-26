@@ -11,6 +11,8 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
 public class Operating {
 
         private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)(\\(((\\w+,?)+)\\))?\\s+\\w+\\((([^\\)]+,?)+)\\);?");
@@ -67,6 +69,7 @@ public class Operating {
                                 matched = true;
                                 String dbName = matcherCreateDB.group(1);
                                 System.out.println("创建数据库: " + dbName);
+
                                 DatabaseManager.createDataBase(dbName);
                                 // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
                                 continue;
@@ -126,6 +129,9 @@ public class Operating {
                                         System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
                                 }
 
+                                if(fieldList.isEmpty()){
+                                       continue;
+                                }
                                 TableManager.CreateTable(tableName, fieldList);
                         }
                         else if (matcherDropTable.find()) {
@@ -325,6 +331,22 @@ public class Operating {
                 String tableName = matcherDropTable.group(1);
 //                System.out.println(Table.dropTable(tableName));
         }
+        public static boolean checkType(JsonElement value, String expectedType) {
+                switch (expectedType.toLowerCase()) {
+                        case "int":
+                                return value.isJsonPrimitive() && ((JsonPrimitive) value).isNumber() &&
+                                        value.getAsJsonPrimitive().getAsString().matches("-?\\d+");
+                        case "float":
+                                return value.isJsonPrimitive() && ((JsonPrimitive) value).isNumber();
+                        case "string":
+                                return value.isJsonPrimitive() && ((JsonPrimitive) value).isString();
+                        case "boolean":
+                                return value.isJsonPrimitive() && ((JsonPrimitive) value).isBoolean();
+                        default:
+                                return false;
+                }
+        }
+
 
 
 
