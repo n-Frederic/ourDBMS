@@ -43,7 +43,7 @@ public class Operating {
 
                         String choice = sc.nextLine();
                         if ("1".equals(choice)) {
-                               login();
+                                login();
                         } else if ("2".equals(choice)) {
                                 register();
                         } else {
@@ -75,7 +75,7 @@ public class Operating {
 
                                 matched = true;
                                 String dbName = matcherUserDB.group(1);
-                                System.out.println("使用数据库: " + dbName);
+                                //System.out.println("使用数据库: " + dbName);
                                 boolean dbexist=false;
                                 dbexist=DatabaseManager.useDatabase(dbName);
                                 if(dbexist){
@@ -96,9 +96,7 @@ public class Operating {
                                 DatabaseManager.dropDatabase(dbName,UserManager.GetCurrentUser().getLevel());
                                 // 执行删除逻辑
                                 continue;
-                        }
-
-                        if(!matched){
+                        }else if(!matched){
                                 System.out.println("无效命令，请重新输入。");
                                 continue;
                         }
@@ -108,25 +106,32 @@ public class Operating {
                 }
                 while (!"exit".equals(cmd = sc.nextLine())) {
 
+
                         boolean matched = false;  // 标记是否匹配成功
                         Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(cmd);
                         Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
 
-                       if(matcherCreateTable.find()){
+                        if (matcherCreateTable.find()) {
+                                matched = true;
 
-                                matched=true;
-                                String tableName=matcherDropTable.group(1);
-                                Map<String, Field> fieldMap=StringParser.parseCreateTable(matcherCreateTable.group(2));
-                                System.out.println("创建表"+tableName);
-                                //TableManager.CreateTable(tableName,convertFieldMapToArgs(fieldMap));
+                                // ✅ 取出表名
+                                String tableName = matcherCreateTable.group(1);
 
+                                // ✅ 取出字段定义并解析
+                                String fieldsStr = matcherCreateTable.group(2);
+                                ArrayList<Field> fieldList = StringParser.parseCreateTable(fieldsStr);
+
+                                System.out.println("创建表: " + tableName);
+                                for (Field f : fieldList) {
+                                        System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
+                                }
+
+                                TableManager.CreateTable(tableName, fieldList);
                         }
-                        else if(matcherDropTable.find()){
-
-                                matched=true;
-                                String tableName=matcherDropTable.group(1);
-                                System.out.println("删除表"+tableName);
-                                TableManager.DropTable(tableName,UserManager.GetCurrentUser().getLevel());
+                        else if (matcherDropTable.find()) {
+                                matched = true;
+                                String tableName = matcherDropTable.group(1);
+                                TableManager.DropTable(tableName,2);
                         }
 
                         if(!matched){
@@ -283,24 +288,24 @@ public class Operating {
 
         private  void register()  {
                 System.out.print("设置用户名：");
-               String username = sc.nextLine();
+                String username = sc.nextLine();
                 System.out.print("设置密码：");
-               String password = sc.nextLine();
+                String password = sc.nextLine();
                 Integer result=UserManager.CreateUser(username,password);
-               if(result==2){
+                if(result==2){
                         login=true;
                         System.out.println("login successful! welcome "+username);
 
-               }else if(result==0){
-                       System.out.println("register failed ,please check !");
+                }else if(result==0){
+                        System.out.println("register failed ,please check !");
 
                 }else{
-                         System.out.println("you have already registered, please log in!");
+                        System.out.println("you have already registered, please log in!");
 
                 }
 
 
-              // 在此实现注册逻辑
+                // 在此实现注册逻辑
 
         }
 
@@ -320,15 +325,7 @@ public class Operating {
                 String tableName = matcherDropTable.group(1);
 //                System.out.println(Table.dropTable(tableName));
         }
-        public static ArrayList<String[]> convertFieldMapToArgs(Map<String, Field> fieldMap) {
-                ArrayList<String[]> args = new ArrayList<>();
-                for (Map.Entry<String, Field> entry : fieldMap.entrySet()) {
-                        String fieldName = entry.getKey();
-                        String fieldType = entry.getValue().getType();
-                        args.add(new String[]{fieldName, fieldType});
-                }
-                return args;
-        }
+
 
 
 }

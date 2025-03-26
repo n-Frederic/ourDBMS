@@ -7,16 +7,15 @@ import java.util.regex.Pattern;
 
 public class StringParser {
 
-    public static Map<String, Field> parseCreateTable(String fieldsStr) {
+    public static ArrayList<Field> parseCreateTable(String fieldsStr) {//！！！！
         String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
-        Map<String, Field> fieldMap = new LinkedHashMap<>();
+        ArrayList<Field>fieldList = new ArrayList<>();
         //解析字段为3组
         Pattern fieldPattern = Pattern.compile(
                 "(\\w+)\\s+" +
                         "([^\\s]+(?:\\([^)]+\\))?)" +
                         "(?:\\s+(.*))?"
         );//分123组
-        //遍历行存入字段
         for(String line:lines){
             line=line.trim();
 
@@ -27,7 +26,8 @@ public class StringParser {
             }
 
             Field field = new Field(matcher.group(1), matcher.group(2));
-
+//            field.setName(matcher.group(1));  // 字段名
+//            field.setType(matcher.group(2));  // 类型
 
             // 解析约束（组3）
             String constraints = matcher.group(3);
@@ -42,10 +42,11 @@ public class StringParser {
                     field.setDefault(defaultValue);
                 }
             }
-            fieldMap.put(field.getName(), field);
+            fieldList.add(field);
         }
-        return fieldMap;
+        return fieldList;
     }
+
 
 
     public static Map<String,String> parseUpdateSet(String Str){

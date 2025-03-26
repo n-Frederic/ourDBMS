@@ -37,14 +37,14 @@ public class Table {
                 String column = columns.get(i);
                 Object value = values.get(i);
 
-                switch (value) {
-                    case String s -> newRow.addProperty(column, s);
-                    case Integer integer -> newRow.addProperty(column, integer);
-                    case Double v -> newRow.addProperty(column, v);
-                    case Boolean b -> newRow.addProperty(column, b);
-                    case null, default ->
-                            throw new IllegalArgumentException("Unsupported value type: " + value.getClass());
-                }
+//                switch (value) {
+//                    case String s -> newRow.addProperty(column, s);
+//                    case Integer integer -> newRow.addProperty(column, integer);
+//                    case Double v -> newRow.addProperty(column, v);
+//                    case Boolean b -> newRow.addProperty(column, b);
+//                    case null, default ->
+//                            throw new IllegalArgumentException("Unsupported value type: " + value.getClass());
+//                }
             }
 
             dataArray.add(newRow);
