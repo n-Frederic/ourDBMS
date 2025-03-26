@@ -14,7 +14,6 @@ public class Field {
         primaryKey = false;
         unique = false;
         notNUll = false;
-        notNUll = false;
         Default = "";
     }
 

@@ -16,6 +16,7 @@ public class StringParser {
                         "([^\\s]+(?:\\([^)]+\\))?)" +
                         "(?:\\s+(.*))?"
         );//分123组
+        //遍历行存入字段
         for(String line:lines){
             line=line.trim();
 
@@ -26,8 +27,7 @@ public class StringParser {
             }
 
             Field field = new Field(matcher.group(1), matcher.group(2));
-//            field.setName(matcher.group(1));  // 字段名
-//            field.setType(matcher.group(2));  // 类型
+
 
             // 解析约束（组3）
             String constraints = matcher.group(3);
@@ -48,9 +48,27 @@ public class StringParser {
     }
 
 
+    public static Map<String,String> parseUpdateSet(String Str){
+        String[] line=Str.trim().split("\\s*,\\s*");
+        Map<String, String> fieldMap = new LinkedHashMap<>();
 
-    public static Map<String,Field> parseUpdateSet(String fieldsStr){
-        Map<String, Field> fieldMap = new LinkedHashMap<>();
+        //解析字段为3组
+        Pattern fieldPattern = Pattern.compile(
+                "(\\w+)\\s+" +
+                        "([^\\s]+(?:\\([^)]+\\))?)" +
+                        "(?:\\s+(.*))?"
+        );//分123组
+
+        for (String setStr : line) {
+            //修改了正则规则，需要末尾加;或空格才能匹配
+            Matcher relMatcher = fieldPattern.matcher(setStr + ";");
+            relMatcher.find();
+            //将组1做为key，组3作为value
+            fieldMap.put(relMatcher.group(1), relMatcher.group(3));
+        }
+
+
+
         return fieldMap;
     }
 
@@ -59,13 +77,79 @@ public class StringParser {
         return joinConditionList;
     }
 
+
+    /**
+     * SQL WHERE 多表子句字符串
+     *"users.id = 1 AND orders.user_id = 1 AND users.age > 20"
+     *@return 一个包含多个 Map 的列表，每个 Map 表示一个条件，包含三个键值对：
+     *       - "fieldName": 列名，例如 "column1"
+     *       - "relationshipName": 关系运算符，例如 "="、">" 等
+     *       - "condition": 数值条件，例如 "value1"
+     */
     public static List<Map<String, String>> parseWhere(String str, String tableName, Map<String, Field> fieldMap){
         List<Map<String, String>> filtList = new LinkedList<>();
+        if (null == str) {
+            return filtList;
+        }
+
+        Pattern fieldPattern = Pattern.compile(
+                "(\\w+)\\s+" +
+                        "([^\\s]+(?:\\([^)]+\\))?)" +
+                        "(?:\\s+(.*))?"
+        );//分123组
+        Matcher singleMatcher = fieldPattern.matcher(str);
+        while (singleMatcher.find()) {
+            String fieldName = singleMatcher.group(1);
+            //如果包含table.id这样的型式，将table名进行匹配，如果不匹配则跳过
+            if (fieldName.contains(".")) {
+                String[] field = fieldName.split("\\.");
+                //如果不匹配就跳过
+                if (!tableName.equals(field[0])) {
+                    continue;
+                } else {
+                    //匹配
+                    fieldName = field[1];
+                }
+            }
+            Field field = fieldMap.get(fieldName);
+            if (null != field) {
+                Map<String, String> filtMap = new LinkedHashMap<>();
+                filtMap.put("fieldName", fieldName);
+                filtMap.put("relationshipName", singleMatcher.group(2));
+                filtMap.put("condition", singleMatcher.group(3));
+
+                filtList.add(filtMap);
+            }
+        }
         return filtList;
     }
 
+    /**
+     * SQL WHERE 子句字符串
+     * "age > 20 AND salary = 5000"
+     * @return 一个包含多个 Map 的列表，每个 Map 表示一个条件，包含三个键值对：
+     *          - "fieldName": 列名，例如 "column1"
+     *          - "relationshipName": 关系运算符，例如 "="、">" 等
+     *          - "condition": 数值条件，例如 "value1"
+     */
     public static List<Map<String, String>> parseWhere(String str){
         List<Map<String, String>> filtList = new LinkedList<>();
+        //解析字段为3组
+        Pattern fieldPattern = Pattern.compile(
+                "(\\w+)\\s+" +
+                        "([^\\s]+(?:\\([^)]+\\))?)" +
+                        "(?:\\s+(.*))?"
+        );//分123组
+        Matcher singleMatcher = fieldPattern.matcher(str + ";");
+        while (singleMatcher.find()) {
+            Map<String, String> filtMap = new LinkedHashMap<>();
+
+            filtMap.put("fieldName", singleMatcher.group(1));
+            filtMap.put("relationshipName", singleMatcher.group(2));
+            filtMap.put("condition", singleMatcher.group(3));
+
+            filtList.add(filtMap);
+        }
         return filtList;
     }
 
