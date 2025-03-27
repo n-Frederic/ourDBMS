@@ -15,7 +15,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 public class Operating {
 
-        private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)(\\(((\\w+,?)+)\\))?\\s+\\w+\\((([^\\)]+,?)+)\\);?");
+        private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)\\s*\\(([^\\)]+)\\)\\s*values\\s*\\(([^\\)]+)\\);?");
+
         private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile("(?i)create\\s+table\\s(\\w+)\\s?\\(((?:\\s?\\w+\\s\\w+,?)+)\\)\\s?;");
         private static final Pattern PATTERN_ALTER_TABLE_ADD = Pattern.compile("(?i)alter\\s+table\\s(\\w+)\\s+add\\s(\\w+\\s\\w+)\\s?;");
         private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\s+and\\s+(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
@@ -159,7 +160,7 @@ public class Operating {
                         }else if(matcherSelectTable.find()){
                                 System.out.println("select");
                                 matched=true;
-                                System.out.println(matcherSelectTable.group(1));//rows
+//                                select(matcherSelectTable);
                                 String tableName=matcherSelectTable.group(2);
                                 //List<String> nameList=StringParser.parseFrom(matcherSelectTable.group(2));//选择多个表
                                 System.out.println(matcherSelectTable.group(2));//after from
@@ -169,9 +170,7 @@ public class Operating {
                         }else if(matcherInsertTable.find()){
                                 System.out.println("insert");
                                 matched=true;
-                                System.out.println(matcherInsertTable.group(1));
-                                System.out.println(matcherInsertTable.group(2));
-                                System.out.println(matcherInsertTable.group(3));
+                                insert(matcherInsertTable);
                                 continue;
 
                         }
@@ -268,6 +267,180 @@ public class Operating {
                                 return false;
                 }
         }
+
+//        private void select(Matcher matcherSelect) {
+//                //将读到的所有数据放到tableDatasMap中
+//                Map<String, List<Map<String, String>>> tableDatasMap = new LinkedHashMap<>();
+//
+//                //将投影放在Map<String,List<String>> projectionMap中
+//                Map<String, List<String>> projectionMap = new LinkedHashMap<>();
+//
+//
+//                List<String> tableNames = StringParser.parseFrom(matcherSelect.group(2));
+//
+//                String whereStr = matcherSelect.group(3);
+//
+//                //将tableName和table.fieldMap放入
+//                Map<String, Map<String, Field>> fieldMaps = new HashMap();
+//
+//                for (String tableName : tableNames) {
+//                        Table table = Table.getTable(tableName);
+//                        if (null == table) {
+//                                System.out.println("未找到表：" + tableName);
+//                                return;
+//                        }
+//                        Map<String, Field> fieldMap = table.getFieldMap();
+//                        fieldMaps.put(tableName, fieldMap);
+//
+//                        //解析选择
+//                        List<SingleFilter> singleFilters = new ArrayList<>();
+//
+//                        List<Map<String, String>> filtList =StringParser.parseWhere(matcherSelect.group(3));
+//                        for (Map<String, String> filtMap : filtList) {
+//                                SingleFilter singleFilter = new SingleFilter(fieldMap.get(filtMap.get("fieldName"))
+//                                        , filtMap.get("relationshipName"), filtMap.get("condition"));
+//
+//                                singleFilters.add(singleFilter);
+//                        }
+//
+//                        //解析最终投影
+//                        List<String> projections = StringUtil.parseProjection(matcherSelect.group(1), tableName, fieldMap);
+//                        projectionMap.put(tableName, projections);
+//
+//
+//                        //读取数据并进行选择操作
+//                        List<Map<String, String>> srcDatas = table.read(singleFilters);
+//                        List<Map<String, String>> datas = associatedTableName(tableName, srcDatas);
+//
+//                        tableDatasMap.put(tableName, datas);
+//                }
+//
+//
+////                //解析连接条件，并创建连接对象jion
+////                List<Map<String, String>> joinConditionMapList = StringUtil.parseWhere_join(whereStr, fieldMaps);
+////                List<JoinCondition> joinConditionList = new LinkedList<>();
+////                for (Map<String, String> joinMap : joinConditionMapList) {
+////                        String tableName1 = joinMap.get("tableName1");
+////                        String tableName2 = joinMap.get("tableName2");
+////                        String fieldName1 = joinMap.get("field1");
+////                        String fieldName2 = joinMap.get("field2");
+////                        Field field1 = fieldMaps.get(tableName1).get(fieldName1);
+////                        Field field2 = fieldMaps.get(tableName2).get(fieldName2);
+////                        String relationshipName = joinMap.get("relationshipName");
+////                        JoinCondition joinCondition = new JoinCondition(tableName1, tableName2, field1, field2, relationshipName);
+////
+////                        joinConditionList.add(joinCondition);
+////
+////                        //将连接条件的字段加入投影中
+////                        projectionMap.get(tableName1).add(fieldName1);
+////                        projectionMap.get(tableName2).add(fieldName2);
+////                }
+////
+////                List<Map<String, String>> resultDatas = Join.joinData(tableDatasMap, joinConditionList, projectionMap);
+////                //System.out.println(resultDatas);
+//
+//                //将需要显示的字段名按table.filed的型式存入dataNameList
+//                List<String> dataNameList = new LinkedList<>();
+//                for (Map.Entry<String, List<String>> projectionEntry : projectionMap.entrySet()) {
+//                        String projectionKey = projectionEntry.getKey();
+//                        List<String> projectionValues = projectionEntry.getValue();
+//                        for (String projectionValue : projectionValues) {
+//                                dataNameList.add(projectionKey + "." + projectionValue);
+//                        }
+//
+//                }
+//
+//                //计算名字长度，用来对齐数据
+//                int[] lengh = new int[dataNameList.size()];
+//                Iterator<String> dataNames = dataNameList.iterator();
+//                for (int i = 0; i < dataNameList.size(); i++) {
+//                        String dataName = dataNames.next();
+//                        lengh[i] = dataName.length();
+//                        System.out.printf("|%s", dataName);
+//                }
+//
+//                System.out.println("|");
+//                for (int ls : lengh) {
+//                        for (int l = 0; l <= ls; l++) {
+//                                System.out.printf("-");
+//                        }
+//                }
+//                System.out.println("|");
+//
+//                for (Map<String, String> line : resultDatas) {
+//                        Iterator<String> valueIter = line.values().iterator();
+//                        for (int i = 0; i < lengh.length; i++) {
+//                                String value = valueIter.next();
+//                                System.out.printf("|%s", value);
+//                                for (int j = 0; j < lengh[i] - value.length(); j++) {
+//                                        System.out.printf(" ");
+//                                }
+//                        }
+//                        System.out.println("|");
+//                }
+//        }
+
+        private void insert(Matcher matcherInsert) {
+                String tableName = matcherInsert.group(1);
+                ArrayList<String>columns=new ArrayList<>();
+                ArrayList<Object> values=new ArrayList<>();
+
+
+
+                //columns=StringParser.parse
+
+//                if (null == table) {
+//                        System.out.println("未找到表：" + tableName);
+//                        return;
+//                }
+
+                String columnsStr = matcherInsert.group(2);
+                String valuesStr = matcherInsert.group(3);
+
+                columns=StringParser.parseInsertColumn(columnsStr);
+                values=StringParser.parseInsertValue(valuesStr);
+
+
+                System.out.println("Table: " + tableName);
+                System.out.println("Columns: " + columns);
+                System.out.println("Values: " + values);
+
+                Table.InsertIntoValue(tableName,columns,values);
+
+//                Map dictMap = table.getFieldMap();
+//                Map<String, String> data = new HashMap<>();
+//
+//                String[] fieldValues = matcherInsert.group(5).trim().split(",");
+//                //如果插入指定的字段
+//                if (null != matcherInsert.group(2)) {
+//                        String[] fieldNames = matcherInsert.group(3).trim().split(",");
+//                        //如果insert的名值数量不相等，错误
+//                        if (fieldNames.length != fieldValues.length) {
+//                                return;
+//                        }
+//                        for (int i = 0; i < fieldNames.length; i++) {
+//                                String fieldName = fieldNames[i].trim();
+//                                String fieldValue = fieldValues[i].trim();
+//                                //如果在数据字典中未发现这个字段，返回错误
+//                                if (!dictMap.containsKey(fieldName)) {
+//                                        return;
+//                                }
+//                                data.put(fieldName, fieldValue);
+//                        }
+//                } else {//否则插入全部字段
+//                        Set<String> fieldNames = dictMap.keySet();
+//                        int i = 0;
+//                        for (String fieldName : fieldNames) {
+//                                String fieldValue = fieldValues[i].trim();
+//
+//                                data.put(fieldName, fieldValue);
+//
+//                                i++;
+//                        }
+//                }
+//                table.insert(data);
+        }
+
 
 
 
