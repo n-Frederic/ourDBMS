@@ -17,25 +17,44 @@ public class Table {
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
 
-
     public static void InsertIntoValue(String table, ArrayList<String> columns, ArrayList<Object> values) {
         try {
-            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table+"_data.json");
+            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
             JsonArray dataArray;
 
-            if(Files.exists(dataPath)) {
+            if (Files.exists(dataPath)) {
                 try (FileReader reader = new FileReader(dataPath.toFile())) {
                     Gson gson = new Gson();
-                    dataArray = gson.fromJson(reader,JsonArray.class);
+                    dataArray = gson.fromJson(reader, JsonArray.class);
                 }
             } else {
                 dataArray = new JsonArray();
+            }
+
+            Schema schema = Schema.loadSchema(DatabaseManager.getCurrentDatabase(), table);
+            if (schema == null) {
+                throw new RuntimeException("Schema not found for table: " + table);
             }
 
             JsonObject newRow = new JsonObject();
             for (int i = 0; i < columns.size(); i++) {
                 String column = columns.get(i);
                 Object value = values.get(i);
+
+                Schema.ColumnRule columnRule = schema.getColumn(column);
+                // 校验值的类型(正在试，还在改)
+                String expectedType = columnRule.getType();
+                if(!isValidType(value,expectedType)){
+                    throw new IllegalArgumentException("Invalid data type for column " + column);
+                }
+
+                newRow.addProperty(column,value.toString());
+            }
+
+
+//            for (int i = 0; i < columns.size(); i++) {
+//                String column = columns.get(i);
+//                Object value = values.get(i);
 
 //                switch (value) {
 //                    case String s -> newRow.addProperty(column, s);
@@ -45,7 +64,7 @@ public class Table {
 //                    case null, default ->
 //                            throw new IllegalArgumentException("Unsupported value type: " + value.getClass());
 //                }
-            }
+//            }
 
             dataArray.add(newRow);
 
@@ -59,10 +78,25 @@ public class Table {
         }
     }
 
+    private static boolean isValidType(Object value, String expectedType) {
+        if (value == null) {
+            return !expectedType.equals("String"); // 根据需要的类型判断是否允许 null
+        }
 
-
-
-
+        switch (expectedType) {
+            case "String":
+                return value instanceof String;
+            case "Integer":
+                return value instanceof Integer;
+            case "Double":
+                return value instanceof Double;
+            case "Boolean":
+                return value instanceof Boolean;
+            // 后续可以添加更多类型
+            default:
+                return false;
+        }
+    }
 
 
     private static boolean isWideChar(char c) {
@@ -102,18 +136,18 @@ public class Table {
         Set<String> columnNames = new LinkedHashSet<>();
         Map<String, Integer> columnWidths = new LinkedHashMap<>();
         try {
-            Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table+"_schema.json");
-            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table+"_data.json");
+            Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
+            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
 
             try (FileReader reader = new FileReader(dataPath.toFile())) {
                 JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
 
-                for(var rowElement : data) {
+                for (var rowElement : data) {
                     JsonObject row = rowElement.getAsJsonObject();
                     columnNames.addAll(row.keySet());
                 }
 
-                for(String column : columnNames) {
+                for (String column : columnNames) {
                     columnWidths.put(column, column.length());
                 }
                 for (var rowElement : data) {
@@ -256,8 +290,6 @@ public class Table {
             e.printStackTrace();
         }
     }
-
-
 
 
 }
