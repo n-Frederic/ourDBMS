@@ -20,7 +20,8 @@ public class Operating {
         private static final Pattern PATTERN_ALTER_TABLE_ADD = Pattern.compile("(?i)alter\\s+table\\s(\\w+)\\s+add\\s(\\w+\\s\\w+)\\s?;");
         private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\s+and\\s+(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
         private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)update\\s(\\w+)\\s+set\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\s+where\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\s+and\\s+(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
-        private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("(?i)drop\\s+table\\s(\\w+);");
+        private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("(?i)drop\\s+table\\s+(\\w+)\\s*;?");
+
         private static final Pattern PATTERN_SELECT = Pattern.compile("(?i)select\\s(\\*|(?:(?:\\w+(?:\\.\\w+)?)+(?:\\s?,\\s?\\w+(?:\\.\\w+)?)*))\\s+from\\s(\\w+(?:\\s?,\\s?\\w+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
         private static final Pattern PATTERN_DELETE_INDEX = Pattern.compile("(?i)delete\\s+index\\s(\\w+)\\s?;");
         private static final Pattern PATTERN_GRANT_ADMIN = Pattern.compile("(?i)grant\\s+admin\\s+to\\s([^;\\s]+)\\s?;");
@@ -84,6 +85,9 @@ public class Operating {
                                 if(dbexist){
                                         enter_database = true;
                                         System.out.println("使用数据库: " + dbName);
+                                        break;
+                                }else{
+                                        System.out.println("数据库不存在");
                                 }
                                 // 设置 enter_database = true，表示已进入数据库
 
@@ -107,14 +111,19 @@ public class Operating {
 
 
                 }
+                System.out.println("请输入sql语句");
                 while (!"exit".equals(cmd = sc.nextLine())) {
 
 
                         boolean matched = false;  // 标记是否匹配成功
                         Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(cmd);
                         Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
+                        Matcher matcherSelectTable = PATTERN_SELECT.matcher(cmd);
+                        Matcher matcherInsertTable = PATTERN_INSERT.matcher(cmd);
+
 
                         if (matcherCreateTable.find()) {
+                                System.out.println("create");
                                 matched = true;
 
                                 // ✅ 取出表名
@@ -124,150 +133,61 @@ public class Operating {
                                 String fieldsStr = matcherCreateTable.group(2);
                                 ArrayList<Field> fieldList = StringParser.parseCreateTable(fieldsStr);
 
-                                System.out.println("创建表: " + tableName);
-                                for (Field f : fieldList) {
-                                        System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
-                                }
 
-                                if(fieldList.isEmpty()){
-                                       continue;
+
+                                if(fieldList==null){
+
+
+                                }else{
+                                        System.out.println("创建表: " + tableName);
+                                        for (Field f : fieldList) {
+                                                System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
+                                        }
+                                        TableManager.CreateTable(tableName, fieldList);
                                 }
-                                TableManager.CreateTable(tableName, fieldList);
+                                continue;
+
                         }
                         else if (matcherDropTable.find()) {
+                                System.out.println("drop");
                                 matched = true;
-                                String tableName = matcherDropTable.group(1);
-                                TableManager.DropTable(tableName,2);
+                                String tableName = matcherDropTable.group(1);  //
+                                System.out.println("删除表: " + tableName);     //
+                                TableManager.DropTable(tableName, 2);
+                                continue;
+
+                        }else if(matcherSelectTable.find()){
+                                System.out.println("select");
+                                matched=true;
+                                System.out.println(matcherSelectTable.group(1));//rows
+                                String tableName=matcherSelectTable.group(2);
+                                //List<String> nameList=StringParser.parseFrom(matcherSelectTable.group(2));//选择多个表
+                                System.out.println(matcherSelectTable.group(2));//after from
+                                StringParser.parseWhere(matcherSelectTable.group(3));
+                                System.out.println(matcherSelectTable.group(3));//where
+                                continue;
+                        }else if(matcherInsertTable.find()){
+                                System.out.println("insert");
+                                matched=true;
+                                System.out.println(matcherInsertTable.group(1));
+                                System.out.println(matcherInsertTable.group(2));
+                                System.out.println(matcherInsertTable.group(3));
+                                continue;
+
                         }
 
-                        if(!matched){
-
-                                System.out.println("无效命令，请重新输入。");
+                        if (!matched) {
+                                System.out.println("错误输入: " + cmd);  // 调试输出，查看具体输入的命令
+                                continue;
                         }
+
+                        System.out.println("matched?"+matched);
 
                 }
 
 
 
-                /*
-                //默认进入user1用户文件夹
-                File userFolder = new File("dir", UserManager.getName());
 
-                //默认进入user1的默认数据库db1
-                File dbFolder = new File(userFolder, "db1");
-
-
-                Table.init(user.getName(), dbFolder.getName());
-
-
-                Scanner sc = new Scanner(System.in);
-                String cmd;
-                while (!"exit".equals(cmd = sc.nextLine())) {
-                        Matcher matcherGrantAdmin = PATTERN_GRANT_ADMIN.matcher(cmd);
-                        Matcher matcherRevokeAdmin = PATTERN_REVOKE_ADMIN.matcher(cmd);
-                        Matcher matcherInsert = PATTERN_INSERT.matcher(cmd);
-                        Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(cmd);
-                        Matcher matcherAlterTable_add = PATTERN_ALTER_TABLE_ADD.matcher(cmd);
-                        Matcher matcherDelete = PATTERN_DELETE.matcher(cmd);
-                        Matcher matcherUpdate = PATTERN_UPDATE.matcher(cmd);
-                        Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
-                        Matcher matcherSelect = PATTERN_SELECT.matcher(cmd);
-                        Matcher matcherDeleteIndex = PATTERN_DELETE_INDEX.matcher(cmd);
-
-                        while (matcherGrantAdmin.find()) {
-                                User grantUser = User.getUser(matcherGrantAdmin.group(1));
-                                if (null == grantUser) {
-                                        System.out.println("授权失败！");
-                                } else if (user.getName().equals(grantUser.getName())) {
-                                        //如果是当前操作的用户，就直接更改当前用户权限
-                                        user.grant(User.ADMIN);
-                                        System.out.println("用户:" + user.getName() + "授权成功！");
-                                } else {
-                                        grantUser.grant(User.ADMIN);
-                                        System.out.println("用户:" + grantUser.getName() + "授权成功!");
-                                }
-                        }
-
-                        while (matcherRevokeAdmin.find()) {
-                                User revokeUser = User.getUser(matcherRevokeAdmin.group(1));
-                                if (null == revokeUser) {
-                                        System.out.println("取消授权失败!");
-                                }
-                                if (user.getName().equals(revokeUser.getName())) {
-                                        //如果是当前操作的用户，就直接更改当前用户权限
-                                        user.grant(User.READ_ONLY);
-                                        System.out.println("用户:" + user.getName() + "已取消授权！");
-                                } else {
-                                        revokeUser.grant(User.READ_ONLY);
-                                        System.out.println("用户:" + revokeUser.getName() + "已取消授权！");
-                                }
-                        }
-
-                        while (matcherAlterTable_add.find()) {
-                                if (user.getLevel() != User.ADMIN) {
-                                        System.out.println("用户" + user.getName() + "权限不够，无法完成此操作！");
-                                        break;
-                                }
-                                alterTableAdd(matcherAlterTable_add);
-                        }
-
-                        while (matcherDropTable.find()) {
-                                if (user.getLevel() != User.ADMIN) {
-                                        System.out.println("用户" + user.getName() + "权限不够，无法完成此操作！");
-                                        break;
-                                }
-                                dropTable(matcherDropTable);
-                        }
-
-
-                        while (matcherCreateTable.find()) {
-                                if (user.getLevel() != User.ADMIN) {
-                                        System.out.println("用户" + user.getName() + "权限不够，无法完成此操作！");
-                                        break;
-                                }
-                                createTable(matcherCreateTable);
-                        }
-
-                        while (matcherDelete.find()) {
-                                if (user.getLevel() != User.ADMIN) {
-                                        System.out.println("用户" + user.getName() + "权限不够，无法完成此操作！");
-                                        break;
-                                }
-                                delete(matcherDelete);
-                        }
-
-                        while (matcherUpdate.find()) {
-                                if (user.getLevel() != User.ADMIN) {
-                                        System.out.println("用户" + user.getName() + "权限不够，无法完成此操作！");
-                                        break;
-                                }
-                                update(matcherUpdate);
-                        }
-
-                        while (matcherInsert.find()) {
-                                if (user.getLevel() != User.ADMIN) {
-                                        System.out.println("用户" + user.getName() + "权限不够，无法完成此操作！");
-                                        break;
-                                }
-                                insert(matcherInsert);
-                        }
-
-                        while (matcherSelect.find()) {
-                                select(matcherSelect);
-                        }
-
-                        while (matcherDeleteIndex.find()) {
-                                if (user.getLevel() != User.ADMIN) {
-                                        System.out.println("用户" + user.getName() + "权限不够，无法完成此操作！");
-                                        break;
-                                }
-                                deleteIndex(matcherDeleteIndex);
-                        }
-                }
-
-        }
-
-                 */
 
         }
         private  void login() {
@@ -314,6 +234,8 @@ public class Operating {
                 // 在此实现注册逻辑
 
         }
+
+
 
 //        private void createDB(Matcher matcherCreateTable) {
 //                String tableName = matcherCreate.group(1);
