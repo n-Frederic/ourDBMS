@@ -201,7 +201,100 @@ public class Table {
         }
     }
 
-    public static void SelectFromTable(String table, ArrayList<String> columns, ArrayList<Object> values) {
+//    public static void SelectFromTable(String table, ArrayList<String> columns, ArrayList<Object> values) {
+//        try {
+//            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
+//
+//            try (FileReader reader = new FileReader(dataPath.toFile())) {
+//                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
+//                Set<String> columnNames = new LinkedHashSet<>();
+//                Map<String, Integer> columnWidths = new LinkedHashMap<>();
+//
+//                for (var rowElement : data) {
+//                    JsonObject row = rowElement.getAsJsonObject();
+//                    columnNames.addAll(row.keySet());
+//                }
+//
+//                for (String column : columnNames) {
+//                    columnWidths.put(column, column.length());
+//                }
+//
+//                List<JsonObject> filteredData = new ArrayList<>();
+//                for (var rowElement : data) {
+//                    JsonObject row = rowElement.getAsJsonObject();
+//                    boolean match = true;
+//
+//                    for (int i = 0; i < columns.size(); i++) {
+//                        String col = columns.get(i);
+//                        Object val = values.get(i);
+//
+//                        if (!row.has(col) || !row.get(col).getAsString().equals(val.toString())) {
+//                            match = false;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (match) {
+//                        filteredData.add(row);
+//
+//                        // 更新列宽
+//                        for (String col : columnNames) {
+//                            String val = row.has(col) ? row.get(col).getAsString() : "";
+//                            columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
+//                        }
+//                    }
+//                }
+//
+//                if (filteredData.isEmpty()) {
+//                    System.out.println("No records found matching the criteria.");
+//                    return;
+//                }
+//
+//                Runnable printSeparator = () -> {
+//                    System.out.print("+");
+//                    for (String col : columnNames) {
+//                        int width = columnWidths.get(col);
+//                        System.out.print("-".repeat(width + 2) + "+");
+//                    }
+//                    System.out.println();
+//                };
+//
+//                Consumer<Map<String, String>> printRow = rowMap -> {
+//                    System.out.print("|");
+//                    for (String col : columnNames) {
+//                        String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
+//                        int width = columnWidths.get(col);
+//                        System.out.print(" " + padRight(val, width) + " |");
+//                    }
+//                    System.out.println();
+//                };
+//
+//                printSeparator.run();
+//                Map<String, String> headerMap = new LinkedHashMap<>();
+//                for (String col : columnNames) headerMap.put(col, col);
+//                printRow.accept(headerMap);
+//                printSeparator.run();
+//
+//                for (JsonObject row : filteredData) {
+//                    Map<String, String> rowMap = new LinkedHashMap<>();
+//                    for (String col : columnNames) {
+//                        String val = row.has(col) ? row.get(col).getAsString() : "";
+//                        rowMap.put(col, val);
+//                    }
+//                    printRow.accept(rowMap);
+//                }
+//                printSeparator.run();
+//
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+
+
+
+    public static void SelectFromTable(String table, ArrayList<String> columns, ArrayList<Object> values, ArrayList<String> operators) {
         try {
             Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
 
@@ -210,16 +303,20 @@ public class Table {
                 Set<String> columnNames = new LinkedHashSet<>();
                 Map<String, Integer> columnWidths = new LinkedHashMap<>();
 
+                // 获取所有列名
                 for (var rowElement : data) {
                     JsonObject row = rowElement.getAsJsonObject();
                     columnNames.addAll(row.keySet());
                 }
 
+                // 计算列宽
                 for (String column : columnNames) {
                     columnWidths.put(column, column.length());
                 }
 
                 List<JsonObject> filteredData = new ArrayList<>();
+
+                // 过滤数据
                 for (var rowElement : data) {
                     JsonObject row = rowElement.getAsJsonObject();
                     boolean match = true;
@@ -227,9 +324,47 @@ public class Table {
                     for (int i = 0; i < columns.size(); i++) {
                         String col = columns.get(i);
                         Object val = values.get(i);
+                        String operator = operators.get(i);
 
-                        if (!row.has(col) || !row.get(col).getAsString().equals(val.toString())) {
+                        if (!row.has(col)) {
                             match = false;
+                            break;
+                        }
+
+                        String rowVal = row.get(col).getAsString();
+
+                        // 基于关系符号进行比较
+                        switch (operator) {
+                            case "=":
+                                if (!rowVal.equals(val.toString())) {
+                                    match = false;
+                                }
+                                break;
+                            case ">":
+                                if (Integer.parseInt(rowVal) <= (Integer) val) {
+                                    match = false;
+                                }
+                                break;
+                            case "<":
+                                if (Integer.parseInt(rowVal) >= (Integer) val) {
+                                    match = false;
+                                }
+                                break;
+                            case ">=":
+                                if (Integer.parseInt(rowVal) < (Integer) val) {
+                                    match = false;
+                                }
+                                break;
+                            case "<=":
+                                if (Integer.parseInt(rowVal) > (Integer) val) {
+                                    match = false;
+                                }
+                                break;
+                            default:
+                                match = false;
+                        }
+
+                        if (!match) {
                             break;
                         }
                     }
@@ -250,6 +385,7 @@ public class Table {
                     return;
                 }
 
+                // 打印表格
                 Runnable printSeparator = () -> {
                     System.out.print("+");
                     for (String col : columnNames) {

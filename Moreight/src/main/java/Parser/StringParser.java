@@ -81,6 +81,58 @@ public class StringParser {
         return fieldMap;
     }
 
+
+    public static ArrayList<String> parseInsertColumn(String columnsStr) {
+        // 正则表达式，用来匹配 SQL 语句中的表名、列名和对应的值
+
+
+            // 处理列名和对应的值
+            ArrayList<String> columns = new ArrayList<>();
+
+            // 列名处理
+            String[] columnsArray = columnsStr.split("\\s*,\\s*");
+            for (String column : columnsArray) {
+                columns.add(column.trim());
+            }
+
+            return columns;
+
+
+    }
+
+
+    public static ArrayList<Object> parseInsertValue(String valuesStr ) {
+        // 正则表达式，用来匹配 SQL 语句中的表名、列名和对应的值
+
+            ArrayList<Object> values = new ArrayList<>();
+
+            // 列名处理
+
+
+            // 值处理
+            String[] valuesArray = valuesStr.split("\\s*,\\s*");
+            for (String value : valuesArray) {
+                // 判断值的类型
+                // 判断值的类型
+                if (value.matches("'[^']+'") || value.matches("\"[^\"]+\"")) { // 字符串类型（用单引号或双引号括起来）
+                    // 去除引号
+                    values.add(value.substring(1, value.length() - 1));
+                } else if (value.matches("-?\\d+")) { // 整数
+                    values.add(Integer.parseInt(value));
+                } else if (value.matches("-?\\d*\\.\\d+")) { // 浮动数字
+                    values.add(Double.parseDouble(value));
+                } else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) { // 布尔值
+                    values.add(Boolean.parseBoolean(value));
+                } else {
+                    // 默认情况下，如果值是未知类型，可以抛出异常或处理
+                    throw new IllegalArgumentException("Unsupported value type: " + value);
+                }
+            }
+
+           return values;
+
+}
+
     public static List<Map<String,String>> parseWhere_join(String str, Map<String, Map<String, Field>> fieldMaps){
         List<Map<String, String>> joinConditionList = new LinkedList<>();
         return joinConditionList;
