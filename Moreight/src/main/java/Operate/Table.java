@@ -17,6 +17,7 @@ public class Table {
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
 
+
     public static void InsertIntoValue(String table, ArrayList<String> columns, ArrayList<Object> values) {
         try {
             Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
@@ -44,11 +45,11 @@ public class Table {
                 Schema.ColumnRule columnRule = schema.getColumn(column);
                 // 校验值的类型(正在试，还在改)
                 String expectedType = columnRule.getType();
-                if(!isValidType(value,expectedType)){
+                if (!isValidType(value, expectedType)) {
                     throw new IllegalArgumentException("Invalid data type for column " + column);
                 }
 
-                newRow.addProperty(column,value.toString());
+                newRow.addProperty(column, value.toString());
             }
 
 
@@ -78,6 +79,26 @@ public class Table {
         }
     }
 
+
+
+
+    // 这个是SELECT * FROM table_name
+    public static void SelectFromTable(String table) {
+        Set<String> columnNames = new LinkedHashSet<>();
+        Map<String, Integer> columnWidths = new LinkedHashMap<>();
+        try {
+            Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
+            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
+
+            try (FileReader reader = new FileReader(dataPath.toFile())) {
+                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
+                DrawSelectedTable(data, columnNames, columnWidths);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static boolean isValidType(Object value, String expectedType) {
         if (value == null) {
             return !expectedType.equals("String"); // 根据需要的类型判断是否允许 null
@@ -97,6 +118,17 @@ public class Table {
                 return false;
         }
     }
+
+
+
+
+
+    
+
+
+
+
+
 
 
     private static boolean isWideChar(char c) {
@@ -131,301 +163,59 @@ public class Table {
         return str + " ".repeat(spaceCount);
     }
 
-    // 这个是SELECT * FROM table_name
-    public static void SelectFromTable(String table) {
-        Set<String> columnNames = new LinkedHashSet<>();
-        Map<String, Integer> columnWidths = new LinkedHashMap<>();
-        try {
-            Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
-            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-
-            try (FileReader reader = new FileReader(dataPath.toFile())) {
-                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
-
-                for (var rowElement : data) {
-                    JsonObject row = rowElement.getAsJsonObject();
-                    columnNames.addAll(row.keySet());
-                }
-
-                for (String column : columnNames) {
-                    columnWidths.put(column, column.length());
-                }
-                for (var rowElement : data) {
-                    JsonObject row = rowElement.getAsJsonObject();
-                    for (String col : columnNames) {
-                        String val = row.has(col) ? row.get(col).getAsString() : "";
-                        columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
-                    }
-                }
-
-                Runnable printSeparator = () -> {
-                    System.out.print("+");
-                    for (String col : columnNames) {
-                        int width = columnWidths.get(col);
-                        System.out.print("-".repeat(width + 2) + "+");
-                    }
-                    System.out.println();
-                };
-
-                Consumer<Map<String, String>> printRow = rowMap -> {
-                    System.out.print("|");
-                    for (String col : columnNames) {
-                        String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
-                        int width = columnWidths.get(col);
-                        System.out.print(" " + padRight(val, width) + " |");
-                    }
-                    System.out.println();
-                };
-
-                printSeparator.run();
-                Map<String, String> headerMap = new LinkedHashMap<>();
-                for (String col : columnNames) headerMap.put(col, col);
-                printRow.accept(headerMap);
-                printSeparator.run();
-
-                for (var rowElement : data) {
-                    JsonObject row = rowElement.getAsJsonObject();
-                    Map<String, String> rowMap = new LinkedHashMap<>();
-                    for (String col : columnNames) {
-                        String val = row.has(col) ? row.get(col).getAsString() : "";
-                        rowMap.put(col, val);
-                    }
-                    printRow.accept(rowMap);
-                }
-                printSeparator.run();
-
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+    private static void DrawSelectedTable(JsonArray data, Set<String> columnNames, Map<String, Integer> columnWidths) {
+        for (var rowElement : data) {
+            JsonObject row = rowElement.getAsJsonObject();
+            columnNames.addAll(row.keySet());
         }
-    }
 
-//    public static void SelectFromTable(String table, ArrayList<String> columns, ArrayList<Object> values) {
-//        try {
-//            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-//
-//            try (FileReader reader = new FileReader(dataPath.toFile())) {
-//                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
-//                Set<String> columnNames = new LinkedHashSet<>();
-//                Map<String, Integer> columnWidths = new LinkedHashMap<>();
-//
-//                for (var rowElement : data) {
-//                    JsonObject row = rowElement.getAsJsonObject();
-//                    columnNames.addAll(row.keySet());
-//                }
-//
-//                for (String column : columnNames) {
-//                    columnWidths.put(column, column.length());
-//                }
-//
-//                List<JsonObject> filteredData = new ArrayList<>();
-//                for (var rowElement : data) {
-//                    JsonObject row = rowElement.getAsJsonObject();
-//                    boolean match = true;
-//
-//                    for (int i = 0; i < columns.size(); i++) {
-//                        String col = columns.get(i);
-//                        Object val = values.get(i);
-//
-//                        if (!row.has(col) || !row.get(col).getAsString().equals(val.toString())) {
-//                            match = false;
-//                            break;
-//                        }
-//                    }
-//
-//                    if (match) {
-//                        filteredData.add(row);
-//
-//                        // 更新列宽
-//                        for (String col : columnNames) {
-//                            String val = row.has(col) ? row.get(col).getAsString() : "";
-//                            columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
-//                        }
-//                    }
-//                }
-//
-//                if (filteredData.isEmpty()) {
-//                    System.out.println("No records found matching the criteria.");
-//                    return;
-//                }
-//
-//                Runnable printSeparator = () -> {
-//                    System.out.print("+");
-//                    for (String col : columnNames) {
-//                        int width = columnWidths.get(col);
-//                        System.out.print("-".repeat(width + 2) + "+");
-//                    }
-//                    System.out.println();
-//                };
-//
-//                Consumer<Map<String, String>> printRow = rowMap -> {
-//                    System.out.print("|");
-//                    for (String col : columnNames) {
-//                        String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
-//                        int width = columnWidths.get(col);
-//                        System.out.print(" " + padRight(val, width) + " |");
-//                    }
-//                    System.out.println();
-//                };
-//
-//                printSeparator.run();
-//                Map<String, String> headerMap = new LinkedHashMap<>();
-//                for (String col : columnNames) headerMap.put(col, col);
-//                printRow.accept(headerMap);
-//                printSeparator.run();
-//
-//                for (JsonObject row : filteredData) {
-//                    Map<String, String> rowMap = new LinkedHashMap<>();
-//                    for (String col : columnNames) {
-//                        String val = row.has(col) ? row.get(col).getAsString() : "";
-//                        rowMap.put(col, val);
-//                    }
-//                    printRow.accept(rowMap);
-//                }
-//                printSeparator.run();
-//
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
-//
-
-
-
-    public static void SelectFromTable(String table, ArrayList<String> columns, ArrayList<Object> values, ArrayList<String> operators) {
-        try {
-            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-
-            try (FileReader reader = new FileReader(dataPath.toFile())) {
-                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
-                Set<String> columnNames = new LinkedHashSet<>();
-                Map<String, Integer> columnWidths = new LinkedHashMap<>();
-
-                // 获取所有列名
-                for (var rowElement : data) {
-                    JsonObject row = rowElement.getAsJsonObject();
-                    columnNames.addAll(row.keySet());
-                }
-
-                // 计算列宽
-                for (String column : columnNames) {
-                    columnWidths.put(column, column.length());
-                }
-
-                List<JsonObject> filteredData = new ArrayList<>();
-
-                // 过滤数据
-                for (var rowElement : data) {
-                    JsonObject row = rowElement.getAsJsonObject();
-                    boolean match = true;
-
-                    for (int i = 0; i < columns.size(); i++) {
-                        String col = columns.get(i);
-                        Object val = values.get(i);
-                        String operator = operators.get(i);
-
-                        if (!row.has(col)) {
-                            match = false;
-                            break;
-                        }
-
-                        String rowVal = row.get(col).getAsString();
-
-                        // 基于关系符号进行比较
-                        switch (operator) {
-                            case "=":
-                                if (!rowVal.equals(val.toString())) {
-                                    match = false;
-                                }
-                                break;
-                            case ">":
-                                if (Integer.parseInt(rowVal) <= (Integer) val) {
-                                    match = false;
-                                }
-                                break;
-                            case "<":
-                                if (Integer.parseInt(rowVal) >= (Integer) val) {
-                                    match = false;
-                                }
-                                break;
-                            case ">=":
-                                if (Integer.parseInt(rowVal) < (Integer) val) {
-                                    match = false;
-                                }
-                                break;
-                            case "<=":
-                                if (Integer.parseInt(rowVal) > (Integer) val) {
-                                    match = false;
-                                }
-                                break;
-                            default:
-                                match = false;
-                        }
-
-                        if (!match) {
-                            break;
-                        }
-                    }
-
-                    if (match) {
-                        filteredData.add(row);
-
-                        // 更新列宽
-                        for (String col : columnNames) {
-                            String val = row.has(col) ? row.get(col).getAsString() : "";
-                            columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
-                        }
-                    }
-                }
-
-                if (filteredData.isEmpty()) {
-                    System.out.println("No records found matching the criteria.");
-                    return;
-                }
-
-                // 打印表格
-                Runnable printSeparator = () -> {
-                    System.out.print("+");
-                    for (String col : columnNames) {
-                        int width = columnWidths.get(col);
-                        System.out.print("-".repeat(width + 2) + "+");
-                    }
-                    System.out.println();
-                };
-
-                Consumer<Map<String, String>> printRow = rowMap -> {
-                    System.out.print("|");
-                    for (String col : columnNames) {
-                        String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
-                        int width = columnWidths.get(col);
-                        System.out.print(" " + padRight(val, width) + " |");
-                    }
-                    System.out.println();
-                };
-
-                printSeparator.run();
-                Map<String, String> headerMap = new LinkedHashMap<>();
-                for (String col : columnNames) headerMap.put(col, col);
-                printRow.accept(headerMap);
-                printSeparator.run();
-
-                for (JsonObject row : filteredData) {
-                    Map<String, String> rowMap = new LinkedHashMap<>();
-                    for (String col : columnNames) {
-                        String val = row.has(col) ? row.get(col).getAsString() : "";
-                        rowMap.put(col, val);
-                    }
-                    printRow.accept(rowMap);
-                }
-                printSeparator.run();
-
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        for (String column : columnNames) {
+            columnWidths.put(column, column.length());
         }
-    }
+        for (var rowElement : data) {
+            JsonObject row = rowElement.getAsJsonObject();
+            for (String col : columnNames) {
+                String val = row.has(col) ? row.get(col).getAsString() : "";
+                columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
+            }
+        }
 
+        Runnable printSeparator = () -> {
+            System.out.print("+");
+            for (String col : columnNames) {
+                int width = columnWidths.get(col);
+                System.out.print("-".repeat(width + 2) + "+");
+            }
+            System.out.println();
+        };
+
+        Consumer<Map<String, String>> printRow = rowMap -> {
+            System.out.print("|");
+            for (String col : columnNames) {
+                String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
+                int width = columnWidths.get(col);
+                System.out.print(" " + padRight(val, width) + " |");
+            }
+            System.out.println();
+        };
+
+        printSeparator.run();
+        Map<String, String> headerMap = new LinkedHashMap<>();
+        for (String col : columnNames) headerMap.put(col, col);
+        printRow.accept(headerMap);
+        printSeparator.run();
+
+        for (var rowElement : data) {
+            JsonObject row = rowElement.getAsJsonObject();
+            Map<String, String> rowMap = new LinkedHashMap<>();
+            for (String col : columnNames) {
+                String val = row.has(col) ? row.get(col).getAsString() : "";
+                rowMap.put(col, val);
+            }
+            printRow.accept(rowMap);
+        }
+        printSeparator.run();
+
+    }
 
 }
