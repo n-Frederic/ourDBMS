@@ -99,6 +99,12 @@ public class Table {
         }
     }
 
+
+
+
+
+
+
     private static boolean isValidType(Object value, String expectedType) {
         if (value == null) {
             return !expectedType.equals("String"); // 根据需要的类型判断是否允许 null
@@ -118,18 +124,6 @@ public class Table {
                 return false;
         }
     }
-
-
-
-
-
-    
-
-
-
-
-
-
 
     private static boolean isWideChar(char c) {
         Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
