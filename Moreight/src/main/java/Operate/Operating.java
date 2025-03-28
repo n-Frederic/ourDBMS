@@ -268,7 +268,35 @@ public class Operating {
                 }
         }
 
+
+        private void select(Matcher matcherSelect) {
+                String tableName = matcherSelect.group(1);
+                ArrayList<String>columns=new ArrayList<>();
+                ArrayList<Condition> conditions=new ArrayList<>();
+
+                //columns=StringParser.parse
+
+//                if (null == table) {
+//                        System.out.println("未找到表：" + tableName);
+//                        return;
+//                }
+
+                String columnsStr = matcherSelect.group(2);
+                String conditionStr = matcherSelect.group(3);
+
+                columns=StringParser.parseSelectColumn(columnsStr);
+                conditions=StringParser.parseWhere(conditionStr);
+
+
+                System.out.println("Table: " + tableName);
+                System.out.println("Columns: " + columns);
+                System.out.println("Values: " + conditions);
+
+                Table.SelectFromTable(tableName,columns,conditions);
+
+        }
 //        private void select(Matcher matcherSelect) {
+
 //                //将读到的所有数据放到tableDatasMap中
 //                Map<String, List<Map<String, String>>> tableDatasMap = new LinkedHashMap<>();
 //

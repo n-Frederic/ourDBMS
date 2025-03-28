@@ -1,8 +1,13 @@
 package Parser;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import Operate.Condition;
+
+
 
 
 public class StringParser {
@@ -75,8 +80,6 @@ public class StringParser {
             //将组1做为key，组3作为value
             fieldMap.put(relMatcher.group(1), relMatcher.group(3));
         }
-
-
 
         return fieldMap;
     }
@@ -152,7 +155,6 @@ public class StringParser {
         if (null == str) {
             return filtList;
         }
-
         Pattern fieldPattern = Pattern.compile(
                 "(\\w+)\\s+" +
                         "([^\\s]+(?:\\([^)]+\\))?)" +
@@ -181,6 +183,7 @@ public class StringParser {
 
                 filtList.add(filtMap);
             }
+
         }
         return filtList;
     }
@@ -193,8 +196,8 @@ public class StringParser {
      *          - "relationshipName": 关系运算符，例如 "="、">" 等
      *          - "condition": 数值条件，例如 "value1"
      */
-    public static List<Map<String, String>> parseWhere(String str){
-        List<Map<String, String>> filtList = new LinkedList<>();
+    public static ArrayList<Condition> parseWhere(String str){
+        ArrayList<Condition> filtList = new ArrayList<>();
         //解析字段为3组
         Pattern fieldPattern = Pattern.compile(
                 "(\\w+)\\s+" +
@@ -203,15 +206,15 @@ public class StringParser {
         );//分123组
         Matcher singleMatcher = fieldPattern.matcher(str + ";");
         while (singleMatcher.find()) {
-            Map<String, String> filtMap = new LinkedHashMap<>();
-
-            filtMap.put("fieldName", singleMatcher.group(1));
-            filtMap.put("relationshipName", singleMatcher.group(2));
-            filtMap.put("condition", singleMatcher.group(3));
-
-            filtList.add(filtMap);
+            Condition filtMap;
+            filtMap = new Condition(singleMatcher.group(1),singleMatcher.group(2),singleMatcher.group(3));
         }
         return filtList;
+    }
+
+    public static ArrayList<String> parseSelectColumn(String str){
+        ArrayList<String> Coulumns=new ArrayList<>();
+        return Coulumns;
     }
 
     public static List<String> parseFrom(String str){

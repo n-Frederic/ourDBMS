@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class Table {
@@ -79,6 +80,9 @@ public class Table {
         }
     }
 
+    public static void deleteValue(String table, ArrayList<Condition>conditions){
+
+    }
 
 
 
@@ -87,7 +91,6 @@ public class Table {
         Set<String> columnNames = new LinkedHashSet<>();
         Map<String, Integer> columnWidths = new LinkedHashMap<>();
         try {
-            Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
             Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
 
             try (FileReader reader = new FileReader(dataPath.toFile())) {
@@ -99,8 +102,46 @@ public class Table {
         }
     }
 
+    public static void SelectFromTable(String table, ArrayList<String> column,ArrayList<Condition> conditions) {
+        Set<String> columnNames = new LinkedHashSet<>();
+        Map<String, Integer> columnWidths = new LinkedHashMap<>();
+        try {
+            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
+
+            try (FileReader reader = new FileReader(dataPath.toFile())) {
+                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
+                ArrayList<JsonElement> arrayList = JsonArrayToArrayList(data);
+                for(Condition condition : conditions) {
+                    for(JsonElement element : arrayList) {
+                        JsonObject object = element.getAsJsonObject();
+                        switch (condition.getOperator()) {
+                            case "=" :
+                                if(object.get(condition.getColumn()) != condition.getValue()) {
+                                    if(arrayList.contains(element))
+                                        arrayList.remove(element);
+                                }
+                                break;
+                            case "!=":
+                                if(object.get(condition.getColumn()) == condition.getValue()) {
+                                    if(arrayList.contains(element))
+                                        arrayList.remove(element);
+                                }
+                            case "<=":
+                                if (object.get(condition.getColumn()) > condition.getValue()) {
+
+                                }
+
+                        }
+                    }
+                }
 
 
+                DrawSelectedTable(data, columnNames, columnWidths);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 
 
@@ -212,4 +253,38 @@ public class Table {
 
     }
 
+    private static ArrayList<JsonElement> JsonArrayToArrayList(JsonArray jsonArray) {
+        ArrayList<JsonElement> array = new ArrayList<>();
+        for(JsonElement element : jsonArray) {
+            array.add(element);
+        }
+        return array;
+    }
+
+    private static JsonArray ArrayListToJsonArray(ArrayList<JsonElement> arrayList) {
+        JsonArray array = new JsonArray();
+        for(JsonElement element : arrayList) {
+            array.add(element);
+        }
+        return array;
+    }
+
+    public static JsonArray selectColumns(JsonArray originalArray, ArrayList<String> columns) {
+        JsonArray resultArray = new JsonArray();
+
+        for (int i = 0; i < originalArray.size(); i++) {
+            JsonObject originalObj = originalArray.get(i).getAsJsonObject();
+            JsonObject filteredObj = new JsonObject();
+
+            for (String column : columns) {
+                if (originalObj.has(column)) {
+                    filteredObj.add(column, originalObj.get(column));
+                }
+            }
+
+            resultArray.add(filteredObj);
+        }
+
+        return resultArray;
+    }
 }
