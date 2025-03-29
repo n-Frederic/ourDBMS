@@ -127,9 +127,7 @@ public class Table {
                                         arrayList.remove(element);
                                 }
                             case "<=":
-                                if (object.get(condition.getColumn()) > condition.getValue()) {
 
-                                }
 
                         }
                     }
