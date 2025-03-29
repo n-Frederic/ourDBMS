@@ -1,22 +1,29 @@
 package Parser;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import Operate.Condition;
+
+
 
 
 public class StringParser {
 
-    public static Map<String, Field> parseCreateTable(String fieldsStr) {
+    static Set<String> validTypes = Set.of("int", "string", "float", "boolean");
+
+
+    public static ArrayList<Field> parseCreateTable(String fieldsStr) {//！！！！
         String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
-        Map<String, Field> fieldMap = new LinkedHashMap<>();
+        ArrayList<Field>fieldList = new ArrayList<>();
         //解析字段为3组
         Pattern fieldPattern = Pattern.compile(
                 "(\\w+)\\s+" +
                         "([^\\s]+(?:\\([^)]+\\))?)" +
                         "(?:\\s+(.*))?"
         );//分123组
-        //遍历行存入字段
         for(String line:lines){
             line=line.trim();
 
@@ -27,6 +34,12 @@ public class StringParser {
             }
 
             Field field = new Field(matcher.group(1), matcher.group(2));
+//            field.setName(matcher.group(1));  // 字段名
+//            field.setType(matcher.group(2));  // 类型
+            if (!validTypes.contains(field.getType())){
+                System.out.println("类型不合法");
+                return null;
+            }
 
 
             // 解析约束（组3）
@@ -42,10 +55,11 @@ public class StringParser {
                     field.setDefault(defaultValue);
                 }
             }
-            fieldMap.put(field.getName(), field);
+            fieldList.add(field);
         }
-        return fieldMap;
+        return fieldList;
     }
+
 
 
     public static Map<String,String> parseUpdateSet(String Str){
@@ -67,10 +81,60 @@ public class StringParser {
             fieldMap.put(relMatcher.group(1), relMatcher.group(3));
         }
 
-
-
         return fieldMap;
     }
+
+
+    public static ArrayList<String> parseInsertColumn(String columnsStr) {
+        // 正则表达式，用来匹配 SQL 语句中的表名、列名和对应的值
+
+
+            // 处理列名和对应的值
+            ArrayList<String> columns = new ArrayList<>();
+
+            // 列名处理
+            String[] columnsArray = columnsStr.split("\\s*,\\s*");
+            for (String column : columnsArray) {
+                columns.add(column.trim());
+            }
+
+            return columns;
+
+
+    }
+
+
+    public static ArrayList<Object> parseInsertValue(String valuesStr ) {
+        // 正则表达式，用来匹配 SQL 语句中的表名、列名和对应的值
+
+            ArrayList<Object> values = new ArrayList<>();
+
+            // 列名处理
+
+
+            // 值处理
+            String[] valuesArray = valuesStr.split("\\s*,\\s*");
+            for (String value : valuesArray) {
+                // 判断值的类型
+                // 判断值的类型
+                if (value.matches("'[^']+'") || value.matches("\"[^\"]+\"")) { // 字符串类型（用单引号或双引号括起来）
+                    // 去除引号
+                    values.add(value.substring(1, value.length() - 1));
+                } else if (value.matches("-?\\d+")) { // 整数
+                    values.add(Integer.parseInt(value));
+                } else if (value.matches("-?\\d*\\.\\d+")) { // 浮动数字
+                    values.add(Double.parseDouble(value));
+                } else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) { // 布尔值
+                    values.add(Boolean.parseBoolean(value));
+                } else {
+                    // 默认情况下，如果值是未知类型，可以抛出异常或处理
+                    throw new IllegalArgumentException("Unsupported value type: " + value);
+                }
+            }
+
+           return values;
+
+}
 
     public static List<Map<String,String>> parseWhere_join(String str, Map<String, Map<String, Field>> fieldMaps){
         List<Map<String, String>> joinConditionList = new LinkedList<>();
@@ -91,7 +155,6 @@ public class StringParser {
         if (null == str) {
             return filtList;
         }
-
         Pattern fieldPattern = Pattern.compile(
                 "(\\w+)\\s+" +
                         "([^\\s]+(?:\\([^)]+\\))?)" +
@@ -120,6 +183,7 @@ public class StringParser {
 
                 filtList.add(filtMap);
             }
+
         }
         return filtList;
     }
@@ -132,8 +196,8 @@ public class StringParser {
      *          - "relationshipName": 关系运算符，例如 "="、">" 等
      *          - "condition": 数值条件，例如 "value1"
      */
-    public static List<Map<String, String>> parseWhere(String str){
-        List<Map<String, String>> filtList = new LinkedList<>();
+    public static ArrayList<Condition> parseWhere(String str){
+        ArrayList<Condition> filtList = new ArrayList<>();
         //解析字段为3组
         Pattern fieldPattern = Pattern.compile(
                 "(\\w+)\\s+" +
@@ -142,15 +206,15 @@ public class StringParser {
         );//分123组
         Matcher singleMatcher = fieldPattern.matcher(str + ";");
         while (singleMatcher.find()) {
-            Map<String, String> filtMap = new LinkedHashMap<>();
-
-            filtMap.put("fieldName", singleMatcher.group(1));
-            filtMap.put("relationshipName", singleMatcher.group(2));
-            filtMap.put("condition", singleMatcher.group(3));
-
-            filtList.add(filtMap);
+            Condition filtMap;
+            filtMap = new Condition(singleMatcher.group(1),singleMatcher.group(2),singleMatcher.group(3));
         }
         return filtList;
+    }
+
+    public static ArrayList<String> parseSelectColumn(String str){
+        ArrayList<String> Coulumns=new ArrayList<>();
+        return Coulumns;
     }
 
     public static List<String> parseFrom(String str){

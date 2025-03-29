@@ -19,7 +19,12 @@ public class Schema {
         // Integer max = null;
 
         // 后续可以添加更多约束
+
+        public String getType() {
+            return type;
+        }
     }
+
 
     public Schema(String tableName, Map<String, ColumnRule> columns) {
         this.tableName = tableName;
@@ -59,4 +64,9 @@ public class Schema {
         }
         return null;
     }
+
+    public ColumnRule getColumn(String columnName) {
+        return columns.get(columnName);
+    }
+
 }

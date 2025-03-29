@@ -1,0 +1,1 @@
+{"table":"table3","fields":[{"fieldName":"userid","constraint":[{"Type":"int"},{"PRIMARY KEY":true},{"UNIQUE":true},{"NOT NULL":true},{"Default":""}]},{"fieldName":"age","constraint":[{"Type":"int"},{"PRIMARY KEY":false},{"UNIQUE":false},{"NOT NULL":true},{"Default":""}]}]}
