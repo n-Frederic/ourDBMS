@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.ArrayList;
 import Function.UserManager;
 import Operate.Operating;
+import Operate.Condition;
 import Operate.Table;
 import Parser.Field;
+import Parser.StringParser;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -65,6 +68,26 @@ public class Main {
 //        ArrayList<Object> values = new ArrayList<>();
 //        values.add("男");
 //        Table.SelectFromTable("student",columns,values);
+
+//        //测试CELECT 列名部分
+//        String str1="count(*) as total, sum(price)";
+//        String str2="name,age";
+//        System.out.println(str2);
+//        ArrayList<String> test = StringParser.parseSelectColumn(str2);
+//        for (String Str : test) {
+//            System.out.println(Str);
+//        }
+
+//        //测试where
+//        String str1="name='Alice'";
+//        String str2="age > 20 AND status = 'active'";
+//        System.out.println(str2);
+//        ArrayList<Condition> test = StringParser.parseWhere(str2);
+//        for (Condition condition : test) {
+//            System.out.println(condition.toString());
+//        }
+
+
 
 
 //        System.out.println("中文");

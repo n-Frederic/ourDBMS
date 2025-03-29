@@ -7,13 +7,9 @@ import java.util.regex.Pattern;
 
 import Operate.Condition;
 
-
-
-
 public class StringParser {
 
     static Set<String> validTypes = Set.of("int", "string", "float", "boolean");
-
 
     public static ArrayList<Field> parseCreateTable(String fieldsStr) {//！！！！
         String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
@@ -60,8 +56,6 @@ public class StringParser {
         return fieldList;
     }
 
-
-
     public static Map<String,String> parseUpdateSet(String Str){
         String[] line=Str.trim().split("\\s*,\\s*");
         Map<String, String> fieldMap = new LinkedHashMap<>();
@@ -106,9 +100,7 @@ public class StringParser {
 
     public static ArrayList<Object> parseInsertValue(String valuesStr ) {
         // 正则表达式，用来匹配 SQL 语句中的表名、列名和对应的值
-
             ArrayList<Object> values = new ArrayList<>();
-
             // 列名处理
 
 
@@ -131,9 +123,7 @@ public class StringParser {
                     throw new IllegalArgumentException("Unsupported value type: " + value);
                 }
             }
-
            return values;
-
 }
 
     public static List<Map<String,String>> parseWhere_join(String str, Map<String, Map<String, Field>> fieldMaps){
@@ -141,80 +131,85 @@ public class StringParser {
         return joinConditionList;
     }
 
-
     /**
-     * SQL WHERE 多表子句字符串
-     *"users.id = 1 AND orders.user_id = 1 AND users.age > 20"
-     *@return 一个包含多个 Map 的列表，每个 Map 表示一个条件，包含三个键值对：
-     *       - "fieldName": 列名，例如 "column1"
-     *       - "relationshipName": 关系运算符，例如 "="、">" 等
-     *       - "condition": 数值条件，例如 "value1"
-     */
-    public static List<Map<String, String>> parseWhere(String str, String tableName, Map<String, Field> fieldMap){
-        List<Map<String, String>> filtList = new LinkedList<>();
-        if (null == str) {
-            return filtList;
-        }
-        Pattern fieldPattern = Pattern.compile(
-                "(\\w+)\\s+" +
-                        "([^\\s]+(?:\\([^)]+\\))?)" +
-                        "(?:\\s+(.*))?"
-        );//分123组
-        Matcher singleMatcher = fieldPattern.matcher(str);
-        while (singleMatcher.find()) {
-            String fieldName = singleMatcher.group(1);
-            //如果包含table.id这样的型式，将table名进行匹配，如果不匹配则跳过
-            if (fieldName.contains(".")) {
-                String[] field = fieldName.split("\\.");
-                //如果不匹配就跳过
-                if (!tableName.equals(field[0])) {
-                    continue;
-                } else {
-                    //匹配
-                    fieldName = field[1];
-                }
-            }
-            Field field = fieldMap.get(fieldName);
-            if (null != field) {
-                Map<String, String> filtMap = new LinkedHashMap<>();
-                filtMap.put("fieldName", fieldName);
-                filtMap.put("relationshipName", singleMatcher.group(2));
-                filtMap.put("condition", singleMatcher.group(3));
-
-                filtList.add(filtMap);
-            }
-
-        }
-        return filtList;
-    }
-
-    /**
-     * SQL WHERE 子句字符串
-     * "age > 20 AND salary = 5000"
-     * @return 一个包含多个 Map 的列表，每个 Map 表示一个条件，包含三个键值对：
-     *          - "fieldName": 列名，例如 "column1"
-     *          - "relationshipName": 关系运算符，例如 "="、">" 等
-     *          - "condition": 数值条件，例如 "value1"
+     * 解析 SQL WHERE 子句中的条件字符串，将其转换为 Condition 对象列表。
+     *
+     * @param str 输入的 SQL WHERE 子句中的条件字符串，例如 "name = 'Alice' AND age > 20"。
+     * @return 返回一个 ArrayList<Condition>，其中每个 Condition 对象代表一个条件。
+     *
+     * 输入输出示例：
+     * 输入: "name = 'Alice' AND age > 20"
+     * 输出: [Condition{column='name', value='Alice', operator='='}, Condition{column='age', value='20', operator='>'}]
+     * 输入: "score >= 80 OR status = 'active'"
+     * 输出: [Condition{column='score', value='80', operator='>='}, Condition{column='status', value='active', operator='='}]
      */
     public static ArrayList<Condition> parseWhere(String str){
         ArrayList<Condition> filtList = new ArrayList<>();
         //解析字段为3组
         Pattern fieldPattern = Pattern.compile(
-                "(\\w+)\\s+" +
-                        "([^\\s]+(?:\\([^)]+\\))?)" +
-                        "(?:\\s+(.*))?"
-        );//分123组
-        Matcher singleMatcher = fieldPattern.matcher(str + ";");
-        while (singleMatcher.find()) {
-            Condition filtMap;
-            filtMap = new Condition(singleMatcher.group(1),singleMatcher.group(2),singleMatcher.group(3));
+                        "(\\w+)\\s*" +                     // 列名（允许尾随空格）
+                        "(=|!=|>=|<=|>|<|LIKE|IN)" +       // 操作符（明确枚举支持的符号）
+                        "\\s*" +                           // 操作符后允许空格
+                        "(.*)"                             // 值（剩余所有内容）
+        );
+        String string=str.trim();
+        String[] lines=string.split("(?i)\\s*(and|or)\\s*");
+        for (String line : lines) {
+            line=line.trim();
+            Matcher singleMatcher = fieldPattern.matcher(line);
+
+            if (singleMatcher.matches()) { // 确保匹配成功
+                Condition condition = new Condition(
+                        singleMatcher.group(1), // 列名
+                        singleMatcher.group(3), // 值
+                        singleMatcher.group(2)  // 操作符
+                );
+                filtList.add(condition);
+            } else {
+                System.out.println("No match found for: " + line);
+            }
         }
         return filtList;
     }
 
+
+    /**
+     * 解析SQL SELECT语句中的列部分，处理聚合函数并提取别名或生成默认列名
+     *
+     * @param str SQL SELECT语句的列部分字符串（例如："count(*) as total, sum(price)"）
+     * @return ArrayList<String> 解析后的列名列表：
+     *         - 包含聚合函数的列：提取AS别名或生成默认列名（Column0, Column1...）
+     *         - 普通列：直接保留原始列名
+     *
+     * @example
+     * 输入："count(*) as total, sum(price)"
+     * 输出：total,Column1
+     * 输入："name, age"
+     * 输出：name,age
+     */
     public static ArrayList<String> parseSelectColumn(String str){
-        ArrayList<String> Coulumns=new ArrayList<>();
-        return Coulumns;
+        ArrayList<String> Columns=new ArrayList<>();
+        if (str == null) {
+            return Columns;
+        }
+        String word=str.trim().toLowerCase();
+        String[] lines=word.split(",");
+        int i=1;
+        for(String line:lines){
+            line=line.trim();
+            if(line.contains("count")||line.contains("sum")||line.contains("avg")||line.contains("min")||line.contains("max")){
+                int index=line.indexOf("as");
+                if(index!=-1){
+                    Columns.add(line.substring(index+"as".length()).trim());
+                }else{
+                    Columns.add("Column"+i);
+                    i++;
+                }
+            }else{
+                Columns.add(line);
+            }
+        }
+        return Columns;
     }
 
     public static List<String> parseFrom(String str){

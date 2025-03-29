@@ -22,4 +22,13 @@ public class Condition {
     public String getOperator() {
         return operator;
     }
+
+    @Override
+    public String toString() {
+        return "Condition{" +
+                "column=" + column + '\'' +
+                ", operator='" + operator + '\'' +
+                ", value=" + value +
+                '}';
+    }
 }
