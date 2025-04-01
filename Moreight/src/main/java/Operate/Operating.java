@@ -8,9 +8,12 @@ import Parser.StringParser;
 
 import javax.xml.crypto.Data;
 import java.io.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 public class Operating {
@@ -19,8 +22,8 @@ public class Operating {
 
         private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile("(?i)create\\s+table\\s(\\w+)\\s?\\(((?:\\s?\\w+\\s\\w+,?)+)\\)\\s?;");
         private static final Pattern PATTERN_ALTER_TABLE_ADD = Pattern.compile("(?i)alter\\s+table\\s(\\w+)\\s+add\\s(\\w+\\s\\w+)\\s?;");
-        private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\s+and\\s+(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
-        private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)update\\s(\\w+)\\s+set\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\s+where\\s(\\w+\\s?[<=>]\\s?[^\\s\\;]+(?:\\s+and\\s+(?:\\w+)\\s?(?:[<=>])\\s?(?:[^\\s\\;]+))*))?\\s?;");
+        private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s([^\\;]+\\s?;))?");
+        private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)update\\s(\\w+)\\s+set\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
         private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("(?i)drop\\s+table\\s+(\\w+)\\s*;?");
 
         private static final Pattern PATTERN_SELECT = Pattern.compile("(?i)select\\s(\\*|(?:(?:\\w+(?:\\.\\w+)?)+(?:\\s?,\\s?\\w+(?:\\.\\w+)?)*))\\s+from\\s(\\w+(?:\\s?,\\s?\\w+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
@@ -121,6 +124,9 @@ public class Operating {
                         Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
                         Matcher matcherSelectTable = PATTERN_SELECT.matcher(cmd);
                         Matcher matcherInsertTable = PATTERN_INSERT.matcher(cmd);
+                        Matcher matcherAlterTable=PATTERN_ALTER_TABLE_ADD.matcher(cmd);
+                        Matcher matcherDelete=PATTERN_DELETE.matcher(cmd);
+                        Matcher matcherUpdate=PATTERN_UPDATE.matcher(cmd);
 
 
                         if (matcherCreateTable.find()) {
@@ -160,7 +166,7 @@ public class Operating {
                         }else if(matcherSelectTable.find()){
                                 System.out.println("select");
                                 matched=true;
-//                                select(matcherSelectTable);
+                                select(matcherSelectTable);
                                 String tableName=matcherSelectTable.group(2);
                                 //List<String> nameList=StringParser.parseFrom(matcherSelectTable.group(2));//选择多个表
                                 System.out.println(matcherSelectTable.group(2));//after from
@@ -172,6 +178,37 @@ public class Operating {
                                 matched=true;
                                 insert(matcherInsertTable);
                                 continue;
+
+                        }else if(matcherAlterTable.find()){
+                                String tableName;
+                                String fieldString;
+                                tableName=matcherAlterTable.group(1);
+                                fieldString=matcherAlterTable.group(2);
+
+                                ArrayList<Field> fields=new ArrayList<>();
+                                fields=StringParser.parseCreateTable(fieldString);
+
+
+
+                                System.out.println("alter");
+                                matched=true;
+
+
+
+
+                        }else if(matcherDelete.find()){
+                                String tableName=matcherDelete.group(1);
+                                String conditionstr=matcherDelete.group(2);
+                                ArrayList<Condition> conditions;
+
+
+
+                                conditions=StringParser.parseWhere(conditionstr);
+
+                        }else if(matcherUpdate.find()){
+                                String tableName;
+                                String conditionstr;
+
 
                         }
 
@@ -273,6 +310,15 @@ public class Operating {
                 String tableName = matcherSelect.group(1);
                 ArrayList<String>columns=new ArrayList<>();
                 ArrayList<Condition> conditions=new ArrayList<>();
+                Path datapath=Table.From("student");
+                JsonArray records=Table.Where(datapath,new Condition("Sname","周学超","="));
+
+                ArrayList<String> arrayList = new ArrayList<>();
+                arrayList.add("Sname");
+                arrayList.add("Ssex");
+                Map<String,Integer>map=new LinkedHashMap<>();
+                Table.DrawSelectedTable(records,arrayList,map);
+
 
                 //columns=StringParser.parse
 
@@ -282,17 +328,41 @@ public class Operating {
 //                }
 
                 String columnsStr = matcherSelect.group(2);
-                String conditionStr = matcherSelect.group(3);
+                String conditionStr = matcherSelect.group(3).toLowerCase().trim();
+                String regex = "(.*?)\\s+(\\w+)\\s+between\\s+(\\S+)\\s+and\\s+(\\S+)(.*)";
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(conditionStr);
+                if (matcher.matches()) {
+                        String str1= matcher.group(2)+">="+matcher.group(3)+" and "+matcher.group(2)+"<="+matcher.group(4);
+                        conditionStr= matcher.group(1)+" "+str1+matcher.group(5)+" ";
 
-                columns=StringParser.parseSelectColumn(columnsStr);
+                } else {
+                        System.out.println("No match found.");
+                }
                 conditions=StringParser.parseWhere(conditionStr);
 
+                if(columnsStr=="*"){
+
+
+                }else{
+                        columns=StringParser.parseSelectColumn(columnsStr);
+
+
+                }
 
                 System.out.println("Table: " + tableName);
                 System.out.println("Columns: " + columns);
                 System.out.println("Values: " + conditions);
 
-                Table.SelectFromTable(tableName,columns,conditions);
+                //Table.SelectFromTable(tableName,columns,conditions);
+
+                //Table.From(tableName);
+                //Table.DrawSelectedTable();
+
+
+
+
+
 
         }
 //        private void select(Matcher matcherSelect) {

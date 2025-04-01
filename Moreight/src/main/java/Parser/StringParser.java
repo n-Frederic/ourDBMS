@@ -21,7 +21,7 @@ public class StringParser {
                         "(?:\\s+(.*))?"
         );//分123组
         for(String line:lines){
-            line=line.trim();
+            line=line.trim();//去除空格影响
 
             Matcher matcher = fieldPattern.matcher(line);
 
@@ -30,13 +30,10 @@ public class StringParser {
             }
 
             Field field = new Field(matcher.group(1), matcher.group(2));
-//            field.setName(matcher.group(1));  // 字段名
-//            field.setType(matcher.group(2));  // 类型
             if (!validTypes.contains(field.getType())){
                 System.out.println("类型不合法");
                 return null;
             }
-
 
             // 解析约束（组3）
             String constraints = matcher.group(3);
@@ -81,20 +78,18 @@ public class StringParser {
 
     public static ArrayList<String> parseInsertColumn(String columnsStr) {
         // 正则表达式，用来匹配 SQL 语句中的表名、列名和对应的值
-
-
-            // 处理列名和对应的值
-            ArrayList<String> columns = new ArrayList<>();
-
-            // 列名处理
-            String[] columnsArray = columnsStr.split("\\s*,\\s*");
-            for (String column : columnsArray) {
-                columns.add(column.trim());
-            }
-
-            return columns;
-
-
+        // 检查输入是否为 null 或空字符串
+        if (columnsStr == null || columnsStr.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        ArrayList<String> columns = new ArrayList<>();
+        // 列名处理
+        String[] columnsArray = columnsStr.trim().split("\\s*,\\s*");
+        for (String column : columnsArray) {
+            column=column.trim();
+            columns.add(column.trim());
+        }
+        return columns;
     }
 
 
@@ -139,17 +134,16 @@ public class StringParser {
      *
      * 输入输出示例：
      * 输入: "name = 'Alice' AND age > 20"
-     * 输出: [Condition{column='name', value='Alice', operator='='}, Condition{column='age', value='20', operator='>'}]
+     * 输出: [Condition{column='name', value=Alice, operator='='}, Condition{column=age, value=20, operator=>}]
      * 输入: "score >= 80 OR status = 'active'"
-     * 输出: [Condition{column='score', value='80', operator='>='}, Condition{column='status', value='active', operator='='}]
+     * 输出: [Condition{column='score', value=80, operator='>='}, Condition{column=status, value=active, operator='='}]
      */
     public static ArrayList<Condition> parseWhere(String str){
         ArrayList<Condition> filtList = new ArrayList<>();
         //解析字段为3组
         Pattern fieldPattern = Pattern.compile(
                         "(\\w+)\\s*" +                     // 列名（允许尾随空格）
-                        "(=|!=|>=|<=|>|<|LIKE|IN)" +       // 操作符（明确枚举支持的符号）
-                        "\\s*" +                           // 操作符后允许空格
+                        "(=|!=|>=|<=|>|<|LIKE|IN)\\s*" +       // 操作符（明确枚举支持的符号）
                         "(.*)"                             // 值（剩余所有内容）
         );
         String string=str.trim();
@@ -159,9 +153,15 @@ public class StringParser {
             Matcher singleMatcher = fieldPattern.matcher(line);
 
             if (singleMatcher.matches()) { // 确保匹配成功
+                String value=singleMatcher.group(3);
+                if(value.startsWith("'")&&value.endsWith("'")){
+                    value=value.substring(1,value.length()-1);
+                }else if (value.startsWith("\"") && value.endsWith("\"")){
+                    value=value.substring(1,value.length()-1);
+                }
                 Condition condition = new Condition(
                         singleMatcher.group(1), // 列名
-                        singleMatcher.group(3), // 值
+                        value, // 值
                         singleMatcher.group(2)  // 操作符
                 );
                 filtList.add(condition);

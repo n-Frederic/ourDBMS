@@ -18,7 +18,6 @@ public class Table {
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
 
-
     public static void InsertIntoValue(String table, ArrayList<String> columns, ArrayList<Object> values) {
         try {
             Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
@@ -80,67 +79,231 @@ public class Table {
         }
     }
 
-    public static void deleteValue(String table, ArrayList<Condition>conditions){
-
-    }
-
-
-
-    // 这个是SELECT * FROM table_name
-    public static void SelectFromTable(String table) {
-        Set<String> columnNames = new LinkedHashSet<>();
-        Map<String, Integer> columnWidths = new LinkedHashMap<>();
+    public static void updateValue(Path dataPath, ArrayList<Condition> conditions, Map<String, String> newValues) {
         try {
-            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-
-            try (FileReader reader = new FileReader(dataPath.toFile())) {
-                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
-                DrawSelectedTable(data, columnNames, columnWidths);
+            if (!Files.exists(dataPath)) {
+                System.out.println("Table data file does not exist.");
+                return;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void SelectFromTable(String table, ArrayList<String> column,ArrayList<Condition> conditions) {
-        Set<String> columnNames = new LinkedHashSet<>();
-        Map<String, Integer> columnWidths = new LinkedHashMap<>();
-        try {
-            Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-
+            Gson gson = new Gson();
+            JsonArray dataArray;
             try (FileReader reader = new FileReader(dataPath.toFile())) {
-                JsonArray data = JsonParser.parseReader(reader).getAsJsonArray();
-                ArrayList<JsonElement> arrayList = JsonArrayToArrayList(data);
-                for(Condition condition : conditions) {
-                    for(JsonElement element : arrayList) {
-                        JsonObject object = element.getAsJsonObject();
-                        switch (condition.getOperator()) {
-                            case "=" :
-                                if(object.get(condition.getColumn()) != condition.getValue()) {
-                                    if(arrayList.contains(element))
-                                        arrayList.remove(element);
-                                }
-                                break;
-                            case "!=":
-                                if(object.get(condition.getColumn()) == condition.getValue()) {
-                                    if(arrayList.contains(element))
-                                        arrayList.remove(element);
-                                }
-                            case "<=":
-
-
-                        }
+                dataArray = gson.fromJson(reader, JsonArray.class);
+            }
+            if (dataArray == null || dataArray.size() == 0) {
+                System.out.println("No data to update.");
+                return;
+            }
+            boolean updated = false;
+            for (JsonElement element : dataArray) {
+                JsonObject row = element.getAsJsonObject();
+                boolean match = true;
+                // 检查条件是否匹配
+                for (Condition condition : conditions) {
+                    String column = condition.getColumn();
+                    String value = condition.getValue();
+                    String operator = condition.getOperator();
+                    if (!row.has(column)) {
+                        match = false;
+                        break;
+                    }
+                    JsonElement rowValue = row.get(column);
+                    if (!compare(rowValue, value, operator)) {
+                        match = false;
+                        break;
                     }
                 }
-
-
-                DrawSelectedTable(data, columnNames, columnWidths);
+                // 如果匹配条件，更新字段
+                if (match) {
+                    for (Map.Entry<String, String> entry : newValues.entrySet()) {
+                        row.addProperty(entry.getKey(), entry.getValue());
+                    }
+                    updated = true;
+                }
             }
+            // 如果没有匹配项，提示用户
+            if (!updated) {
+                System.out.println("No matching records found for update.");
+                return;
+            }
+            try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+                gson.toJson(dataArray, writer);
+            }
+            System.out.println("Record(s) updated successfully.");
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+
+    public static void deleteValue(Path dataPath, JsonArray data) {
+        try {
+            if (!Files.exists(dataPath)) {
+                System.out.println("Table data file does not exist.");
+                return;
+            }
+            Gson gson = new Gson();
+            JsonObject schemaJson;
+
+            try (FileReader reader = new FileReader(dataPath.toFile())) {
+                schemaJson = gson.fromJson(reader, JsonObject.class);
+            }
+            if (schemaJson == null || !schemaJson.has("fields")) {
+                System.out.println("Invalid schema or no fields found.");
+                return;
+            }
+            JsonArray fieldsArray = schemaJson.getAsJsonArray("fields");
+            JsonArray newFieldsArray = new JsonArray();
+
+            // 遍历 fieldsArray，删除匹配的记录
+            for (JsonElement element : fieldsArray) {
+                // 如果 element 不在 data 中，则保留该记录
+                if (!data.contains(element)) {
+                    newFieldsArray.add(element);
+                }
+            }
+
+            // 如果没有匹配的记录，提示用户
+            if (newFieldsArray.size() == fieldsArray.size()) {
+                System.out.println("No matching records found for deletion.");
+                return;
+            }
+
+            schemaJson.add("fields", newFieldsArray);
+            // 写回 JSON 文件
+            try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+                gson.toJson(schemaJson, writer);
+            }
+            System.out.println("Deleted successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private static boolean compare(JsonElement rowValue, String value, String operator) {
+        if (rowValue.isJsonPrimitive()) {
+            JsonPrimitive primitive = rowValue.getAsJsonPrimitive();
+
+            if (primitive.isNumber()) {
+                double rowNum = primitive.getAsDouble();
+                double targetNum = Double.parseDouble(value);
+
+                switch (operator) {
+                    case "=":
+                        return rowNum == targetNum;
+                    case "!=":
+                        return rowNum != targetNum;
+                    case ">":
+                        return rowNum > targetNum;
+                    case "<":
+                        return rowNum < targetNum;
+                    case ">=":
+                        return rowNum >= targetNum;
+                    case "<=":
+                        return rowNum <= targetNum;
+                    default:
+                        System.out.println("Unsupported operator: " + operator);
+                        return false;
+                }
+            } else if (primitive.isString()) {
+                String rowStr = primitive.getAsString();
+
+                switch (operator) {
+                    case "=":
+                        return rowStr.equals(value);
+                    case "!=":
+                        return !rowStr.equals(value);
+                    default:
+                        System.out.println("Unsupported operator for strings: " + operator);
+                        return false;
+                }
+            }
+        }
+
+        return false; // 其他情况一律不匹配
+    }
+
+
+    public static Path From(String table) {
+        Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
+        return dataPath;
+    }
+
+    public static JsonArray DealWithArray(JsonArray a, JsonArray b, String mode) {
+        JsonArray array = new JsonArray();
+        if (mode.equals("and")) {
+            for (JsonElement e : a) {
+                if (b.contains(e)) {
+                    array.add(e);
+                }
+            }
+            return array;
+        } else if (mode.equals("or")) {
+            for (JsonElement e : a) {
+                array.add(e);
+            }
+            for (JsonElement e : b) {
+                if (!array.contains(e)) {
+                    array.add(e);
+                }
+            }
+            return array;
+        } else return array;
+    }
+
+    public static JsonArray DealWithArray(JsonArray data, Condition condition) {
+        ArrayList<JsonElement> arrayList = JsonArrayToArrayList(data);
+        for (JsonElement element : arrayList) {
+            JsonObject object = element.getAsJsonObject();
+            switch (condition.getOperator()) {
+                case "=":
+                    if (!object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
+                        arrayList.remove(element);
+                    }
+                    break;
+                case "!=":
+                    if (object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
+                        arrayList.remove(element);
+                    }
+                    break;
+                case "<":
+                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) >= 0) {
+                        arrayList.remove(element);
+                    }
+                    break;
+                case ">":
+                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) <= 0) {
+                        arrayList.remove(element);
+                    }
+                    break;
+                case "<=":
+                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) > 0) {
+                        arrayList.remove(element);
+                    }
+                    break;
+                case ">=":
+                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) < 0) {
+                        arrayList.remove(element);
+                    }
+                    break;
+            }
+        }
+        data = ArrayListToJsonArray(arrayList);
+        return data;
+    }
+
+    public static JsonArray Where(Path dataPath, Condition condition) {
+        JsonArray data = new JsonArray();
+        try (FileReader reader = new FileReader(dataPath.toFile())) {
+            data = JsonParser.parseReader(reader).getAsJsonArray();
+            data = DealWithArray(data, condition);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return data;
+    }
 
 
 
@@ -196,18 +359,20 @@ public class Table {
         return str + " ".repeat(spaceCount);
     }
 
-    private static void DrawSelectedTable(JsonArray data, Set<String> columnNames, Map<String, Integer> columnWidths) {
-        for (var rowElement : data) {
-            JsonObject row = rowElement.getAsJsonObject();
-            columnNames.addAll(row.keySet());
+    public static void DrawSelectedTable(JsonArray data, ArrayList<String> columns, Map<String, Integer> columnWidths) {
+        if (columns.isEmpty()) {
+            for (var rowElement : data) {
+                JsonObject row = rowElement.getAsJsonObject();
+                columns.addAll(row.keySet());
+            }
         }
 
-        for (String column : columnNames) {
+        for (String column : columns) {
             columnWidths.put(column, column.length());
         }
         for (var rowElement : data) {
             JsonObject row = rowElement.getAsJsonObject();
-            for (String col : columnNames) {
+            for (String col : columns) {
                 String val = row.has(col) ? row.get(col).getAsString() : "";
                 columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
             }
@@ -215,7 +380,7 @@ public class Table {
 
         Runnable printSeparator = () -> {
             System.out.print("+");
-            for (String col : columnNames) {
+            for (String col : columns) {
                 int width = columnWidths.get(col);
                 System.out.print("-".repeat(width + 2) + "+");
             }
@@ -224,7 +389,7 @@ public class Table {
 
         Consumer<Map<String, String>> printRow = rowMap -> {
             System.out.print("|");
-            for (String col : columnNames) {
+            for (String col : columns) {
                 String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
                 int width = columnWidths.get(col);
                 System.out.print(" " + padRight(val, width) + " |");
@@ -234,14 +399,14 @@ public class Table {
 
         printSeparator.run();
         Map<String, String> headerMap = new LinkedHashMap<>();
-        for (String col : columnNames) headerMap.put(col, col);
+        for (String col : columns) headerMap.put(col, col);
         printRow.accept(headerMap);
         printSeparator.run();
 
         for (var rowElement : data) {
             JsonObject row = rowElement.getAsJsonObject();
             Map<String, String> rowMap = new LinkedHashMap<>();
-            for (String col : columnNames) {
+            for (String col : columns) {
                 String val = row.has(col) ? row.get(col).getAsString() : "";
                 rowMap.put(col, val);
             }
@@ -251,9 +416,10 @@ public class Table {
 
     }
 
+
     private static ArrayList<JsonElement> JsonArrayToArrayList(JsonArray jsonArray) {
         ArrayList<JsonElement> array = new ArrayList<>();
-        for(JsonElement element : jsonArray) {
+        for (JsonElement element : jsonArray) {
             array.add(element);
         }
         return array;
@@ -261,28 +427,29 @@ public class Table {
 
     private static JsonArray ArrayListToJsonArray(ArrayList<JsonElement> arrayList) {
         JsonArray array = new JsonArray();
-        for(JsonElement element : arrayList) {
+        for (JsonElement element : arrayList) {
             array.add(element);
         }
         return array;
     }
 
-    public static JsonArray selectColumns(JsonArray originalArray, ArrayList<String> columns) {
-        JsonArray resultArray = new JsonArray();
 
-        for (int i = 0; i < originalArray.size(); i++) {
-            JsonObject originalObj = originalArray.get(i).getAsJsonObject();
-            JsonObject filteredObj = new JsonObject();
-
-            for (String column : columns) {
-                if (originalObj.has(column)) {
-                    filteredObj.add(column, originalObj.get(column));
-                }
-            }
-
-            resultArray.add(filteredObj);
-        }
-
-        return resultArray;
-    }
+//    public static JsonArray selectColumns(JsonArray originalArray, ArrayList<String> columns) {
+//        JsonArray resultArray = new JsonArray();
+//
+//        for (int i = 0; i < originalArray.size(); i++) {
+//            JsonObject originalObj = originalArray.get(i).getAsJsonObject();
+//            JsonObject filteredObj = new JsonObject();
+//
+//            for (String column : columns) {
+//                if (originalObj.has(column)) {
+//                    filteredObj.add(column, originalObj.get(column));
+//                }
+//            }
+//
+//            resultArray.add(filteredObj);
+//        }
+//
+//        return resultArray;
+//    }
 }

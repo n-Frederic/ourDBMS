@@ -1,21 +1,28 @@
 package Main;
 import Function.DatabaseManager;
 import Function.TableManager;
+
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+
 import Function.UserManager;
 import Operate.Operating;
 import Operate.Condition;
 import Operate.Table;
 import Parser.Field;
 import Parser.StringParser;
+import com.google.gson.JsonArray;
 
 
 public class Main {
     public static void main(String[] args) {
         // 登录注册的测试
-       Operating operating = new Operating();
-       operating.dbms();
+//       Operating operating = new Operating();
+//       operating.dbms();
+
 
         // 建库建表的测试
 //        DatabaseManager.createDataBase("20250324testDB");
@@ -60,8 +67,19 @@ public class Main {
 //        Table.InsertIntoValue("student", columns, value);
 //        Table.InsertIntoValue("student",columns,value1);
 
-//        // 测试select
-//        DatabaseManager.useDatabase("20250324testDB");
+        // 测试select
+        DatabaseManager.useDatabase("20250324testDB");
+        Path datapath =Table.From("student");
+        JsonArray records=Table.Where(datapath,new Condition("Sname","周学超","="));
+
+        ArrayList<String> arrayList = new ArrayList<>();
+        arrayList.add("Sname");
+        arrayList.add("Ssex");
+        Map<String,Integer> map=new LinkedHashMap<>();
+        Table.DrawSelectedTable(records,arrayList,map);
+
+
+
 //        Table.SelectFromTable("student");
 //        ArrayList<String> columns = new ArrayList<>();
 //        columns.add("Ssex");
