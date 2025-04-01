@@ -68,11 +68,12 @@ public class Main {
 //        Table.InsertIntoValue("student",columns,value1);
 
         // 测试select
-        DatabaseManager.useDatabase("20250324testDB");
+        DatabaseManager.useDatabase("testDB");
         Path datapath =Table.From("student");
-        JsonArray records=Table.Where(datapath,new Condition("Sname","周学超","="));
+        JsonArray records=Table.Where(datapath,new Condition("Ssex","女","="));
 
         ArrayList<String> arrayList = new ArrayList<>();
+        arrayList.add("Sno");
         arrayList.add("Sname");
         arrayList.add("Ssex");
         Map<String,Integer> map=new LinkedHashMap<>();
