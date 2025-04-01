@@ -255,41 +255,46 @@ public class Table {
 
     public static JsonArray DealWithArray(JsonArray data, Condition condition) {
         ArrayList<JsonElement> arrayList = JsonArrayToArrayList(data);
-        for (JsonElement element : arrayList) {
+        Iterator<JsonElement> iterator = arrayList.iterator();
+
+        while (iterator.hasNext()) {
+            JsonElement element = iterator.next();
             JsonObject object = element.getAsJsonObject();
+
             switch (condition.getOperator()) {
                 case "=":
                     if (!object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
-                        arrayList.remove(element);
+                        iterator.remove();
                     }
                     break;
                 case "!=":
                     if (object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
-                        arrayList.remove(element);
+                        iterator.remove();
                     }
                     break;
                 case "<":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) >= 0) {
-                        arrayList.remove(element);
+                        iterator.remove();
                     }
                     break;
                 case ">":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) <= 0) {
-                        arrayList.remove(element);
+                        iterator.remove();
                     }
                     break;
                 case "<=":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) > 0) {
-                        arrayList.remove(element);
+                        iterator.remove();
                     }
                     break;
                 case ">=":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) < 0) {
-                        arrayList.remove(element);
+                        iterator.remove();
                     }
                     break;
             }
         }
+
         data = ArrayListToJsonArray(arrayList);
         return data;
     }
@@ -304,7 +309,6 @@ public class Table {
         }
         return data;
     }
-
 
 
     private static boolean isValidType(Object value, String expectedType) {
