@@ -308,7 +308,7 @@ public class Operating {
                 String tableName = matcherSelect.group(1);
                 ArrayList<String>columns=new ArrayList<>();
                 ArrayList<Condition> conditions=new ArrayList<>();
-                Path datapath=Table.From("student");
+                Path datapath=Table.From_data("student");
                 JsonArray records=Table.Where(datapath,new Condition("Sname","周学超","="));
 
                 ArrayList<String> arrayList = new ArrayList<>();

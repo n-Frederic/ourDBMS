@@ -15,16 +15,14 @@ import java.util.function.Consumer;
 public class Table {
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
-
     public static void InsertIntoValue(String table, ArrayList<String> columns, ArrayList<Object> values) {
         try {
             Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
             JsonArray dataArray;
 
             if (Files.exists(dataPath)) {
-                try (FileReader reader = new FileReader(dataPath.toFile())) {
-                    dataArray = JsonParser.parseReader(reader).getAsJsonArray();
-                }
+                FileReader reader = new FileReader(dataPath.toFile());
+                dataArray = JsonParser.parseReader(reader).getAsJsonArray();
             } else {
                 dataArray = new JsonArray();
             }
@@ -76,9 +74,11 @@ public class Table {
         }
     }
 
+
+    // update 是一个总的关于update from ... set ... 的调用，也就是传入where筛选后的JsonArray
     public static void Update(String table, JsonArray data, Map<String, String> newValues) {
         try {
-            Path dataPath = From(table);
+            Path dataPath = From_data(table);
 
             if (!Files.exists(dataPath)) {
                 System.out.println("Table data file does not exist.");
@@ -96,11 +96,13 @@ public class Table {
 
 
 
+
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    // set是针对于where筛选后的JsonArray修改列值
     public static JsonArray Set(JsonArray data, HashMap<String,String> map) {
         Iterator<JsonElement> iterator = data.iterator();
 
@@ -116,23 +118,25 @@ public class Table {
     }
 
 
-    public static void Delete(Path dataPath, JsonArray data) {
+    public static void Delete(String table, JsonArray data) {
         try {
-            if (!Files.exists(dataPath)) {
+            Path schemaPath = From_schema(table);
+            Path dataPath = From_data(table);
+            if (!Files.exists(schemaPath)) {
                 System.out.println("Table data file does not exist.");
                 return;
             }
-            Gson gson = new Gson();
-            JsonObject schemaJson;
 
-            try (FileReader reader = new FileReader(dataPath.toFile())) {
-                schemaJson = gson.fromJson(reader, JsonObject.class);
-            }
+            FileReader reader = new FileReader(schemaPath.toFile());
+            JsonObject schemaJson = JsonParser.parseReader(reader).getAsJsonObject();
+
             if (schemaJson == null || !schemaJson.has("fields")) {
                 System.out.println("Invalid schema or no fields found.");
                 return;
             }
             JsonArray fieldsArray = schemaJson.getAsJsonArray("fields");
+
+
             JsonArray newFieldsArray = new JsonArray();
 
             // 遍历 fieldsArray，删除匹配的记录
@@ -160,13 +164,14 @@ public class Table {
         }
     }
 
-
-
-
-
-    public static Path From(String table) {
+    public static Path From_data(String table) {
         Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
         return dataPath;
+    }
+
+    public static Path From_schema(String table) {
+        Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
+        return schemaPath;
     }
 
     public static JsonArray Where(JsonArray a, JsonArray b, String mode) {
@@ -203,6 +208,15 @@ public class Table {
         }
         return data;
     }
+
+
+
+
+
+
+
+
+
 
 
 

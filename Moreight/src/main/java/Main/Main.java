@@ -63,7 +63,7 @@ public class Main {
 
         // 测试select
         DatabaseManager.useDatabase("testDB");
-        Path datapath =Table.From("student");
+        Path datapath =Table.From_data("student");
         JsonArray records=Table.Where(datapath,new Condition("Ssex","女","="));
 
         ArrayList<String> arrayList = new ArrayList<>();
