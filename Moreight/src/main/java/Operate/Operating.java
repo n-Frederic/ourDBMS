@@ -1,13 +1,11 @@
 package Operate;
 import Parser.Field;
+
 import Function.DatabaseManager;
 import Function.TableManager;
 import Function.UserManager;
-import Function.UserManager;
 import Parser.StringParser;
 
-import javax.xml.crypto.Data;
-import java.io.*;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -350,6 +348,8 @@ public class Operating {
 
                 }
 
+                ExprNode logicTree;
+
                 System.out.println("Table: " + tableName);
                 System.out.println("Columns: " + columns);
                 System.out.println("Values: " + conditions);
@@ -537,6 +537,53 @@ public class Operating {
 //                        }
 //                }
 //                table.insert(data);
+        }
+
+        public static List<String> tokenize(String condition) {
+                List<String> tokens = new ArrayList<>();
+                Matcher matcher = Pattern.compile(
+                        "\\(|\\)|\\w+|>=|<=|!=|=|<|>|AND|OR|'[^']*'|\"[^\"]*\""
+                ).matcher(condition.toUpperCase());
+                while (matcher.find()) {
+                        tokens.add(matcher.group().trim());
+                }
+                return tokens;
+        }
+
+        public static ExprNode parseExpression(List<String> tokens) {
+                return parseOr(tokens);
+        }
+
+        private static ExprNode parseOr(List<String> tokens) {
+                ExprNode node = parseAnd(tokens);
+                while (!tokens.isEmpty() && tokens.get(0).equals("OR")) {
+                        tokens.remove(0); // consume OR
+                        node = new LogicNode("OR", node, parseAnd(tokens));
+                }
+                return node;
+        }
+
+        private static ExprNode parseAnd(List<String> tokens) {
+                ExprNode node = parsePrimary(tokens);
+                while (!tokens.isEmpty() && tokens.get(0).equals("AND")) {
+                        tokens.remove(0); // consume AND
+                        node = new LogicNode("AND", node, parsePrimary(tokens));
+                }
+                return node;
+        }
+
+        private static ExprNode parsePrimary(List<String> tokens) {
+                if (tokens.get(0).equals("(")) {
+                        tokens.remove(0); // consume (
+                        ExprNode node = parseExpression(tokens);
+                        tokens.remove(0); // consume )
+                        return node;
+                } else {
+                        String column = tokens.remove(0);
+                        String operator = tokens.remove(0);
+                        String value = tokens.remove(0).replaceAll("^['\"]|['\"]$", ""); // 去掉引号
+                        return new ConditionNode(column, operator, value);
+                }
         }
 
 

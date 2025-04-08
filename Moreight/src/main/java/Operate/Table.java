@@ -1,7 +1,6 @@
 package Operate;
 
 import Function.DatabaseManager;
-import Parser.Field;
 import com.google.gson.*;
 
 import java.io.FileReader;
@@ -11,7 +10,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class Table {
@@ -25,8 +23,7 @@ public class Table {
 
             if (Files.exists(dataPath)) {
                 try (FileReader reader = new FileReader(dataPath.toFile())) {
-                    Gson gson = new Gson();
-                    dataArray = gson.fromJson(reader, JsonArray.class);
+                    dataArray = JsonParser.parseReader(reader).getAsJsonArray();
                 }
             } else {
                 dataArray = new JsonArray();
@@ -79,65 +76,47 @@ public class Table {
         }
     }
 
-    public static void updateValue(Path dataPath, ArrayList<Condition> conditions, Map<String, String> newValues) {
+    public static void Update(String table, JsonArray data, Map<String, String> newValues) {
         try {
+            Path dataPath = From(table);
+
             if (!Files.exists(dataPath)) {
                 System.out.println("Table data file does not exist.");
                 return;
             }
-            Gson gson = new Gson();
-            JsonArray dataArray;
-            try (FileReader reader = new FileReader(dataPath.toFile())) {
-                dataArray = gson.fromJson(reader, JsonArray.class);
-            }
-            if (dataArray == null || dataArray.size() == 0) {
+
+            FileReader reader = new FileReader(dataPath.toFile());
+            JsonArray dataArray = JsonParser.parseReader(reader).getAsJsonArray();
+
+            if (dataArray == null || dataArray.isEmpty()) {
                 System.out.println("No data to update.");
                 return;
             }
-            boolean updated = false;
-            for (JsonElement element : dataArray) {
-                JsonObject row = element.getAsJsonObject();
-                boolean match = true;
-                // 检查条件是否匹配
-                for (Condition condition : conditions) {
-                    String column = condition.getColumn();
-                    String value = condition.getValue();
-                    String operator = condition.getOperator();
-                    if (!row.has(column)) {
-                        match = false;
-                        break;
-                    }
-                    JsonElement rowValue = row.get(column);
-                    if (!compare(rowValue, value, operator)) {
-                        match = false;
-                        break;
-                    }
-                }
-                // 如果匹配条件，更新字段
-                if (match) {
-                    for (Map.Entry<String, String> entry : newValues.entrySet()) {
-                        row.addProperty(entry.getKey(), entry.getValue());
-                    }
-                    updated = true;
-                }
-            }
-            // 如果没有匹配项，提示用户
-            if (!updated) {
-                System.out.println("No matching records found for update.");
-                return;
-            }
-            try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-                gson.toJson(dataArray, writer);
-            }
-            System.out.println("Record(s) updated successfully.");
+
+
+
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    public static JsonArray Set(JsonArray data, HashMap<String,String> map) {
+        Iterator<JsonElement> iterator = data.iterator();
 
-    public static void deleteValue(Path dataPath, JsonArray data) {
+        while (iterator.hasNext()) {
+            JsonElement element = iterator.next();
+            JsonObject object = element.getAsJsonObject();
+
+            for(String key : map.keySet()) {
+                object.addProperty(key,map.get(key));
+            }
+        }
+        return data;
+    }
+
+
+    public static void Delete(Path dataPath, JsonArray data) {
         try {
             if (!Files.exists(dataPath)) {
                 System.out.println("Table data file does not exist.");
@@ -182,48 +161,7 @@ public class Table {
     }
 
 
-    private static boolean compare(JsonElement rowValue, String value, String operator) {
-        if (rowValue.isJsonPrimitive()) {
-            JsonPrimitive primitive = rowValue.getAsJsonPrimitive();
 
-            if (primitive.isNumber()) {
-                double rowNum = primitive.getAsDouble();
-                double targetNum = Double.parseDouble(value);
-
-                switch (operator) {
-                    case "=":
-                        return rowNum == targetNum;
-                    case "!=":
-                        return rowNum != targetNum;
-                    case ">":
-                        return rowNum > targetNum;
-                    case "<":
-                        return rowNum < targetNum;
-                    case ">=":
-                        return rowNum >= targetNum;
-                    case "<=":
-                        return rowNum <= targetNum;
-                    default:
-                        System.out.println("Unsupported operator: " + operator);
-                        return false;
-                }
-            } else if (primitive.isString()) {
-                String rowStr = primitive.getAsString();
-
-                switch (operator) {
-                    case "=":
-                        return rowStr.equals(value);
-                    case "!=":
-                        return !rowStr.equals(value);
-                    default:
-                        System.out.println("Unsupported operator for strings: " + operator);
-                        return false;
-                }
-            }
-        }
-
-        return false; // 其他情况一律不匹配
-    }
 
 
     public static Path From(String table) {
@@ -231,7 +169,7 @@ public class Table {
         return dataPath;
     }
 
-    public static JsonArray DealWithArray(JsonArray a, JsonArray b, String mode) {
+    public static JsonArray Where(JsonArray a, JsonArray b, String mode) {
         JsonArray array = new JsonArray();
         if (mode.equals("and")) {
             for (JsonElement e : a) {
@@ -253,9 +191,32 @@ public class Table {
         } else return array;
     }
 
+
+
+    public static JsonArray Where(Path dataPath, Condition condition) {
+        JsonArray data = new JsonArray();
+        try (FileReader reader = new FileReader(dataPath.toFile())) {
+            data = JsonParser.parseReader(reader).getAsJsonArray();
+            data = DealWithArray(data, condition);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return data;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
     public static JsonArray DealWithArray(JsonArray data, Condition condition) {
-        ArrayList<JsonElement> arrayList = JsonArrayToArrayList(data);
-        Iterator<JsonElement> iterator = arrayList.iterator();
+        Iterator<JsonElement> iterator = data.iterator();
 
         while (iterator.hasNext()) {
             JsonElement element = iterator.next();
@@ -295,21 +256,8 @@ public class Table {
             }
         }
 
-        data = ArrayListToJsonArray(arrayList);
         return data;
     }
-
-    public static JsonArray Where(Path dataPath, Condition condition) {
-        JsonArray data = new JsonArray();
-        try (FileReader reader = new FileReader(dataPath.toFile())) {
-            data = JsonParser.parseReader(reader).getAsJsonArray();
-            data = DealWithArray(data, condition);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return data;
-    }
-
 
     private static boolean isValidType(Object value, String expectedType) {
         if (value == null) {
@@ -421,21 +369,21 @@ public class Table {
     }
 
 
-    private static ArrayList<JsonElement> JsonArrayToArrayList(JsonArray jsonArray) {
-        ArrayList<JsonElement> array = new ArrayList<>();
-        for (JsonElement element : jsonArray) {
-            array.add(element);
-        }
-        return array;
-    }
-
-    private static JsonArray ArrayListToJsonArray(ArrayList<JsonElement> arrayList) {
-        JsonArray array = new JsonArray();
-        for (JsonElement element : arrayList) {
-            array.add(element);
-        }
-        return array;
-    }
+//    private static ArrayList<JsonElement> JsonArrayToArrayList(JsonArray jsonArray) {
+//        ArrayList<JsonElement> array = new ArrayList<>();
+//        for (JsonElement element : jsonArray) {
+//            array.add(element);
+//        }
+//        return array;
+//    }
+//
+//    private static JsonArray ArrayListToJsonArray(ArrayList<JsonElement> arrayList) {
+//        JsonArray array = new JsonArray();
+//        for (JsonElement element : arrayList) {
+//            array.add(element);
+//        }
+//        return array;
+//    }
 
 
 //    public static JsonArray selectColumns(JsonArray originalArray, ArrayList<String> columns) {
@@ -456,4 +404,48 @@ public class Table {
 //
 //        return resultArray;
 //    }
+
+    //    private static boolean compare(JsonElement rowValue, String value, String operator) {
+//        if (rowValue.isJsonPrimitive()) {
+//            JsonPrimitive primitive = rowValue.getAsJsonPrimitive();
+//
+//            if (primitive.isNumber()) {
+//                double rowNum = primitive.getAsDouble();
+//                double targetNum = Double.parseDouble(value);
+//
+//                switch (operator) {
+//                    case "=":
+//                        return rowNum == targetNum;
+//                    case "!=":
+//                        return rowNum != targetNum;
+//                    case ">":
+//                        return rowNum > targetNum;
+//                    case "<":
+//                        return rowNum < targetNum;
+//                    case ">=":
+//                        return rowNum >= targetNum;
+//                    case "<=":
+//                        return rowNum <= targetNum;
+//                    default:
+//                        System.out.println("Unsupported operator: " + operator);
+//                        return false;
+//                }
+//            } else if (primitive.isString()) {
+//                String rowStr = primitive.getAsString();
+//
+//                switch (operator) {
+//                    case "=":
+//                        return rowStr.equals(value);
+//                    case "!=":
+//                        return !rowStr.equals(value);
+//                    default:
+//                        System.out.println("Unsupported operator for strings: " + operator);
+//                        return false;
+//                }
+//            }
+//        }
+//
+//        return false; // 其他情况一律不匹配
+//    }
 }
+
