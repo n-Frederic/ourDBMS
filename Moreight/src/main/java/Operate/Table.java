@@ -1,5 +1,6 @@
 package Operate;
 
+import Conditions.Condition;
 import Function.DatabaseManager;
 import com.google.gson.*;
 

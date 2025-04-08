@@ -1,11 +1,10 @@
 package Parser;
 
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import Operate.Condition;
+import Conditions.Condition;
 
 public class StringParser {
 

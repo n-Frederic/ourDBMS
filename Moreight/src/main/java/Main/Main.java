@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.Map;
 
-import Operate.Condition;
+import Conditions.Condition;
 import Operate.Table;
 import com.google.gson.JsonArray;
 

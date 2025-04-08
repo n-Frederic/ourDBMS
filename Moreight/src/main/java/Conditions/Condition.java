@@ -1,9 +1,11 @@
-package Operate;
+package Conditions;
 
-public class Condition {
+public class Condition extends ConditionNode {
     private String column;
     private String value;
     private String operator;
+
+
 
     public Condition(String column, String value, String operator) {
         this.column = column;
