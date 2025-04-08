@@ -20,59 +20,74 @@ public class Table {
             Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
             JsonArray dataArray;
 
+            // 读取或创建 dataArray
             if (Files.exists(dataPath)) {
-                FileReader reader = new FileReader(dataPath.toFile());
-                dataArray = JsonParser.parseReader(reader).getAsJsonArray();
+                try (FileReader reader = new FileReader(dataPath.toFile())) {
+                    dataArray = JsonParser.parseReader(reader).getAsJsonArray();
+                }
             } else {
                 dataArray = new JsonArray();
             }
 
+            // 加载表结构
             Schema schema = Schema.loadSchema(DatabaseManager.getCurrentDatabase(), table);
             if (schema == null) {
                 throw new RuntimeException("Schema not found for table: " + table);
             }
 
             JsonObject newRow = new JsonObject();
+
             for (int i = 0; i < columns.size(); i++) {
                 String column = columns.get(i);
                 Object value = values.get(i);
 
                 Schema.ColumnRule columnRule = schema.getColumn(column);
-                // 校验值的类型(正在试，还在改)
-                String expectedType = columnRule.getType();
-                if (!isValidType(value, expectedType)) {
-                    throw new IllegalArgumentException("Invalid data type for column " + column);
+                if (columnRule == null) {
+                    throw new IllegalArgumentException("Column not found in schema: " + column);
                 }
 
-                newRow.addProperty(column, value.toString());
+                String expectedType = columnRule.type;
+
+                // 检查是否为空
+                if (value == null || value.toString().isEmpty()) {
+                    if (columnRule.notNull) {
+                        throw new IllegalArgumentException("Column '" + column + "' cannot be null.");
+                    } else if (!columnRule.defaultValue.isEmpty()) {
+                        value = parseDefaultValue(columnRule.defaultValue, expectedType);
+                    } else {
+                        newRow.add(column, JsonNull.INSTANCE);
+                        continue;
+                    }
+                }
+
+                // 类型校验
+                if (!isValidType(value, expectedType)) {
+                    throw new IllegalArgumentException("Invalid data type for column '" + column + "'. Expected: " + expectedType);
+                }
+
+                // 写入 JSON
+                switch (expectedType) {
+                    case "int" -> newRow.addProperty(column, Integer.parseInt(value.toString()));
+                    case "double" -> newRow.addProperty(column, Double.parseDouble(value.toString()));
+                    case "boolean" -> newRow.addProperty(column, Boolean.parseBoolean(value.toString()));
+                    default -> newRow.addProperty(column, value.toString());
+                }
             }
-
-
-//            for (int i = 0; i < columns.size(); i++) {
-//                String column = columns.get(i);
-//                Object value = values.get(i);
-
-//                switch (value) {
-//                    case String s -> newRow.addProperty(column, s);
-//                    case Integer integer -> newRow.addProperty(column, integer);
-//                    case Double v -> newRow.addProperty(column, v);
-//                    case Boolean b -> newRow.addProperty(column, b);
-//                    case null, default ->
-//                            throw new IllegalArgumentException("Unsupported value type: " + value.getClass());
-//                }
-//            }
 
             dataArray.add(newRow);
 
+            // 写入文件
             try (FileWriter writer = new FileWriter(dataPath.toFile())) {
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 gson.toJson(dataArray, writer);
-                writer.flush();
             }
+
+            System.out.println("Insert success.");
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
 
     // update 是一个总的关于update from ... set ... 的调用，也就是传入where筛选后的JsonArray
@@ -92,10 +107,6 @@ public class Table {
                 System.out.println("No data to update.");
                 return;
             }
-
-
-
-
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -155,9 +166,9 @@ public class Table {
 
             schemaJson.add("fields", newFieldsArray);
             // 写回 JSON 文件
-            try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-                gson.toJson(schemaJson, writer);
-            }
+//            try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+//                gson.toJson(schemaJson, writer);
+//            }
             System.out.println("Deleted successfully.");
         } catch (IOException e) {
             e.printStackTrace();
@@ -208,23 +219,6 @@ public class Table {
         }
         return data;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -291,6 +285,15 @@ public class Table {
             default:
                 return false;
         }
+    }
+
+    private static Object parseDefaultValue(String defaultValue, String expectedType) {
+        return switch (expectedType) {
+            case "int" -> Integer.parseInt(defaultValue);
+            case "double" -> Double.parseDouble(defaultValue);
+            case "boolean" -> Boolean.parseBoolean(defaultValue);
+            default -> defaultValue;
+        };
     }
 
     private static boolean isWideChar(char c) {
