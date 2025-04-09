@@ -1,4 +1,4 @@
-package Operate;
+package Table;
 
 import com.google.gson.*;
 
@@ -19,9 +19,17 @@ public class Schema {
         // Integer max = null;
 
         // 后续可以添加更多约束
-
         public String getType() {
             return type;
+        }
+        public boolean isPrimaryKey() {
+            return primaryKey;
+        }
+        public boolean isNotNull() {
+            return notNull;
+        }
+        public String getDefaultValue() {
+            return defaultValue;
         }
     }
 
@@ -67,6 +75,10 @@ public class Schema {
 
     public ColumnRule getColumn(String columnName) {
         return columns.get(columnName);
+    }
+
+    public Map<String, ColumnRule> getColumns(){
+        return this.columns;
     }
 
 }

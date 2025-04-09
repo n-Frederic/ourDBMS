@@ -1,12 +1,11 @@
-package Function;
+package Table;
 
-import Parser.Field;
+import Database.DatabaseManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.io.FileWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.io.IOException;

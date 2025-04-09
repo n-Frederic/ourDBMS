@@ -1,63 +1,50 @@
 package Main;
-import Conditions.ConditionNode;
-import Conditions.ConditionParser;
-import Function.DatabaseManager;
-
-import java.nio.file.Path;
-import java.util.LinkedHashMap;
+import Database.DatabaseManager;
+import Table.Table;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import Conditions.Condition;
-import Operate.Table;
-import com.google.gson.JsonArray;
-
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Main {
     public static void main(String[] args) {
         // 登录注册的测试
 //       Operating operating = new Operating();
 //       operating.dbms();
-
-        String conditionStr;
-        conditionStr = "age > 30 AND (gender = '男' OR (salary >= 5000 AND salay<=10000))";
-        ConditionNode logicTree;
-        List<String> tokens= ConditionParser.tokenizeWhere(conditionStr);
-        logicTree=ConditionParser.parseConditionTree(tokens);
-
-
-
-        System.out.println("条件表达式树结构为：");
-        System.out.println(logicTree);
-
-
-//        // 建库建表,测试插入数据（没成功）
-//        DatabaseManager.createDataBase("20250408testDB");
-//        DatabaseManager.useDatabase("20250408testDB");
-//        ArrayList<String> columns = new ArrayList<>();
-//        columns.add("Sno");
-//        columns.add("Sname");
-//        columns.add("Ssex");
-//        columns.add("Sbirthday");
 //
-//        // 构造插入值1
-//        ArrayList<Object> values1 = new ArrayList<>();
-//        values1.add("23301100");
-//        values1.add("李雷");
-//        values1.add("男");
-//        values1.add("2003-06-01");
+//        String conditionStr;
+//        conditionStr = "age > 30 AND (gender = '男' OR (salary >= 5000 AND salay<=10000))";
+//        ConditionNode logicTree;
+//        List<String> tokens= ConditionParser.tokenizeWhere(conditionStr);
+//        logicTree=ConditionParser.parseConditionTree(tokens);
 //
-//        // 构造插入值2
-//        ArrayList<Object> values2 = new ArrayList<>();
-//        values2.add("23301101");
-//        values2.add("韩梅梅");
-//        values2.add("女");
-//        values2.add("2003-07-15");
-//
-//        // 执行插入
-//        Table.InsertIntoValue("student", columns, values1);
-//        Table.InsertIntoValue("student", columns, values2);
+//        System.out.println("条件表达式树结构为：");
+//        System.out.println(logicTree);
+
+        DatabaseManager.createDataBase("testDB");
+        DatabaseManager.useDatabase("testDB");
+
+        // 准备插入的数据
+        Path tablePath = Paths.get(DatabaseManager.getCurrentDatabase(), "student.json");
+
+        // 准备插入的数据
+        ArrayList<String> columns = new ArrayList<>();
+        columns.add("Sno");
+        columns.add("Sname");
+        columns.add("Ssex");
+        columns.add("Sbirthday");
+
+        ArrayList<Object> values = new ArrayList<>();
+        values.add("23301116");
+        values.add("周学超");
+        values.add("男");
+        values.add("2005-01-16");
+
+        // 调用插入方法
+        Table.Insert(tablePath, columns, values);
+
+        System.out.println("插入成功！");
+
+
 ////        Field field = new Field("Sno","VARCHAR(8)");
 ////        Field field1 = new Field("Sname", "VARCHAR(8)");
 ////        Field field2 = new Field("Ssex","VARCHAR(4)");

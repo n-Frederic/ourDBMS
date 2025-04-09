@@ -5,8 +5,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import Conditions.Condition;
+import Table.Field;
 
-public class StringParser {
+public class commandParser {
 
     static Set<String> validTypes = Set.of("int", "string", "float", "boolean");
 

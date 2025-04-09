@@ -1,6 +1,9 @@
 package Conditions;
+import java.util.Map;
 
 import Conditions.ConditionNode;
+import Table.Table;
+import com.google.gson.JsonArray;
 
 public class ConditionOperator extends ConditionNode {
     private final String operator; // "AND" or "OR"
@@ -29,4 +32,15 @@ public class ConditionOperator extends ConditionNode {
     public String toString() {
         return "(" + left + " " + operator + " " + right + ")";
     }
+
+    @Override
+    public JsonArray evaluate() {
+        JsonArray leftResult = left.evaluate();
+        JsonArray rightResult = right.evaluate();
+        return Table.Where(leftResult,rightResult,this.operator);
+
+
+    }
+
 }
+
