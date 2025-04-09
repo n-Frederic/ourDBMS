@@ -1,9 +1,12 @@
 package Main;
+import Conditions.ConditionNode;
+import Conditions.ConditionParser;
 import Function.DatabaseManager;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import Conditions.Condition;
@@ -17,38 +20,49 @@ public class Main {
 //       Operating operating = new Operating();
 //       operating.dbms();
 
+        String conditionStr;
+        conditionStr = "age > 30 AND (gender = '男' OR (salary >= 5000 AND salay<=10000))";
+        ConditionNode logicTree;
+        List<String> tokens= ConditionParser.tokenizeWhere(conditionStr);
+        logicTree=ConditionParser.parseConditionTree(tokens);
 
-        // 建库建表,测试插入数据（没成功）
-        DatabaseManager.createDataBase("20250408testDB");
-        DatabaseManager.useDatabase("20250408testDB");
-        ArrayList<String> columns = new ArrayList<>();
-        columns.add("Sno");
-        columns.add("Sname");
-        columns.add("Ssex");
-        columns.add("Sbirthday");
 
-        // 构造插入值1
-        ArrayList<Object> values1 = new ArrayList<>();
-        values1.add("23301100");
-        values1.add("李雷");
-        values1.add("男");
-        values1.add("2003-06-01");
 
-        // 构造插入值2
-        ArrayList<Object> values2 = new ArrayList<>();
-        values2.add("23301101");
-        values2.add("韩梅梅");
-        values2.add("女");
-        values2.add("2003-07-15");
+        System.out.println("条件表达式树结构为：");
+        System.out.println(logicTree);
 
-        // 执行插入
-        Table.InsertIntoValue("student", columns, values1);
-        Table.InsertIntoValue("student", columns, values2);
-//        Field field = new Field("Sno","VARCHAR(8)");
-//        Field field1 = new Field("Sname", "VARCHAR(8)");
-//        Field field2 = new Field("Ssex","VARCHAR(4)");
-//        Field field3 = new Field("Sbirthday", "VARCHAR(10)");
-//        ArrayList<Field> fields = new ArrayList<>();
+
+//        // 建库建表,测试插入数据（没成功）
+//        DatabaseManager.createDataBase("20250408testDB");
+//        DatabaseManager.useDatabase("20250408testDB");
+//        ArrayList<String> columns = new ArrayList<>();
+//        columns.add("Sno");
+//        columns.add("Sname");
+//        columns.add("Ssex");
+//        columns.add("Sbirthday");
+//
+//        // 构造插入值1
+//        ArrayList<Object> values1 = new ArrayList<>();
+//        values1.add("23301100");
+//        values1.add("李雷");
+//        values1.add("男");
+//        values1.add("2003-06-01");
+//
+//        // 构造插入值2
+//        ArrayList<Object> values2 = new ArrayList<>();
+//        values2.add("23301101");
+//        values2.add("韩梅梅");
+//        values2.add("女");
+//        values2.add("2003-07-15");
+//
+//        // 执行插入
+//        Table.InsertIntoValue("student", columns, values1);
+//        Table.InsertIntoValue("student", columns, values2);
+////        Field field = new Field("Sno","VARCHAR(8)");
+////        Field field1 = new Field("Sname", "VARCHAR(8)");
+////        Field field2 = new Field("Ssex","VARCHAR(4)");
+////        Field field3 = new Field("Sbirthday", "VARCHAR(10)");
+////        ArrayList<Field> fields = new ArrayList<>();
 //        fields.add(field);
 //        fields.add(field1);
 //        fields.add(field2);

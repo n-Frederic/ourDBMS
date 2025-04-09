@@ -4,16 +4,31 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 public class ConditionParser {
 
+    public static void validateBrackets(List<String> tokens) {
+        int balance = 0;
+        for (String token : tokens) {
+            if (token.equals("(")) balance++;
+            else if (token.equals(")")) balance--;
+            if (balance < 0) throw new IllegalArgumentException("括号过多 ')'");
+        }
+        if (balance != 0) throw new IllegalArgumentException("括号未闭合");
+    }
+
     public static List<String> tokenizeWhere(String input) {
         List<String> tokens = new ArrayList<>();
-        Matcher m = Pattern.compile("\\(|\\)|AND|OR|[^()\\s]+(?:\\s+[^()\\s]+)*").matcher(input);
+        Matcher m = Pattern.compile(
+                "\\(|\\)|\\bAND\\b|\\bOR\\b|\\w+\\s*(=|!=|<=|>=|<|>)\\s*('[^']*'|\\d+|\\w+)"
+        ).matcher(input);
         while (m.find()) {
             tokens.add(m.group().trim());
         }
         return tokens;
     }
 
+
+
     public static ConditionNode parseConditionTree(List<String> tokens) {
+        validateBrackets(tokens); // ✅ 提前校验括号配对
         return parseOr(tokens);
     }
 

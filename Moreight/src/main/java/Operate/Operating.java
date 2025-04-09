@@ -1,6 +1,7 @@
 package Operate;
 import Conditions.Condition;
 import Conditions.ConditionNode;
+import Conditions.ConditionParser;
 import Parser.Field;
 
 import Function.DatabaseManager;
@@ -350,7 +351,20 @@ public class Operating {
 
                 }
 
+                conditionStr = "age > 30 AND (gender = '男' OR salary >= 5000)";
                 ConditionNode logicTree;
+                List<String> tokens= ConditionParser.tokenizeWhere(conditionStr);
+                logicTree=ConditionParser.parseConditionTree(tokens);
+
+
+
+
+
+
+                System.out.println("条件表达式树结构为：");
+                System.out.println(logicTree);
+
+
 
                 System.out.println("Table: " + tableName);
                 System.out.println("Columns: " + columns);
