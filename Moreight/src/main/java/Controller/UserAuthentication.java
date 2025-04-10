@@ -24,8 +24,6 @@ public class UserAuthentication {
         }
         // 在此实现登录逻辑
 
-
-
     }
 
     protected static  void register(Scanner sc, boolean login)  {
@@ -45,11 +43,6 @@ public class UserAuthentication {
             System.out.println("you have already registered, please log in!");
 
         }
-
-
         // 在此实现注册逻辑
-
     }
-
-
 }

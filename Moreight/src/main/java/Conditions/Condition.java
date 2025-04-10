@@ -11,8 +11,6 @@ public class Condition extends ConditionNode {
     private String value;
     private String operator;
 
-
-
     public void setTablepath(Path tablepath){
         this.tablepath=tablepath;
 
@@ -23,6 +21,12 @@ public class Condition extends ConditionNode {
         this.value = value;
         this.operator = operator;
         this.tablepath=filepath;
+    }
+
+    public Condition(String column, String value, String operator) {
+        this.column = column;
+        this.value = value;
+        this.operator = operator;
     }
 
 

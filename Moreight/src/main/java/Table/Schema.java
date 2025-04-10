@@ -14,6 +14,8 @@ public class Schema {
         String type;
         boolean primaryKey = false;
         boolean notNull = false;
+
+        boolean unique=false;
         String defaultValue = "";
         // Integer min = null;
         // Integer max = null;
@@ -27,6 +29,10 @@ public class Schema {
         }
         public boolean isNotNull() {
             return notNull;
+        }
+
+        public boolean isUnique() {
+            return unique;
         }
         public String getDefaultValue() {
             return defaultValue;
@@ -60,7 +66,7 @@ public class Schema {
                     // 解析各种约束
                     if (constraint.has("Type")) rule.type = constraint.get("Type").getAsString();
                     if (constraint.has("PRIMARY KEY")) rule.primaryKey = constraint.get("PRIMARY KEY").getAsBoolean();
-                    if (constraint.has("UNIQUE")) ;
+                    if (constraint.has("UNIQUE")) ; rule.unique=constraint.get("Unique").getAsBoolean();
                     if (constraint.has("NOT NULL")) rule.notNull = constraint.get("NOT NULL").getAsBoolean();
                     if (constraint.has("Default")) rule.defaultValue = constraint.get("Default").getAsString();
                 }

@@ -169,19 +169,5 @@ public class Table {
         return fields;
     }
 
-
-
-
-
-
-//    private static Object parseDefaultValue(String defaultValue, String expectedType) {
-//        return switch (expectedType) {
-//            case "int" -> Integer.parseInt(defaultValue);
-//            case "double" -> Double.parseDouble(defaultValue);
-//            case "boolean" -> Boolean.parseBoolean(defaultValue);
-//            default -> defaultValue;
-//        };
-//    }
-
 }
 

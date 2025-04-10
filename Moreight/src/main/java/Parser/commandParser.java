@@ -98,7 +98,6 @@ public class commandParser {
             ArrayList<Object> values = new ArrayList<>();
             // 列名处理
 
-
             // 值处理
             String[] valuesArray = valuesStr.split("\\s*,\\s*");
             for (String value : valuesArray) {
@@ -159,6 +158,7 @@ public class commandParser {
                 }else if (value.startsWith("\"") && value.endsWith("\"")){
                     value=value.substring(1,value.length()-1);
                 }
+
                 Condition condition = new Condition(
                         singleMatcher.group(1), // 列名
                         value, // 值

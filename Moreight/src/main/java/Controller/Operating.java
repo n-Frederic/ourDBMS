@@ -61,7 +61,7 @@ public class Operating {
                 return;
             }
 
-        } while (login == false);
+        } while (!login);
 
         Scanner sc = new Scanner(System.in);
         String cmd;
