@@ -25,30 +25,37 @@ public class Main {
 //        System.out.println("条件表达式树结构为：");
 //        System.out.println(logicTree);
 
-//        DatabaseManager.createDataBase("testDB");
-//        DatabaseManager.useDatabase("testDB");
-        String tableName = "student_data";
-        Path path = Paths.get("testDB", tableName + ".json");
-
-        // 准备字段
-        ArrayList<String> columns = new ArrayList<>();
-        columns.add("Sno");
-        columns.add("Sname");
-        columns.add("Ssex");
-        columns.add("Sbirthday");
-
-        // 准备对应值
-        ArrayList<Object> values = new ArrayList<>();
-        values.add("23301117");
-        values.add("张三");
-        values.add("男");
-        values.add("2003-02-14");
-
-        // 调用插入方法
-        Table.Insert(path, columns, values);//
+//        // 1. 创建数据库和表
+//        DatabaseManager.createDataBase("test_db");
+//        DatabaseManager.useDatabase("test_db");
 //
+//        // 2. 添加新列
+//        Schema.ColumnRule ageRule = new Schema.ColumnRule();
+//        ageRule.setType("int");
+//        ageRule.setDefaultValue("0");
 //
+//        Table.addColumn("test_db", "users", "age", ageRule);
+
+//        ArrayList<Field> fields = new ArrayList<>();
+//        fields.add(new Field("id", "int"));
+//        fields.add(new Field("name", "string"));
+//        TableManager.CreateTable(tableName, fields);
 //
+//        // (3) 插入数据
+//        ArrayList<String> columns = new ArrayList<>();
+//        columns.add("id");
+//        columns.add("name");
+//
+//        ArrayList<Object> values = new ArrayList<>();
+//        values.add(1);         // id
+//        values.add("张三");     // name
+//
+//        // 调用插入方法
+//        Path dataPath = Table.From_data(tableName);
+//        Table.Insert(dataPath, columns, values);
+
+
+
 //        // 示例条件表达式
 //        String conditionStr = "age > 30 AND (gender = '男' OR salary >= 5000)";
 //
