@@ -37,6 +37,21 @@ public class Schema {
         public String getDefaultValue() {
             return defaultValue;
         }
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public void setPrimaryKey(boolean primaryKey) {
+            this.primaryKey = primaryKey;
+        }
+
+        public void setNotNull(boolean notNull) {
+            this.notNull = notNull;
+        }
+
+        public void setDefaultValue(String defaultValue) {
+            this.defaultValue = defaultValue;
+        }
     }
 
 
