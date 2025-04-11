@@ -48,65 +48,76 @@ public class Table {
     }
 
     public static void addColumn(String dbName, String tableName, String columnName, Schema.ColumnRule newColumnRule) {
-        // 获取数据路径和 schema 路径
-        Path dataPath = From_data(tableName);
         Path schemaPath = From_schema(tableName);
+        Path dataPath = From_data(tableName);
 
-        // 读取 schema 数据
-        JsonArray schemaData = readSchema(schemaPath);
-        // 读取数据表中的数据
-        JsonArray data = readData(dataPath);
+        JsonObject schema;
+        try (FileReader reader = new FileReader(schemaPath.toFile())) {
+            schema = JsonParser.parseReader(reader).getAsJsonObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
 
-        // 检查 schema 中是否已经有该列
-        for (JsonElement element : schemaData) {
-            JsonObject field = element.getAsJsonObject();
+        JsonArray fields = schema.getAsJsonArray("fields");
+
+        // 检查是否已存在字段名
+        for (JsonElement f : fields) {
+            JsonObject field = f.getAsJsonObject();
             if (field.get("fieldName").getAsString().equals(columnName)) {
-                System.out.println("Column already exists in schema.");
+                System.out.println("Field already exists.");
                 return;
             }
         }
 
-        // 创建新字段并添加到 schema 数据中
         JsonObject newField = new JsonObject();
         newField.addProperty("fieldName", columnName);
+        JsonArray constraintsArray = new JsonArray();
 
-        JsonArray constraints = new JsonArray();
-        JsonObject constraint = new JsonObject();
-        constraint.addProperty("Type", newColumnRule.getType());
-        constraint.addProperty("NOT NULL", newColumnRule.isNotNull());
-        constraint.addProperty("Default", newColumnRule.getDefaultValue());
-        constraints.add(constraint);
+        JsonObject typeObj = new JsonObject();
+        typeObj.addProperty("Type", newColumnRule.getType());
+        constraintsArray.add(typeObj);
 
-        newField.add("constraint", constraints);
-        schemaData.add(newField);
+        if (newColumnRule.isNotNull()) {
+            JsonObject notNullObj = new JsonObject();
+            notNullObj.addProperty("NOT NULL", true);
+            constraintsArray.add(notNullObj);
+        }
 
-        // 保存更新后的 schema
+        if (newColumnRule.getDefaultValue() != null) {
+            JsonObject defaultObj = new JsonObject();
+            defaultObj.addProperty("Default", newColumnRule.getDefaultValue().toString());
+            constraintsArray.add(defaultObj);
+        }
+
+        newField.add("constraint", constraintsArray);
+        fields.add(newField);
+
         try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(schemaData, writer);
-            writer.flush();
+            gson.toJson(schema, writer);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        // 更新数据表中的每一条数据，加入新列
-        for (JsonElement element : data) {
-            JsonObject row = element.getAsJsonObject();
-            row.addProperty(columnName, newColumnRule.getDefaultValue());  // 默认值
+        // 同步更新 data 文件，为所有旧数据添加新字段默认值
+        JsonArray data = readData(dataPath);
+        for (JsonElement e : data) {
+            JsonObject obj = e.getAsJsonObject();
+            if (newColumnRule.getDefaultValue() != null) {
+                obj.addProperty(columnName, newColumnRule.getDefaultValue().toString());
+            } else {
+                obj.add(columnName, JsonNull.INSTANCE);
+            }
         }
 
-        // 保存更新后的数据
         try (FileWriter writer = new FileWriter(dataPath.toFile())) {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(data, writer);
-            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        System.out.println("Column added successfully.");
     }
-
 
 
 
