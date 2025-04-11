@@ -55,8 +55,8 @@ public class Condition extends ConditionNode {
     public JsonArray evaluate() {
 
         JsonArray data=Table.readData(tablepath);
-        JsonArray result= Table.Where(data,this);
-        return result;
+        Table.Where(data,this);
+        return data;
         // 根据操作符进行比较，这里仅示例了部分操作符
 
     }

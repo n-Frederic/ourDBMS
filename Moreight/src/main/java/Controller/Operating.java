@@ -53,9 +53,9 @@ public class Operating {
 
             String choice = sc.nextLine();
             if ("1".equals(choice)) {
-                UserAuthentication.login(sc, login);
+                login=UserAuthentication.login(sc);
             } else if ("2".equals(choice)) {
-                UserAuthentication.register(sc, login);
+                login=UserAuthentication.register(sc);
             } else {
                 System.out.println("无效选项，程序退出。");
                 return;
@@ -167,7 +167,10 @@ public class Operating {
                 String tableName = matcherSelectTable.group(2);
                 //List<String> nameList=StringParser.parseFrom(matcherSelectTable.group(2));//选择多个表
                 System.out.println(matcherSelectTable.group(2));//after from
-                commandParser.parseWhere(matcherSelectTable.group(3));
+                Path fpath=Table.From_data(tableName);
+                ConditionParser parser=new ConditionParser(fpath);
+                parser.tokenizeWhere(matcherSelectTable.group(3));
+
                 System.out.println(matcherSelectTable.group(3));//where
                 continue;
             } else if (matcherInsertTable.find()) {
@@ -195,8 +198,10 @@ public class Operating {
                 String conditionstr = matcherDelete.group(2);
                 ArrayList<Condition> conditions;
 
+                Path fpath=Table.From_data(tableName);
+                ConditionParser parser=new ConditionParser(fpath);
+                parser.tokenizeWhere(matcherSelectTable.group(3));
 
-                conditions = commandParser.parseWhere(conditionstr);
 
             } else if (matcherUpdate.find()) {
                 String tableName;
@@ -319,17 +324,18 @@ public class Operating {
 
         String columnsStr = matcherSelect.group(2);
         String conditionStr = matcherSelect.group(3).toLowerCase().trim();
-        String regex = "(.*?)\\s+(\\w+)\\s+between\\s+(\\S+)\\s+and\\s+(\\S+)(.*)";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(conditionStr);
-        if (matcher.matches()) {
-            String str1 = matcher.group(2) + ">=" + matcher.group(3) + " and " + matcher.group(2) + "<=" + matcher.group(4);
-            conditionStr = matcher.group(1) + " " + str1 + matcher.group(5) + " ";
-
-        } else {
-            System.out.println("No match found.");
-        }
-        conditions = commandParser.parseWhere(conditionStr);
+        conditionStr=commandParser.parseBetweenAnd(conditionStr);
+//        String regex = "(.*?)\\s+(\\w+)\\s+between\\s+(\\S+)\\s+and\\s+(\\S+)(.*)";
+//        Pattern pattern = Pattern.compile(regex);
+//        Matcher matcher = pattern.matcher(conditionStr);
+//        if (matcher.matches()) {
+//            String str1 = matcher.group(2) + ">=" + matcher.group(3) + " and " + matcher.group(2) + "<=" + matcher.group(4);
+//            conditionStr = matcher.group(1) + " " + str1 + matcher.group(5) + " ";
+//
+//        } else {
+//            System.out.println("No match found.");
+//        }
+//        conditions = commandParser.parseWhere(conditionStr);
 
         if (columnsStr == "*") {
 
@@ -340,15 +346,15 @@ public class Operating {
 
         }
 
-        conditionStr = "age > 30 AND (gender = '男' OR salary >= 5000)";
-        ConditionNode logicTree;
-        ConditionParser parser=new ConditionParser(Table.From_data(tableName));
-        List<String> tokens = parser.tokenizeWhere(conditionStr);
-        logicTree = parser.parseConditionTree(tokens);
-
-
-        System.out.println("条件表达式树结构为：");
-        System.out.println(logicTree);
+//        conditionStr = "age > 30 AND (gender = '男' OR salary >= 5000)";
+//        ConditionNode logicTree;
+//        ConditionParser parser=new ConditionParser(Table.From_data(tableName));
+//        List<String> tokens = parser.tokenizeWhere(conditionStr);
+//        logicTree = parser.parseConditionTree(tokens);
+//
+//
+//        System.out.println("条件表达式树结构为：");
+//        System.out.println(logicTree);
 
 
         System.out.println("Table: " + tableName);
@@ -535,8 +541,6 @@ public class Operating {
 //                }
 //                table.insert(data);
     }
-
-
 }
 
 

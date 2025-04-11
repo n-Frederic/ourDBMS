@@ -14,6 +14,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.Path;
+
 
 public class TypeFilter {
 
@@ -76,7 +78,7 @@ public class TypeFilter {
     }
 
     private static boolean isValueUnique(String table, String column, String value) {
-        Path filePath = Paths.get(DatabaseManager.DIRECTORY, DatabaseManager.getCurrentDatabase(), table + ".json");
+        Path filePath = Paths.get("../TestData", "DatabaseManager", DatabaseManager.getCurrentDatabase(), table + ".json");
         if (!Files.exists(filePath)) {
             // 如果文件不存在，说明表为空，值是唯一的
             return true;

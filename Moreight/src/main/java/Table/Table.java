@@ -47,6 +47,68 @@ public class Table {
         }
     }
 
+    public static void addColumn(String dbName, String tableName, String columnName, Schema.ColumnRule newColumnRule) {
+        // 获取数据路径和 schema 路径
+        Path dataPath = From_data(tableName);
+        Path schemaPath = From_schema(tableName);
+
+        // 读取 schema 数据
+        JsonArray schemaData = readSchema(schemaPath);
+        // 读取数据表中的数据
+        JsonArray data = readData(dataPath);
+
+        // 检查 schema 中是否已经有该列
+        for (JsonElement element : schemaData) {
+            JsonObject field = element.getAsJsonObject();
+            if (field.get("fieldName").getAsString().equals(columnName)) {
+                System.out.println("Column already exists in schema.");
+                return;
+            }
+        }
+
+        // 创建新字段并添加到 schema 数据中
+        JsonObject newField = new JsonObject();
+        newField.addProperty("fieldName", columnName);
+
+        JsonArray constraints = new JsonArray();
+        JsonObject constraint = new JsonObject();
+        constraint.addProperty("Type", newColumnRule.getType());
+        constraint.addProperty("NOT NULL", newColumnRule.isNotNull());
+        constraint.addProperty("Default", newColumnRule.getDefaultValue());
+        constraints.add(constraint);
+
+        newField.add("constraint", constraints);
+        schemaData.add(newField);
+
+        // 保存更新后的 schema
+        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(schemaData, writer);
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 更新数据表中的每一条数据，加入新列
+        for (JsonElement element : data) {
+            JsonObject row = element.getAsJsonObject();
+            row.addProperty(columnName, newColumnRule.getDefaultValue());  // 默认值
+        }
+
+        // 保存更新后的数据
+        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(data, writer);
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Column added successfully.");
+    }
+
+
+
 
     // set是针对于where筛选后的JsonArray修改列值
     public static void Set(JsonArray data, HashMap<String,String> map) {
