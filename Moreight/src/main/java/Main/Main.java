@@ -167,5 +167,24 @@ public class Main {
 //        System.out.println("中文");
 //        System.out.println("yeye");
 
+        // alter的测试，成功的
+//        DatabaseManager.useDatabase("testDB");
+//        String tableName = "student";
+//
+//        // 增加字段
+//        Schema.ColumnRule genderRule = new Schema.ColumnRule();
+//        genderRule.setType("string");
+//        genderRule.setNotNull(false);
+//        genderRule.setDefaultValue("www");
+//        Table.addColumn(tableName, "newColumn", genderRule);
+//        System.out.println("添加字段 newColumn 完成");
+//
+//        // 删除字段：name
+//        Table.deleteColumn(tableName, "Sname");
+//        System.out.println("删除字段 Sname 完成");
+//
+//        // 修改字段名
+//        Table.renameColumn(tableName, "Sno", "Snoo");
+//        System.out.println("重命名字段 Sno -> Snoo 完成");
     }
 }
