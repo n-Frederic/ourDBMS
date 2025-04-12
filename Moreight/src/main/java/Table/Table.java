@@ -47,7 +47,7 @@ public class Table {
         }
     }
 
-    public static void addColumn(String dbName, String tableName, String columnName, Schema.ColumnRule newColumnRule) {
+    public static void addColumn(String tableName, String columnName, Schema.ColumnRule newColumnRule) {
         Path schemaPath = From_schema(tableName);
         Path dataPath = From_data(tableName);
 
@@ -177,6 +177,53 @@ public class Table {
             for(String key : map.keySet()) {
                 object.addProperty(key,map.get(key));
             }
+        }
+    }
+
+    public static void renameColumn(String tableName, String oldName, String newName) {
+        // 修改 schema
+        Path schemaPath = From_schema(tableName);
+        JsonObject schemaObj;
+        try (FileReader reader = new FileReader(schemaPath.toFile())) {
+            schemaObj = JsonParser.parseReader(reader).getAsJsonObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonArray fields = schemaObj.getAsJsonArray("fields");
+        for (JsonElement elem : fields) {
+            JsonObject field = elem.getAsJsonObject();
+            if (field.get("fieldName").getAsString().equals(oldName)) {
+                field.addProperty("fieldName", newName);
+                break;
+            }
+        }
+
+        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(schemaObj, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 修改 data
+        Path dataPath = From_data(tableName);
+        JsonArray data = readData(dataPath);
+
+        for (JsonElement element : data) {
+            JsonObject obj = element.getAsJsonObject();
+            if (obj.has(oldName)) {
+                JsonElement value = obj.remove(oldName);
+                obj.add(newName, value);
+            }
+        }
+
+        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(data, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
