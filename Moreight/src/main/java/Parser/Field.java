@@ -51,7 +51,11 @@ public class Field {
         this.unique = unique;
     }
 
+<<<<<<< Updated upstream
     public boolean isNotnull() {
+=======
+    public boolean isNotNUll() {
+>>>>>>> Stashed changes
         return notNUll;
     }
 
