@@ -8,8 +8,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+/**
+ * Render类用于将JSON数据以表格形式输出到控制台。
+ * 它支持字符宽度计算、字符串对齐和表格绘制。
+ */
 public class Render {
 
+    /**
+     * 判断字符是否为全角字符。
+     * @param c 要判断的字符。
+     * @return 如果是全角字符，返回true；否则返回false。
+     */
     private static boolean isWideChar(char c) {
         Character.UnicodeBlock ub = Character.UnicodeBlock.of(c);
         return ub == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS
@@ -20,6 +29,11 @@ public class Render {
                 || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS;
     }
 
+    /**
+     * 计算字符串的显示宽度。
+     * @param str 要计算的字符串。
+     * @return 字符串的显示宽度。
+     */
     private static int getDisplayWidth(String str) {
         int width = 0;
         for (char c : str.toCharArray()) {
@@ -32,6 +46,12 @@ public class Render {
         return width;
     }
 
+    /**
+     * 将字符串右对齐并填充空格，使其符合指定的显示宽度。
+     * @param str 要对齐的字符串。
+     * @param displayWidth 指定的显示宽度。
+     * @return 对齐后的字符串。
+     */
     private static String padRight(String str, int displayWidth) {
         int currentWidth = getDisplayWidth(str);
         if (currentWidth >= displayWidth) {
@@ -42,6 +62,12 @@ public class Render {
         return str + " ".repeat(spaceCount);
     }
 
+    /**
+     * 将JSON数组数据按照指定的列和列宽绘制为表格。
+     * @param data JSON数组数据。
+     * @param columns 指定的列名列表。
+     * @param columnWidths 列宽映射。
+     */
     public static void DrawSelectedTable(JsonArray data, ArrayList<String> columns, Map<String, Integer> columnWidths) {
         if (columns.isEmpty()) {
             for (var rowElement : data) {

@@ -5,6 +5,11 @@ import com.google.gson.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Schema类用于描述数据库表的结构。
+ * 它包含表名和表中每个字段的规则定义。
+ * 该类支持从JSON文件中加载表结构定义。
+ */
 public class Schema {
     private String tableName;
     private Map<String, ColumnRule> columns;
@@ -81,7 +86,7 @@ public class Schema {
                     // 解析各种约束
                     if (constraint.has("Type")) rule.type = constraint.get("Type").getAsString();
                     if (constraint.has("PRIMARY KEY")) rule.primaryKey = constraint.get("PRIMARY KEY").getAsBoolean();
-                    if (constraint.has("UNIQUE")) ; rule.unique=constraint.get("Unique").getAsBoolean();
+                    if (constraint.has("UNIQUE"))  rule.unique=constraint.get("Unique").getAsBoolean();
                     if (constraint.has("NOT NULL")) rule.notNull = constraint.get("NOT NULL").getAsBoolean();
                     if (constraint.has("Default")) rule.defaultValue = constraint.get("Default").getAsString();
                 }

@@ -10,10 +10,19 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.io.IOException;
 
+/**
+ * TableManager类用于管理数据库中的表。
+ * 它支持表的创建和删除功能，表的结构定义和数据分别存储在JSON文件中。
+ */
 public class TableManager {
 
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
+    /**
+     * 创建新表。
+     * @param table 表名。
+     * @param args 包含表字段定义的Field对象列表。
+     */
     // (1) type (2) PRIMARY KEY (3) UNIQUE (4) NOT NULL (5) DEFAULT
     public static void CreateTable(String table, ArrayList<Field> args) {
         try {
@@ -55,6 +64,11 @@ public class TableManager {
         }
     }
 
+    /**
+     * 将Field对象的约束条件转换为JSON数组。
+     * @param field 字段定义对象。
+     * @return 包含约束条件的JSON数组。
+     */
     private static JsonArray getConstraints(Field field) {
         JsonObject type = new JsonObject();
         JsonObject primaryKey = new JsonObject();
@@ -64,7 +78,7 @@ public class TableManager {
         type.addProperty("Type", field.getType());
         primaryKey.addProperty("PRIMARY KEY", field.isPrimaryKey());
         unique.addProperty("UNIQUE", field.isUnique());
-        notNull.addProperty("NOT NULL", field.isNotnull());
+        notNull.addProperty("NOT NULL", field.isNotNUll());
         Default.addProperty("Default", field.getDefault());
         JsonArray constraints = new JsonArray();
         constraints.add(type);
@@ -75,6 +89,11 @@ public class TableManager {
         return constraints;
     }
 
+    /**
+     * 删除表。
+     * @param table 表名。
+     * @param userLevel 用户权限等级（1为游客，其他为管理员）。
+     */
     public static void DropTable(String table, int userLevel) {
         if (userLevel == 1) {
             return;

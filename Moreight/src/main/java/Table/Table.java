@@ -12,9 +12,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * Table类用于管理数据库表的操作。
+ * 它支持插入数据、添加列、更新数据、删除数据等功能，表的结构定义和数据分别存储在JSON文件中。
+ */
 public class Table {
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
+    /**
+     * 向表中插入一条新记录。
+     * @param dataPath 表的数据文件路径。
+     * @param columns 要插入的列名列表。
+     * @param values 要插入的值列表。
+     */
     public static void Insert(Path dataPath, ArrayList<String> columns, ArrayList<Object> values) {
         JsonArray data;
 

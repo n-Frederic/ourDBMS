@@ -16,9 +16,20 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
 
-
+/**
+ * TypeFilter类用于验证插入到数据库表中的数据是否符合表的结构定义。
+ * 它确保数据类型正确、处理空值和默认值，并检查唯一性约束。
+ */
 public class TypeFilter {
 
+    /**
+     * 验证插入的数据是否符合表的结构定义。
+     * @param table 表名。
+     * @param newRow 包含要插入数据的JSON对象。
+     * @return 如果数据验证成功，返回true；否则抛出异常。
+     * @throws RuntimeException 如果表的结构定义不存在。
+     * @throws IllegalArgumentException 如果数据不符合表的结构定义。
+     */
     public static boolean typeMatch(String table, JsonObject newRow){
 
         Schema schema = Schema.loadSchema(DatabaseManager.getCurrentDatabase(), table);
@@ -62,6 +73,12 @@ public class TypeFilter {
     }
 
 
+    /**
+     * 验证值的类型是否符合期望的类型。
+     * @param value 要验证的值。
+     * @param expectedType 期望的类型（如"String"、"Integer"等）。
+     * @return 如果值的类型符合期望的类型，返回true；否则返回false。
+     */
     private static boolean isValidType(Object value, String expectedType) {
         if (value == null) {
             return !expectedType.equals("String"); // 根据需要的类型判断是否允许 null
@@ -77,6 +94,13 @@ public class TypeFilter {
         };
     }
 
+    /**
+     * 检查值在表的列中是否唯一。
+     * @param table 表名。
+     * @param column 列名。
+     * @param value 要检查的值。
+     * @return 如果值在列中唯一，返回true；否则返回false。
+     */
     private static boolean isValueUnique(String table, String column, String value) {
         Path filePath = Paths.get("../TestData", "DatabaseManager", DatabaseManager.getCurrentDatabase(), table + ".json");
         if (!Files.exists(filePath)) {

@@ -19,8 +19,13 @@ import com.google.gson.JsonParseException;
 
 import com.google.gson.stream.JsonReader;
 
-
+/**
+ * UserManager类用于管理用户信息。
+ * 它支持用户创建和用户验证功能，用户信息存储在JSON文件中。
+ */
 public class UserManager {
+
+
     protected static User currentUser;
     // 存放用户信息。后期可以每次运行时把json文件的数据先缓存到哈希表里，
     // checkUserExists从哈希表里读写效率更高，
@@ -29,10 +34,23 @@ public class UserManager {
 
     // 0是失败 1是重名 2是成功
 
+    /**
+     * 获取当前登录的用户。
+     * @return 当前登录的用户，如果未登录返回null。
+     */
     public static User GetCurrentUser(){
         return currentUser;
     }
 
+    /**
+     * 创建新用户。
+     * @param user 用户名。
+     * @param password 密码。
+     * @return 返回创建结果：
+     *         0：失败，
+     *         1：用户名已存在，
+     *         2：成功。
+     */
     public static int CreateUser(String user, String password) {
         JsonObject newUser = new JsonObject();
         newUser.addProperty("userName", user);
@@ -78,7 +96,16 @@ public class UserManager {
     }
 
 
-    // 0是存在其他错误 1是没找到该用户 2是密码错误 3是用户，密码都匹配的上
+    /**
+     * 验证用户是否存在。
+     * @param userName 用户名。
+     * @param password 密码。
+     * @return 返回验证结果：
+     *         0：其他错误，
+     *         1：未找到用户，
+     *         2：密码错误，
+     *         3：用户和密码匹配。
+     */
     public static int checkUserExists(String userName, String password) {
         File file = new File("../TestData/UserManager/UserManager.json");
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
@@ -104,6 +131,16 @@ public class UserManager {
 
 
 
+    /**
+     * 在用户数组中查找用户。
+     * @param userArray 用户数组。
+     * @param userName 用户名。
+     * @param password 密码。
+     * @return 返回验证结果：
+     *         3：用户和密码匹配，
+     *         2：用户名存在但密码错误，
+     *         1：用户名不存在。
+     */
     private static int checkUserExists(JsonArray userArray, String userName, String password) {
         for (int i = 0; i < userArray.size(); i++) {
             JsonObject user = userArray.get(i).getAsJsonObject();
