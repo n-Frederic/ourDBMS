@@ -1,12 +1,11 @@
-package Function;
+package Table;
 
-import Parser.Field;
+import Database.DatabaseManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.io.FileWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.io.IOException;
@@ -19,6 +18,7 @@ public class TableManager {
     public static void CreateTable(String table, ArrayList<Field> args) {
         try {
             final Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
+            final Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
             if (!Files.exists(schemaPath)) {
                 JsonObject schemaJson = new JsonObject();
                 JsonArray fieldsArray = new JsonArray();
@@ -38,6 +38,15 @@ public class TableManager {
 //                    System.out.println(schemaJson);
                     gson.toJson(schemaJson, writer);
                     writer.flush();
+                }
+
+                if (!Files.exists(dataPath)) {
+                    JsonArray emptyData = new JsonArray();
+                    try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+                        Gson gson = new Gson();
+                        gson.toJson(emptyData, writer);
+                        writer.flush();
+                    }
                 }
 
             } else System.out.println("The table has existed.");

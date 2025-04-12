@@ -1,68 +1,92 @@
 package Main;
-import Conditions.ConditionNode;
-import Conditions.ConditionParser;
-import Function.DatabaseManager;
-
-import java.nio.file.Path;
-import java.util.LinkedHashMap;
+import Database.DatabaseManager;
+import Table.*;
 import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import com.google.gson.*;
+import com.google.gson.*;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
-
-import Conditions.Condition;
-import Operate.Table;
-import com.google.gson.JsonArray;
-
+import Conditions.*;
 
 public class Main {
     public static void main(String[] args) {
         // 登录注册的测试
 //       Operating operating = new Operating();
 //       operating.dbms();
+//
+//        String conditionStr;
+//        conditionStr = "age > 30 AND (gender = '男' OR (salary >= 5000 AND salay<=10000))";
+//        ConditionNode logicTree;
+//        List<String> tokens= ConditionParser.tokenizeWhere(conditionStr);
+//        logicTree=ConditionParser.parseConditionTree(tokens);
+//
+//        System.out.println("条件表达式树结构为：");
+//        System.out.println(logicTree);
 
-        String conditionStr;
-        conditionStr = "age > 30 AND (gender = '男' OR (salary >= 5000 AND salay<=10000))";
-        ConditionNode logicTree;
-        List<String> tokens= ConditionParser.tokenizeWhere(conditionStr);
-        logicTree=ConditionParser.parseConditionTree(tokens);
+//        // 1. 创建数据库和表
+//        DatabaseManager.createDataBase("test_db");
+//        DatabaseManager.useDatabase("test_db");
+//
+//        // 2. 添加新列
+//        Schema.ColumnRule ageRule = new Schema.ColumnRule();
+//        ageRule.setType("int");
+//        ageRule.setDefaultValue("0");
+//
+//        Table.addColumn("test_db", "users", "age", ageRule);
 
-
-
-        System.out.println("条件表达式树结构为：");
-        System.out.println(logicTree);
-
-
-//        // 建库建表,测试插入数据（没成功）
-//        DatabaseManager.createDataBase("20250408testDB");
-//        DatabaseManager.useDatabase("20250408testDB");
+//        ArrayList<Field> fields = new ArrayList<>();
+//        fields.add(new Field("id", "int"));
+//        fields.add(new Field("name", "string"));
+//        TableManager.CreateTable(tableName, fields);
+//
+//        // (3) 插入数据
 //        ArrayList<String> columns = new ArrayList<>();
-//        columns.add("Sno");
-//        columns.add("Sname");
-//        columns.add("Ssex");
-//        columns.add("Sbirthday");
+//        columns.add("id");
+//        columns.add("name");
 //
-//        // 构造插入值1
-//        ArrayList<Object> values1 = new ArrayList<>();
-//        values1.add("23301100");
-//        values1.add("李雷");
-//        values1.add("男");
-//        values1.add("2003-06-01");
+//        ArrayList<Object> values = new ArrayList<>();
+//        values.add(1);         // id
+//        values.add("张三");     // name
 //
-//        // 构造插入值2
-//        ArrayList<Object> values2 = new ArrayList<>();
-//        values2.add("23301101");
-//        values2.add("韩梅梅");
-//        values2.add("女");
-//        values2.add("2003-07-15");
+//        // 调用插入方法
+//        Path dataPath = Table.From_data(tableName);
+//        Table.Insert(dataPath, columns, values);
+
+
+
+//        // 示例条件表达式
+//        String conditionStr = "age > 30 AND (gender = '男' OR salary >= 5000)";
 //
-//        // 执行插入
-//        Table.InsertIntoValue("student", columns, values1);
-//        Table.InsertIntoValue("student", columns, values2);
-////        Field field = new Field("Sno","VARCHAR(8)");
-////        Field field1 = new Field("Sname", "VARCHAR(8)");
-////        Field field2 = new Field("Ssex","VARCHAR(4)");
-////        Field field3 = new Field("Sbirthday", "VARCHAR(10)");
-////        ArrayList<Field> fields = new ArrayList<>();
+//        // 构建条件解析器
+//        ConditionParser parser = new ConditionParser(Paths.get(""));
+//
+//        // 解析表达式为标记列表
+//        List<String> tokens = parser.tokenizeWhere(conditionStr);
+//
+//        // 构建条件表达式树
+//        ConditionNode root = parser.parseConditionTree(tokens);
+//
+//
+//        // 设置数据源
+//        //Condition.setData(data);
+//
+//        // 评估条件表达式树并筛选数据
+//        JsonArray filteredData = ConditionEvaluator.evaluateConditions(root);
+//
+//        // 输出筛选结果
+//        System.out.println("筛选结果：");
+//        for (JsonElement element : filteredData) {
+//            System.out.println(element.toString());
+//        }
+
+
+//        Field field = new Field("Sno","VARCHAR(8)");
+//        Field field1 = new Field("Sname", "VARCHAR(8)");
+//        Field field2 = new Field("Ssex","VARCHAR(4)");
+//        Field field3 = new Field("Sbirthday", "VARCHAR(10)");
+//        ArrayList<Field> fields = new ArrayList<>();
 //        fields.add(field);
 //        fields.add(field1);
 //        fields.add(field2);
@@ -142,6 +166,6 @@ public class Main {
 
 //        System.out.println("中文");
 //        System.out.println("yeye");
-    }
 
+    }
 }

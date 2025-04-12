@@ -1,4 +1,4 @@
-package Parser;
+package Table;
 
 public class Field {
     private String name;

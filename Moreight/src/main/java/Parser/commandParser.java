@@ -5,8 +5,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import Conditions.Condition;
+import Table.Field;
 
-public class StringParser {
+public class commandParser {
 
     static Set<String> validTypes = Set.of("int", "string", "float", "boolean");
 
@@ -97,7 +98,6 @@ public class StringParser {
             ArrayList<Object> values = new ArrayList<>();
             // 列名处理
 
-
             // 值处理
             String[] valuesArray = valuesStr.split("\\s*,\\s*");
             for (String value : valuesArray) {
@@ -119,10 +119,36 @@ public class StringParser {
             }
            return values;
 }
+    public static String parseBetweenAnd(String string){
+        if (string == null || string.isEmpty()) {
+            return string;
+        }
 
-    public static List<Map<String,String>> parseWhere_join(String str, Map<String, Map<String, Field>> fieldMaps){
-        List<Map<String, String>> joinConditionList = new LinkedList<>();
-        return joinConditionList;
+        // 定义正则表达式匹配 `BETWEEN AND` 条件
+        String regex = "(.*?)\\s+(\\w+)\\s+between\\s+(\\S+)\\s+and\\s+(\\S+)(.*)";
+        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        Matcher matcher;
+
+        // 使用循环处理多个 `BETWEEN AND` 条件
+        while (true) {
+            matcher = pattern.matcher(string);
+            if (!matcher.matches()) {
+                break; // 没有匹配到 `BETWEEN AND`，退出循环
+            }
+
+            // 提取匹配的组
+            String prefix = matcher.group(1);
+            String column = matcher.group(2);
+            String lowerBound = matcher.group(3);
+            String upperBound = matcher.group(4);
+            String suffix = matcher.group(5);
+
+            // 构造新的条件字符串
+            String newCondition = prefix + " " + column + ">=" + lowerBound + " and " + column + "<=" + upperBound + " " + suffix;
+            string = newCondition.trim();
+        }
+
+        return string; // 没有匹配到 `BETWEEN AND`，返回原始字符
     }
 
     /**
@@ -137,40 +163,41 @@ public class StringParser {
      * 输入: "score >= 80 OR status = 'active'"
      * 输出: [Condition{column='score', value=80, operator='>='}, Condition{column=status, value=active, operator='='}]
      */
-    public static ArrayList<Condition> parseWhere(String str){
-        ArrayList<Condition> filtList = new ArrayList<>();
-        //解析字段为3组
-        Pattern fieldPattern = Pattern.compile(
-                        "(\\w+)\\s*" +                     // 列名（允许尾随空格）
-                        "(=|!=|>=|<=|>|<|LIKE|IN)\\s*" +       // 操作符（明确枚举支持的符号）
-                        "(.*)"                             // 值（剩余所有内容）
-        );
-        String string=str.trim();
-        String[] lines=string.split("(?i)\\s*(and|or)\\s*");
-        for (String line : lines) {
-            line=line.trim();
-            Matcher singleMatcher = fieldPattern.matcher(line);
-
-            if (singleMatcher.matches()) { // 确保匹配成功
-                String value=singleMatcher.group(3);
-                if(value.startsWith("'")&&value.endsWith("'")){
-                    value=value.substring(1,value.length()-1);
-                }else if (value.startsWith("\"") && value.endsWith("\"")){
-                    value=value.substring(1,value.length()-1);
-                }
-                Condition condition = new Condition(
-                        singleMatcher.group(1), // 列名
-                        value, // 值
-                        singleMatcher.group(2)  // 操作符
-                );
-                filtList.add(condition);
-            } else {
-                System.out.println("No match found for: " + line);
-            }
-        }
-        return filtList;
-    }
-
+//    public static ArrayList<Condition> parseWhere(String str){
+//        ArrayList<Condition> filtList = new ArrayList<>();
+//        //解析字段为3组
+//        Pattern fieldPattern = Pattern.compile(
+//                        "(\\w+)\\s*" +                     // 列名（允许尾随空格）
+//                        "(=|!=|>=|<=|>|<|LIKE|IN)\\s*" +       // 操作符（明确枚举支持的符号）
+//                        "(.*)"                             // 值（剩余所有内容）
+//        );
+//        String string=str.trim();
+//        String[] lines=string.split("(?i)\\s*(and|or)\\s*");
+//        for (String line : lines) {
+//            line=line.trim();
+//            Matcher singleMatcher = fieldPattern.matcher(line);
+//
+//            if (singleMatcher.matches()) { // 确保匹配成功
+//                String value=singleMatcher.group(3);
+//                if(value.startsWith("'")&&value.endsWith("'")){
+//                    value=value.substring(1,value.length()-1);
+//                }else if (value.startsWith("\"") && value.endsWith("\"")){
+//                    value=value.substring(1,value.length()-1);
+//                }
+//
+//                Condition condition = new Condition(
+//                        singleMatcher.group(1), // 列名
+//                        value, // 值
+//                        singleMatcher.group(2)  // 操作符
+//                );
+//                filtList.add(condition);
+//            } else {
+//                System.out.println("No match found for: " + line);
+//            }
+//        }
+//        return filtList;
+//    }
+//
 
     /**
      * 解析SQL SELECT语句中的列部分，处理聚合函数并提取别名或生成默认列名

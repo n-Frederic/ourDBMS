@@ -1,8 +1,6 @@
-package Function;
+package User;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;

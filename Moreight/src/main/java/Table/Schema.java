@@ -1,4 +1,4 @@
-package Operate;
+package Table;
 
 import com.google.gson.*;
 
@@ -14,14 +14,43 @@ public class Schema {
         String type;
         boolean primaryKey = false;
         boolean notNull = false;
+
+        boolean unique=false;
         String defaultValue = "";
         // Integer min = null;
         // Integer max = null;
 
         // 后续可以添加更多约束
-
         public String getType() {
             return type;
+        }
+        public boolean isPrimaryKey() {
+            return primaryKey;
+        }
+        public boolean isNotNull() {
+            return notNull;
+        }
+
+        public boolean isUnique() {
+            return unique;
+        }
+        public String getDefaultValue() {
+            return defaultValue;
+        }
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public void setPrimaryKey(boolean primaryKey) {
+            this.primaryKey = primaryKey;
+        }
+
+        public void setNotNull(boolean notNull) {
+            this.notNull = notNull;
+        }
+
+        public void setDefaultValue(String defaultValue) {
+            this.defaultValue = defaultValue;
         }
     }
 
@@ -52,7 +81,7 @@ public class Schema {
                     // 解析各种约束
                     if (constraint.has("Type")) rule.type = constraint.get("Type").getAsString();
                     if (constraint.has("PRIMARY KEY")) rule.primaryKey = constraint.get("PRIMARY KEY").getAsBoolean();
-                    if (constraint.has("UNIQUE")) ;
+                    if (constraint.has("UNIQUE")) ; rule.unique=constraint.get("Unique").getAsBoolean();
                     if (constraint.has("NOT NULL")) rule.notNull = constraint.get("NOT NULL").getAsBoolean();
                     if (constraint.has("Default")) rule.defaultValue = constraint.get("Default").getAsString();
                 }
@@ -67,6 +96,10 @@ public class Schema {
 
     public ColumnRule getColumn(String columnName) {
         return columns.get(columnName);
+    }
+
+    public Map<String, ColumnRule> getColumns(){
+        return this.columns;
     }
 
 }
