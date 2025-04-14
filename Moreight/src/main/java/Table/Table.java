@@ -57,7 +57,7 @@ public class Table {
         }
     }
 
-    public static void addColumn(String tableName, String columnName, Schema.ColumnRule newColumnRule) {
+    public static void addColumn(String tableName, Field newField) {
         Path schemaPath = From_schema(tableName);
         Path dataPath = From_data(tableName);
 
@@ -71,37 +71,42 @@ public class Table {
 
         JsonArray fields = schema.getAsJsonArray("fields");
 
-        // 检查是否已存在字段名
-//        for (JsonElement f : fields) {
-//            JsonObject field = f.getAsJsonObject();
-//            if (field.get("fieldName").getAsString().equals(columnName)) {
-//                System.out.println("Field already exists.");
-//                return;
-//            }
-//        }
+        // 添加新字段结构
+        JsonObject newFieldJson = new JsonObject();
+        newFieldJson.addProperty("fieldName", newField.getName());
 
-        JsonObject newField = new JsonObject();
-        newField.addProperty("fieldName", columnName);
         JsonArray constraintsArray = new JsonArray();
 
         JsonObject typeObj = new JsonObject();
-        typeObj.addProperty("Type", newColumnRule.getType());
+        typeObj.addProperty("Type", newField.getType());
         constraintsArray.add(typeObj);
 
-        if (newColumnRule.isNotNull()) {
+        if (newField.isNotNull()) {
             JsonObject notNullObj = new JsonObject();
             notNullObj.addProperty("NOT NULL", true);
             constraintsArray.add(notNullObj);
         }
 
-        if (newColumnRule.getDefaultValue() != null) {
+        if (newField.isUnique()) {
+            JsonObject uniqueObj = new JsonObject();
+            uniqueObj.addProperty("UNIQUE", true);
+            constraintsArray.add(uniqueObj);
+        }
+
+        if (newField.isPrimaryKey()) {
+            JsonObject pkObj = new JsonObject();
+            pkObj.addProperty("PRIMARY KEY", true);
+            constraintsArray.add(pkObj);
+        }
+
+        if (newField.getDefault() != null && !newField.getDefault().isEmpty()) {
             JsonObject defaultObj = new JsonObject();
-            defaultObj.addProperty("Default", newColumnRule.getDefaultValue().toString());
+            defaultObj.addProperty("Default", newField.getDefault());
             constraintsArray.add(defaultObj);
         }
 
-        newField.add("constraint", constraintsArray);
-        fields.add(newField);
+        newFieldJson.add("constraint", constraintsArray);
+        fields.add(newFieldJson);
 
         try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -110,14 +115,14 @@ public class Table {
             e.printStackTrace();
         }
 
-        // 同步更新 data 文件，为所有旧数据添加新字段默认值
+        // 更新所有旧数据记录，添加新字段默认值
         JsonArray data = readData(dataPath);
         for (JsonElement e : data) {
             JsonObject obj = e.getAsJsonObject();
-            if (newColumnRule.getDefaultValue() != null) {
-                obj.addProperty(columnName, newColumnRule.getDefaultValue().toString());
+            if (newField.getDefault() != null && !newField.getDefault().isEmpty()) {
+                obj.addProperty(newField.getName(), newField.getDefault());
             } else {
-                obj.add(columnName, JsonNull.INSTANCE);
+                obj.add(newField.getName(), JsonNull.INSTANCE);
             }
         }
 
@@ -289,32 +294,32 @@ public class Table {
             switch (condition.getOperator()) {
                 case "=":
                     if (!object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
-                        data.remove(object);
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
                     }
                     break;
                 case "!=":
                     if (object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
-                        data.remove(object);
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
                     }
                     break;
                 case "<":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) >= 0) {
-                        data.remove(object);
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
                     }
                     break;
                 case ">":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) <= 0) {
-                        data.remove(object);
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
                     }
                     break;
                 case "<=":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) > 0) {
-                        data.remove(object);
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
                     }
                     break;
                 case ">=":
                     if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) < 0) {
-                        data.remove(object);
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
                     }
                     break;
             }

@@ -1,5 +1,6 @@
 package Parser;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,6 +74,87 @@ public class commandParser {
         }
 
         return fieldMap;
+    }
+
+    public static ArrayList<String> parseAlter(String str){
+        ArrayList<String> Alteralter=new ArrayList<>();
+        
+
+
+        return Alteralter;
+    }
+
+    public static ArrayList<String> parseAlteralter(String str){
+        ArrayList<String> Columns=new ArrayList<>();
+        return Columns;
+    }
+
+    public static ArrayList<String> parseAlterDrop(String str){
+        ArrayList<String> Columns=new ArrayList<>();
+        if (str == null) {
+            return Columns;
+        }
+        String word=str.trim().toLowerCase();
+        String[] lines=word.split(",");
+        int i=1;
+        for(String line:lines){
+            line=line.trim();
+            if(line.contains("count")||line.contains("sum")||line.contains("avg")||line.contains("min")||line.contains("max")){
+                int index=line.indexOf("as");
+                if(index!=-1){
+                    Columns.add(line.substring(index+"as".length()).trim());
+                }else{
+                    Columns.add("Column"+i);
+                    i++;
+                }
+            }else{
+                Columns.add(line);
+            }
+        }
+        return Columns;
+    }
+
+
+    public static ArrayList<Field> parseAlterAdd(String str){
+        String[] lines =str.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
+        ArrayList<Field>fieldList = new ArrayList<>();
+        //解析字段为3组
+        Pattern fieldPattern = Pattern.compile(
+                "(\\w+)\\s+" +
+                        "([^\\s]+(?:\\([^)]+\\))?)" +
+                        "(?:\\s+(.*))?"
+        );//分123组
+        for(String line:lines){
+            line=line.trim();//去除空格影响
+
+            Matcher matcher = fieldPattern.matcher(line);
+
+            if (!matcher.matches()) {
+                throw new IllegalArgumentException("Invalid field definition: " + line);
+            }
+
+            Field field = new Field(matcher.group(1), matcher.group(2));
+            if (!validTypes.contains(field.getType())){
+                System.out.println("类型不合法");
+                return null;
+            }
+
+            // 解析约束（组3）
+            String constraints = matcher.group(3);
+            if (constraints != null) {
+                String upperConstraints = constraints.toUpperCase();
+                field.setPrimaryKey(upperConstraints.contains("PRIMARY KEY"));
+                field.setUnique(upperConstraints.contains("UNIQUE") || field.isPrimaryKey());
+                field.setNotnull(upperConstraints.contains("NOT NULL") || field.isPrimaryKey());
+                if (upperConstraints.contains("DEFAULT")) {
+                    int index = upperConstraints.indexOf("DEFAULT");
+                    String defaultValue = constraints.substring(index + "DEFAULT".length()).trim();
+                    field.setDefault(defaultValue);
+                }
+            }
+            fieldList.add(field);
+        }
+        return fieldList;
     }
 
 

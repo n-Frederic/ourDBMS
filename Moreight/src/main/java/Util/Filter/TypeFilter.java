@@ -7,7 +7,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+
 import java.util.Map;
 
 import java.io.FileReader;
@@ -37,7 +37,7 @@ public class TypeFilter {
             throw new RuntimeException("Schema not found for table: " + table);
         }
 
-        for (Map.Entry<String, Schema.ColumnRule> entry : schema.getColumns().entrySet()) {
+        for (Map.Entry<String, Schema.ColumnRule> entry : schema.getFields().entrySet()) {
             String column = entry.getKey();
             Schema.ColumnRule columnRule = entry.getValue();
             String expectedType = columnRule.getType();

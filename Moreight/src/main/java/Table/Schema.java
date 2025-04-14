@@ -12,85 +12,44 @@ import java.util.*;
  */
 public class Schema {
     private String tableName;
-    private Map<String, ColumnRule> columns;
+    private ArrayList<Field> fields;
+    private String primaryKeyName;
 
-    // 描述表的字段信息
-    public static class ColumnRule {
-        String type;
-        boolean primaryKey = false;
-        boolean notNull = false;
 
-        boolean unique=false;
-        String defaultValue = "";
-        // Integer min = null;
-        // Integer max = null;
-
-        // 后续可以添加更多约束
-        public String getType() {
-            return type;
-        }
-        public boolean isPrimaryKey() {
-            return primaryKey;
-        }
-        public boolean isNotNull() {
-            return notNull;
-        }
-
-        public boolean isUnique() {
-            return unique;
-        }
-        public String getDefaultValue() {
-            return defaultValue;
-        }
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public void setPrimaryKey(boolean primaryKey) {
-            this.primaryKey = primaryKey;
-        }
-
-        public void setNotNull(boolean notNull) {
-            this.notNull = notNull;
-        }
-
-        public void setDefaultValue(String defaultValue) {
-            this.defaultValue = defaultValue;
-        }
+    public Schema(String tableName, ArrayList<Field> columns) {
+        this.tableName = tableName;
+        this.fields = columns;
+        initializePrimaryKey();
     }
 
-
-    public Schema(String tableName, Map<String, ColumnRule> columns) {
-        this.tableName = tableName;
-        this.columns = columns;
+    private void initializePrimaryKey() {
+        for(Field field : fields) {
+            if(field.isPrimaryKey()) primaryKeyName = field.getName();
+        }
     }
 
     public static Schema loadSchema(String dbName, String tableName) {
-        File schemaFile = new File("../TestData/" + dbName + "/" + tableName + ".schema");
-
+        File schemaFile = new File("../TestData/" + dbName + "/" + tableName + "_schema.json");
         try (FileReader reader = new FileReader(schemaFile)) {
-            JsonArray schemaArray = JsonParser.parseReader(reader).getAsJsonArray();  // 读取成数组
+            JsonObject schemaObject = JsonParser.parseReader(reader).getAsJsonObject();
+            JsonArray fieldsArray = schemaObject.getAsJsonArray("fields");
 
-            Map<String, ColumnRule> columns = new HashMap<>();
+            ArrayList<Field> columns = new ArrayList<>();
+            for (JsonElement fieldElement : fieldsArray) {
+                JsonObject fieldObj = fieldElement.getAsJsonObject();
+                String fieldName = fieldObj.get("fieldName").getAsString();
+                JsonArray constraints = fieldObj.getAsJsonArray("constraint");
 
-            for (JsonElement colElement : schemaArray) {
-                JsonObject colObject = colElement.getAsJsonObject();
-                String colName = colObject.get("name").getAsString();  // 获取字段名
-
-                ColumnRule rule = new ColumnRule();
-                JsonArray constraints = colObject.getAsJsonArray("constraint");
-
-                for (JsonElement constraintElement : constraints) {
-                    JsonObject constraint = constraintElement.getAsJsonObject();
-
-                    // 解析各种约束
-                    if (constraint.has("Type")) rule.type = constraint.get("Type").getAsString();
-                    if (constraint.has("PRIMARY KEY")) rule.primaryKey = constraint.get("PRIMARY KEY").getAsBoolean();
-                    if (constraint.has("UNIQUE"))  rule.unique=constraint.get("Unique").getAsBoolean();
-                    if (constraint.has("NOT NULL")) rule.notNull = constraint.get("NOT NULL").getAsBoolean();
-                    if (constraint.has("Default")) rule.defaultValue = constraint.get("Default").getAsString();
+                Field field = new Field(fieldName, "");
+                for (JsonElement constraint : constraints) {
+                    JsonObject c = constraint.getAsJsonObject();
+                    if (c.has("Type")) field.setType(c.get("Type").getAsString());
+                    if (c.has("PRIMARY KEY")) field.setPrimaryKey(c.get("PRIMARY KEY").getAsBoolean());
+                    if (c.has("UNIQUE")) field.setUnique(c.get("UNIQUE").getAsBoolean());
+                    if (c.has("NOT NULL")) field.setNotnull(c.get("NOT NULL").getAsBoolean());
+                    if (c.has("Default")) field.setDefault(c.get("Default").getAsString());
                 }
-                columns.put(colName, rule);
+                columns.add(field);
             }
             return new Schema(tableName, columns);
         } catch (IOException e) {
@@ -99,12 +58,23 @@ public class Schema {
         return null;
     }
 
-    public ColumnRule getColumn(String columnName) {
-        return columns.get(columnName);
+    public ArrayList<Field> getFields(){
+        return this.fields;
+    }
+    
+    public Field getField(String fieldName) {
+        for(Field field : fields) {
+            if(field.getName().equals(fieldName))
+                return field;
+        }
+        return null;
     }
 
-    public Map<String, ColumnRule> getColumns(){
-        return this.columns;
+    public String getTableName() {
+        return tableName;
     }
 
+    public String getPrimaryKeyName() {
+        return primaryKeyName;
+    }
 }

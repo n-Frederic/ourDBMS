@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -66,16 +67,18 @@ public class Render {
      * 将JSON数组数据按照指定的列和列宽绘制为表格。
      * @param data JSON数组数据。
      * @param columns 指定的列名列表。
-     * @param columnWidths 列宽映射。
+
      */
-    public static void DrawSelectedTable(JsonArray data, ArrayList<String> columns, Map<String, Integer> columnWidths) {
-        if (columns.isEmpty()) {
-            for (var rowElement : data) {
-                JsonObject row = rowElement.getAsJsonObject();
-                columns.addAll(row.keySet());
-            }
+    public static void DrawSelectedTable(JsonArray data, ArrayList<String> columns) {
+        if (columns.isEmpty() && data.size() > 0) {
+            JsonObject firstRow = data.get(0).getAsJsonObject();
+            columns.addAll(firstRow.keySet());
         }
 
+
+        System.out.println(columns);
+
+        Map<String, Integer> columnWidths=new HashMap<>();
         for (String column : columns) {
             columnWidths.put(column, column.length());
         }

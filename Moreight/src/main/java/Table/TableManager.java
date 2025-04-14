@@ -78,7 +78,7 @@ public class TableManager {
         type.addProperty("Type", field.getType());
         primaryKey.addProperty("PRIMARY KEY", field.isPrimaryKey());
         unique.addProperty("UNIQUE", field.isUnique());
-        notNull.addProperty("NOT NULL", field.isNotNUll());
+        notNull.addProperty("NOT NULL", field.isNotNull());
         Default.addProperty("Default", field.getDefault());
         JsonArray constraints = new JsonArray();
         constraints.add(type);

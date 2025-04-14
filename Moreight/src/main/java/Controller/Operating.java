@@ -16,6 +16,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import Table.Table;
+import Util.Func.*;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
@@ -24,7 +26,8 @@ public class Operating {
     private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)\\s*\\(([^\\)]+)\\)\\s*values\\s*\\(([^\\)]+)\\);?");
 
     private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile("(?i)create\\s+table\\s(\\w+)\\s?\\(((?:\\s?\\w+\\s\\w+,?)+)\\)\\s?;");
-    private static final Pattern PATTERN_ALTER_TABLE_ADD = Pattern.compile("(?i)alter\\s+table\\s(\\w+)\\s+add\\s(\\w+\\s\\w+)\\s?;");
+    private static final Pattern PATTERN_ALTER_TABLE = Pattern.compile("(?i)alter\\s+table\\s+(\\w+)\\s+(add|drop|modify|alter)\\s+(.+?);");
+
     private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s([^\\;]+\\s?;))?");
     private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)update\\s(\\w+)\\s+set\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
     private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("(?i)drop\\s+table\\s+(\\w+)\\s*;?");
@@ -123,7 +126,7 @@ public class Operating {
             Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
             Matcher matcherSelectTable = PATTERN_SELECT.matcher(cmd);
             Matcher matcherInsertTable = PATTERN_INSERT.matcher(cmd);
-            Matcher matcherAlterTable = PATTERN_ALTER_TABLE_ADD.matcher(cmd);
+            Matcher matcherAlterTable = PATTERN_ALTER_TABLE.matcher(cmd);
             Matcher matcherDelete = PATTERN_DELETE.matcher(cmd);
             Matcher matcherUpdate = PATTERN_UPDATE.matcher(cmd);
 
@@ -164,14 +167,8 @@ public class Operating {
                 System.out.println("select");
                 matched = true;
                 select(matcherSelectTable);
-                String tableName = matcherSelectTable.group(2);
-                //List<String> nameList=StringParser.parseFrom(matcherSelectTable.group(2));//选择多个表
-                System.out.println(matcherSelectTable.group(2));//after from
-                Path fpath=Table.From_data(tableName);
-                ConditionParser parser=new ConditionParser(fpath);
-                parser.tokenizeWhere(matcherSelectTable.group(3));
 
-                System.out.println(matcherSelectTable.group(3));//where
+
                 continue;
             } else if (matcherInsertTable.find()) {
                 System.out.println("insert");
@@ -180,17 +177,13 @@ public class Operating {
                 continue;
 
             } else if (matcherAlterTable.find()) {
-                String tableName;
-                String fieldString;
-                tableName = matcherAlterTable.group(1);
-                fieldString = matcherAlterTable.group(2);
 
-                ArrayList<Field> fields = new ArrayList<>();
-                fields = commandParser.parseCreateTable(fieldString);
 
 
                 System.out.println("alter");
                 matched = true;
+                alter(matcherAlterTable);
+                continue;
 
 
             } else if (matcherDelete.find()) {
@@ -302,65 +295,53 @@ public class Operating {
 
 
     private void select(Matcher matcherSelect) {
-        String tableName = matcherSelect.group(1);
+        String tableName = matcherSelect.group(2);
+        Path path=Table.From_data(tableName);
         ArrayList<String> columns = new ArrayList<>();
         ArrayList<Condition> conditions = new ArrayList<>();
-        Path datapath = Table.From_data("student");
-//                JsonArray records=Table.Where(datapath,new Condition("Sname","周学超","="));
+
+        JsonArray data;
 
         ArrayList<String> arrayList = new ArrayList<>();
         arrayList.add("Sname");
         arrayList.add("Ssex");
         Map<String, Integer> map = new LinkedHashMap<>();
-//                Table.DrawSelectedTable(records,arrayList,map);
-
-
-        //columns=StringParser.parse
-
-//                if (null == table) {
-//                        System.out.println("未找到表：" + tableName);
-//                        return;
-//                }
-
-        String columnsStr = matcherSelect.group(2);
-        String conditionStr = matcherSelect.group(3).toLowerCase().trim();
-        conditionStr=commandParser.parseBetweenAnd(conditionStr);
-//        String regex = "(.*?)\\s+(\\w+)\\s+between\\s+(\\S+)\\s+and\\s+(\\S+)(.*)";
-//        Pattern pattern = Pattern.compile(regex);
-//        Matcher matcher = pattern.matcher(conditionStr);
-//        if (matcher.matches()) {
-//            String str1 = matcher.group(2) + ">=" + matcher.group(3) + " and " + matcher.group(2) + "<=" + matcher.group(4);
-//            conditionStr = matcher.group(1) + " " + str1 + matcher.group(5) + " ";
 //
-//        } else {
-//            System.out.println("No match found.");
-//        }
-//        conditions = commandParser.parseWhere(conditionStr);
 
-        if (columnsStr == "*") {
+        String columnsStr = matcherSelect.group(1);
+        if (columnsStr.equals("*")) {
 
 
         } else {
             columns = commandParser.parseSelectColumn(columnsStr);
 
+        }
+        if(!(matcherSelect.group(3)==null)){
+            System.out.println("with conditions");
+            String conditionStr = matcherSelect.group(3).toLowerCase().trim();
+            conditionStr=commandParser.parseBetweenAnd(conditionStr);
+            ConditionNode logicTree;
+            ConditionParser parser=new ConditionParser(Table.From_data(tableName));
+            List<String> tokens = parser.tokenizeWhere(conditionStr);
+            logicTree = parser.parseConditionTree(tokens);
+            data=logicTree.evaluate();
+            System.out.println("条件表达式树结构为：");
+            System.out.println(logicTree);
+
+
+        }else{
+
+            data=Table.readData(path);
 
         }
 
-//        conditionStr = "age > 30 AND (gender = '男' OR salary >= 5000)";
-//        ConditionNode logicTree;
-//        ConditionParser parser=new ConditionParser(Table.From_data(tableName));
-//        List<String> tokens = parser.tokenizeWhere(conditionStr);
-//        logicTree = parser.parseConditionTree(tokens);
+
 //
-//
-//        System.out.println("条件表达式树结构为：");
-//        System.out.println(logicTree);
+        // System.out.println("conditions: " + conditions);
 
 
-        System.out.println("Table: " + tableName);
-        System.out.println("Columns: " + columns);
-        System.out.println("Values: " + conditions);
-
+        System.out.println(columns);
+        Render.DrawSelectedTable(data,columns);
         //Table.SelectFromTable(tableName,columns,conditions);
 
         //Table.From(tableName);
@@ -368,118 +349,28 @@ public class Operating {
 
 
     }
-//        private void select(Matcher matcherSelect) {
 
-//                //将读到的所有数据放到tableDatasMap中
-//                Map<String, List<Map<String, String>>> tableDatasMap = new LinkedHashMap<>();
+
+    private void alter(Matcher matcherAlter){
+        String tableName;
+        String details;
+        String operation;
+        tableName = matcherAlter.group(1);
+
+        details = matcherAlter.group(3);
+
+        operation = matcherAlter.group(2);        // "add"
+                  // "age int"
+
+//        switch (operation){
+//            case "add":
+//                ArrayList<String ,String>fields = commandParser.parseCreateTable(fieldString);
 //
-//                //将投影放在Map<String,List<String>> projectionMap中
-//                Map<String, List<String>> projectionMap = new LinkedHashMap<>();
-//
-//
-//                List<String> tableNames = StringParser.parseFrom(matcherSelect.group(2));
-//
-//                String whereStr = matcherSelect.group(3);
-//
-//                //将tableName和table.fieldMap放入
-//                Map<String, Map<String, Field>> fieldMaps = new HashMap();
-//
-//                for (String tableName : tableNames) {
-//                        Table table = Table.getTable(tableName);
-//                        if (null == table) {
-//                                System.out.println("未找到表：" + tableName);
-//                                return;
-//                        }
-//                        Map<String, Field> fieldMap = table.getFieldMap();
-//                        fieldMaps.put(tableName, fieldMap);
-//
-//                        //解析选择
-//                        List<SingleFilter> singleFilters = new ArrayList<>();
-//
-//                        List<Map<String, String>> filtList =StringParser.parseWhere(matcherSelect.group(3));
-//                        for (Map<String, String> filtMap : filtList) {
-//                                SingleFilter singleFilter = new SingleFilter(fieldMap.get(filtMap.get("fieldName"))
-//                                        , filtMap.get("relationshipName"), filtMap.get("condition"));
-//
-//                                singleFilters.add(singleFilter);
-//                        }
-//
-//                        //解析最终投影
-//                        List<String> projections = StringUtil.parseProjection(matcherSelect.group(1), tableName, fieldMap);
-//                        projectionMap.put(tableName, projections);
-//
-//
-//                        //读取数据并进行选择操作
-//                        List<Map<String, String>> srcDatas = table.read(singleFilters);
-//                        List<Map<String, String>> datas = associatedTableName(tableName, srcDatas);
-//
-//                        tableDatasMap.put(tableName, datas);
-//                }
-//
-//
-////                //解析连接条件，并创建连接对象jion
-////                List<Map<String, String>> joinConditionMapList = StringUtil.parseWhere_join(whereStr, fieldMaps);
-////                List<JoinCondition> joinConditionList = new LinkedList<>();
-////                for (Map<String, String> joinMap : joinConditionMapList) {
-////                        String tableName1 = joinMap.get("tableName1");
-////                        String tableName2 = joinMap.get("tableName2");
-////                        String fieldName1 = joinMap.get("field1");
-////                        String fieldName2 = joinMap.get("field2");
-////                        Field field1 = fieldMaps.get(tableName1).get(fieldName1);
-////                        Field field2 = fieldMaps.get(tableName2).get(fieldName2);
-////                        String relationshipName = joinMap.get("relationshipName");
-////                        JoinCondition joinCondition = new JoinCondition(tableName1, tableName2, field1, field2, relationshipName);
-////
-////                        joinConditionList.add(joinCondition);
-////
-////                        //将连接条件的字段加入投影中
-////                        projectionMap.get(tableName1).add(fieldName1);
-////                        projectionMap.get(tableName2).add(fieldName2);
-////                }
-////
-////                List<Map<String, String>> resultDatas = Join.joinData(tableDatasMap, joinConditionList, projectionMap);
-////                //System.out.println(resultDatas);
-//
-//                //将需要显示的字段名按table.filed的型式存入dataNameList
-//                List<String> dataNameList = new LinkedList<>();
-//                for (Map.Entry<String, List<String>> projectionEntry : projectionMap.entrySet()) {
-//                        String projectionKey = projectionEntry.getKey();
-//                        List<String> projectionValues = projectionEntry.getValue();
-//                        for (String projectionValue : projectionValues) {
-//                                dataNameList.add(projectionKey + "." + projectionValue);
-//                        }
-//
-//                }
-//
-//                //计算名字长度，用来对齐数据
-//                int[] lengh = new int[dataNameList.size()];
-//                Iterator<String> dataNames = dataNameList.iterator();
-//                for (int i = 0; i < dataNameList.size(); i++) {
-//                        String dataName = dataNames.next();
-//                        lengh[i] = dataName.length();
-//                        System.out.printf("|%s", dataName);
-//                }
-//
-//                System.out.println("|");
-//                for (int ls : lengh) {
-//                        for (int l = 0; l <= ls; l++) {
-//                                System.out.printf("-");
-//                        }
-//                }
-//                System.out.println("|");
-//
-//                for (Map<String, String> line : resultDatas) {
-//                        Iterator<String> valueIter = line.values().iterator();
-//                        for (int i = 0; i < lengh.length; i++) {
-//                                String value = valueIter.next();
-//                                System.out.printf("|%s", value);
-//                                for (int j = 0; j < lengh[i] - value.length(); j++) {
-//                                        System.out.printf(" ");
-//                                }
-//                        }
-//                        System.out.println("|");
-//                }
 //        }
+        ArrayList<Field> fields = new ArrayList<>();
+        //fields = commandParser.parseCreateTable(fieldString);
+
+    }
 
     private void insert(Matcher matcherInsert) {
         String tableName = matcherInsert.group(1);

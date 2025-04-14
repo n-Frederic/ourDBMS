@@ -5,7 +5,7 @@ public class Field {
     private String type;
     private boolean primaryKey;
     private boolean unique;
-    private boolean notNUll;
+    private boolean notNull;
     private String Default;
 
     public Field(String name, String type) {
@@ -13,10 +13,9 @@ public class Field {
         this.type = type;
         primaryKey = false;
         unique = false;
-        notNUll = false;
+        notNull = false;
         Default = "";
     }
-
 
     
     public String getName() {
@@ -52,12 +51,12 @@ public class Field {
     }
 
 
-    public boolean isNotNUll() {
-        return notNUll;
+    public boolean isNotNull() {
+        return notNull;
     }
 
     public void setNotnull(boolean notNUll) {
-        this.notNUll =notNUll;
+        this.notNull =notNUll;
     }
 
     public String getDefault() {
@@ -67,6 +66,19 @@ public class Field {
     public void setDefault(String aDefault) {
         Default = aDefault;
     }
+
+    @Override
+    public String toString() {
+        return "Field{" +
+                "name='" + name + '\'' +
+                ", type='" + type + '\'' +
+                ", primaryKey=" + primaryKey +
+                ", unique=" + unique +
+                ", notNull=" + notNull +
+                ", Default='" + Default + '\'' +
+                '}';
+    }
+
 
 }
 
