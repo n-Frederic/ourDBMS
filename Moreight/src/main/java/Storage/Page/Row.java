@@ -138,7 +138,7 @@ public class Row implements Comparable<Row>{
             case "double":
                 out.writeDouble((Double) value);
                 break;
-            case "string":
+            case "text":
                 out.writeUTF((String) value);
                 break;
             default:
@@ -150,7 +150,7 @@ public class Row implements Comparable<Row>{
         switch (type.toLowerCase()) {
             case "int": return in.readInt();
             case "double": return in.readDouble();
-            case "string": return in.readUTF();
+            case "text": return in.readUTF();
             default: throw new IOException("未知类型: " + type);
         }
     }

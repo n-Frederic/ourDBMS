@@ -18,7 +18,7 @@ public class Page {
         this.rows = new ArrayList<>();
     }
 
-    public boolean insertRow(Row row) throws IOException {
+    public boolean insert(Row row) throws IOException {
         if (isFull(row)) return false;
         rows.add(row);
         return true;
@@ -81,8 +81,14 @@ public class Page {
         return page;
     }
 
+    public Schema getSchema() {
+        return schema;
+    }
+
     @Override
     public String toString() {
         return "Page#" + pageId + " rows=" + rows.size();
     }
+
+
 }
