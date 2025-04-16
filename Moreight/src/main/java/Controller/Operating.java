@@ -178,9 +178,10 @@ public class Operating {
 
             } else if (matcherAlterTable.find()) {
 
-
-
                 System.out.println("alter");
+                String tableName=matcherAlterTable.group(1);
+                String conditionstr=matcherAlterTable.group(2);
+
                 matched = true;
                 alter(matcherAlterTable);
                 continue;
