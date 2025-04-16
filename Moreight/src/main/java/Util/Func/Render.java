@@ -2,6 +2,8 @@ package Util.Func;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import Table.*;
+
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,10 +72,7 @@ public class Render {
 
      */
     public static void DrawSelectedTable(JsonArray data, ArrayList<String> columns) {
-        if (columns.isEmpty() && data.size() > 0) {
-            JsonObject firstRow = data.get(0).getAsJsonObject();
-            columns.addAll(firstRow.keySet());
-        }
+
 
 
         System.out.println(columns);

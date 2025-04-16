@@ -1,6 +1,7 @@
 package Main;
 import Database.DatabaseManager;
 import Table.*;
+import Controller.Operating;
 import java.util.ArrayList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,8 +14,8 @@ import Conditions.*;
 public class Main {
     public static void main(String[] args) {
         // 登录注册的测试
-//       Operating operating = new Operating();
-//       operating.dbms();
+       Operating operating = new Operating();
+       operating.dbms();
 //
 //        String conditionStr;
 //        conditionStr = "age > 30 AND (gender = '男' OR (salary >= 5000 AND salay<=10000))";
