@@ -60,6 +60,14 @@ public class Condition extends ConditionNode {
 
 
     }
+    public JsonArray evaluate(JsonArray data) {
+
+        //JsonArray data=Table.readData(tablepath);
+        Table.Where(data,this);
+        return data;
+
+
+    }
 }
 
 

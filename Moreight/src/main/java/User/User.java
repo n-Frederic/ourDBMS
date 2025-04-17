@@ -18,7 +18,7 @@ public class User {
     public User(String userName,String password,int level){
         this.userName = userName;
         this.password = password;
-        this.level = 1;
+        this.level = 5;
     }
 
     /**

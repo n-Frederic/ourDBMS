@@ -42,5 +42,12 @@ public class ConditionOperator extends ConditionNode {
 
     }
 
+    public JsonArray evaluate(JsonArray data) {
+        JsonArray leftResult = left.evaluate(data);
+        JsonArray rightResult = right.evaluate(data);
+        return Table.Where(leftResult,rightResult,this.operator);
+
+
+    }
 }
 

@@ -21,6 +21,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
+import javax.swing.text.html.parser.Parser;
+
 public class Operating {
 
     private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)\\s*\\(([^\\)]+)\\)\\s*values\\s*\\(([^\\)]+)\\);?");
@@ -36,8 +38,17 @@ public class Operating {
     );
 
 
+    // SHOW DATABASES;
+    private static final Pattern PATTERN_SHOW_DATABASES =
+            Pattern.compile("(?i)^\\s*SHOW\\s+DATABASES\\s*;*\\s*$");
+
+    // SHOW TABLES;
+    private static final Pattern PATTERN_SHOW_TABLES =
+            Pattern.compile("(?i)^\\s*SHOW\\s+TABLES\\s*;?\\s*$");
+
     private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s([^\\;]+\\s?;))?");
-    private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)update\\s(\\w+)\\s+set\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
+    private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)^\\s*UPDATE\\s+" + "([\\w\\.]+)\\s+" + "SET\\s+" + "(.+?)" + "(?:\\s+FROM\\s+(.+?))?" + "(?:\\s+WHERE\\s+(.+?))?" + "\\s*;?\\s*$");
+
     private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("(?i)drop\\s+table\\s+(\\w+)\\s*;?");
 
     private static final Pattern PATTERN_SELECT = Pattern.compile("(?i)select\\s(\\*|(?:(?:\\w+(?:\\.\\w+)?)+(?:\\s?,\\s?\\w+(?:\\.\\w+)?)*))\\s+from\\s(\\w+(?:\\s?,\\s?\\w+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
@@ -82,6 +93,8 @@ public class Operating {
             Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(cmd);
             Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(cmd);
             Matcher matcherDropDB = PATTERN_DROP_DATABASE.matcher(cmd);
+            Matcher matcherShowDB=PATTERN_SHOW_DATABASES.matcher(cmd);
+
 
             if (matcherCreateDB.find()) {
                 matched = true;
@@ -118,10 +131,18 @@ public class Operating {
                 DatabaseManager.dropDatabase(dbName, UserManager.GetCurrentUser().getLevel());
                 // 执行删除逻辑
                 continue;
+            }else if(matcherShowDB.find()){
+                System.out.println("show");
+
+                List databases=DatabaseManager.listDatabases();
+                Render.drawDatabaseList(databases);
+                matched=true;
+
             } else if (!matched) {
                 System.out.println("无效命令，请重新输入。");
                 continue;
             }
+
 
 
         }
@@ -137,6 +158,7 @@ public class Operating {
             Matcher matcherAlterTable = PATTERN_ALTER_TABLE.matcher(cmd);
             Matcher matcherDelete = PATTERN_DELETE.matcher(cmd);
             Matcher matcherUpdate = PATTERN_UPDATE.matcher(cmd);
+            Matcher matcherShowTB=PATTERN_SHOW_TABLES.matcher(cmd);
 
 
             if (matcherCreateTable.find()) {
@@ -165,7 +187,7 @@ public class Operating {
 
             } else if (matcherDropTable.find()) {
                 System.out.println("drop");
-                matched = true;
+               // matched = true;
                 String tableName = matcherDropTable.group(1);  //
                 System.out.println("删除表: " + tableName);     //
                 TableManager.DropTable(tableName, 2);
@@ -173,24 +195,29 @@ public class Operating {
 
             } else if (matcherSelectTable.find()) {
                 System.out.println("select");
-                matched = true;
+                //matched = true;
                 select(matcherSelectTable);
 
 
                 continue;
+            } else if(matcherShowTB.find()){
+                System.out.println("tables:");
+                List<String >tables=TableManager.showTables();
+                Render.drawTablesList(tables);
+                continue;
+
+
             } else if (matcherInsertTable.find()) {
                 System.out.println("insert");
-                matched = true;
+                //matched = true;
                 insert(matcherInsertTable);
                 continue;
 
             } else if (matcherAlterTable.find()) {
 
                 System.out.println("alter");
-
-
                 alter(matcherAlterTable);
-                matched = true;
+               // matched = true;
                 continue;
 
 
@@ -208,6 +235,11 @@ public class Operating {
                 String tableName;
                 String conditionstr;
 
+                update(matcherUpdate);
+
+                matched = true;
+                continue;
+
 
             }
 
@@ -223,49 +255,7 @@ public class Operating {
 
     }
 
-//    private void login() {
-//        System.out.print("用户名：");
-//        String username = sc.nextLine();
-//        System.out.print("密码：");
-//        String password = sc.nextLine();
-//        Integer result = UserManager.checkUserExists(username, password);
-//        if (result == 1) {
-//            System.out.println("user name not exist!");
-//        } else if (result == 2) {
-//            System.out.println("password is not correct!");
-//        } else if (result == 3) {
-//            login = true;
-//            System.out.println("login successful! welcome " + username);
-//        } else {
-//            System.out.println("error.exiting......");
-//        }
-//        // 在此实现登录逻辑
-//
-//
-//    }
 
-//    private void register() {
-//        System.out.print("设置用户名：");
-//        String username = sc.nextLine();
-//        System.out.print("设置密码：");
-//        String password = sc.nextLine();
-//        Integer result = UserManager.CreateUser(username, password);
-//        if (result == 2) {
-//            login = true;
-//            System.out.println("login successful! welcome " + username);
-//
-//        } else if (result == 0) {
-//            System.out.println("register failed ,please check !");
-//
-//        } else {
-//            System.out.println("you have already registered, please log in!");
-//
-//        }
-//
-//
-//        // 在此实现注册逻辑
-//
-//    }
 
 
 //        private void createDB(Matcher matcherCreateTable) {
@@ -310,12 +300,8 @@ public class Operating {
 
         JsonArray data;
 
-        ArrayList<String> arrayList = new ArrayList<>();
-        arrayList.add("Sname");
-        arrayList.add("Ssex");
-        Map<String, Integer> map = new LinkedHashMap<>();
-//
 
+//
         String columnsStr = matcherSelect.group(1);
         if (columnsStr.equals("*")) {
             Schema schema=Schema.loadSchema(DatabaseManager.getCurrentDatabase(),tableName);
@@ -365,7 +351,7 @@ public class Operating {
 
     private void alter(Matcher matcherAlter){
 
-        System.out.println("altering1");
+        //System.out.println("altering1");
         String tableName;
         String details;
         String column;
@@ -382,9 +368,9 @@ public class Operating {
 
 
         if(operation.equals("add")||operation.equals("ADD")){
-            System.out.println("adding");
+            //System.out.println("adding");
             details=matcherAlter.group(4);
-            System.out.println("detail");
+            //System.out.println("detail");
             Field field=new Field(column,details);
 
             Table.addColumn(tableName,field);
@@ -397,7 +383,7 @@ public class Operating {
 
 
         }
-                  // "age int"
+                  // "age int
 
 //        switch (operation){
 //            case "add":
@@ -409,18 +395,32 @@ public class Operating {
 
     }
 
+
+    private void update(Matcher mathcerUpdate){
+        String tableName=mathcerUpdate.group(1);
+        String statement=mathcerUpdate.group(2);
+        String conditionStr=mathcerUpdate.group(4);
+        JsonArray data;
+        System.out.println(":"+tableName+":"+statement+":"+conditionStr);
+
+        conditionStr=commandParser.parseBetweenAnd(conditionStr);
+        ConditionNode logicTree;
+        ConditionParser parser=new ConditionParser(Table.From_data(tableName));
+        List<String> tokens = parser.tokenizeWhere(conditionStr);
+        logicTree = parser.parseConditionTree(tokens);
+        System.out.println(logicTree);
+        //data=logicTree.evaluate();
+
+        HashMap<String,String> statements=commandParser.parseUpdateSet(statement);
+        Table.Set(tableName,statements,logicTree);
+
+
+    }
     private void insert(Matcher matcherInsert) {
         String tableName = matcherInsert.group(1);
         ArrayList<String> columns = new ArrayList<>();
         ArrayList<Object> values = new ArrayList<>();
 
-
-        //columns=StringParser.parse
-
-//                if (null == table) {
-//                        System.out.println("未找到表：" + tableName);
-//                        return;
-//                }
 
         String columnsStr = matcherInsert.group(2);
         String valuesStr = matcherInsert.group(3);

@@ -7,4 +7,5 @@ public abstract class ConditionNode {
     @Override
     public abstract String toString();
     public abstract JsonArray evaluate();
+    public abstract JsonArray evaluate(JsonArray data);
 }

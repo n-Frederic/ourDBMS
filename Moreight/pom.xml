@@ -41,6 +41,14 @@
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
         </dependency>
+        <!-- Maven -->
+        <dependency>
+            <groupId>net.sourceforge.plantuml</groupId>
+            <artifactId>plantuml-mit</artifactId>
+            <!-- MIT 版最新是 1.2025.2 -->
+            <version>1.2025.2</version>
+        </dependency>
+
 
 
     </dependencies>

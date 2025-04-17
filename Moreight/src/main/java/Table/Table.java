@@ -1,6 +1,7 @@
 package Table;
 
 import Conditions.Condition;
+import Conditions.ConditionNode;
 import Database.DatabaseManager;
 import com.google.gson.*;
 
@@ -183,19 +184,60 @@ public class Table {
         }
     }
 
-    // set是针对于where筛选后的JsonArray修改列值
-    public static void Set(JsonArray data, HashMap<String,String> map) {
-        Iterator<JsonElement> iterator = data.iterator();
+    // 更新内存并保存到磁盘
 
-        while (iterator.hasNext()) {
-            JsonElement element = iterator.next();
-            JsonObject object = element.getAsJsonObject();
 
-            for(String key : map.keySet()) {
-                object.addProperty(key,map.get(key));
-            }
+    public static void saveData(String tableName, JsonArray data) {
+        Path dataPath = From_data(tableName);
+        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+            Gson gson = new GsonBuilder()
+                    .setPrettyPrinting()
+                    .serializeNulls()
+                    .create();
+            gson.toJson(data, writer);
+        } catch (IOException e) {
+            throw new RuntimeException("写入表 " + tableName + " 失败", e);
         }
     }
+    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
+        // 1. 读出整表
+        JsonArray all = readData(From_data(tableName));
+
+        // 2. 逻辑过滤，返回的是 all 中的部分元素（原始引用）
+        JsonArray data = logicTree.evaluate(all);
+
+        // 3. 就地修改这些元素
+        for (JsonElement e : data) {
+            JsonObject obj = e.getAsJsonObject();
+            for (Map.Entry<String,String> entry : map.entrySet()) {
+                obj.addProperty(entry.getKey(), entry.getValue());
+            }
+        }
+
+        // 4. 最后将 all 整个写回文件
+        saveData(tableName, all);
+    }
+
+    // set是针对于where筛选后的JsonArray修改列值
+//    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
+////
+//        JsonArray all = Table.From_data(tableName);
+//
+//// 逻辑过滤，返回的是 all 中的部分元素，但它们和 all 中是同一个 JsonObject 引用
+//        JsonArray data = logicTree.evaluate();
+//
+//// 就地修改
+//        for (JsonElement e : data) {
+//            JsonObject obj = e.getAsJsonObject();
+//            for (Map.Entry<String,String> entry : map.entrySet()) {
+//                obj.addProperty(entry.getKey(), entry.getValue());
+//            }
+//        }
+//
+//// all 已经被改了，后面只要把 all 序列化/写文件就行
+//
+//    }
+
 
     public static void renameColumn(String tableName, String oldName, String newName) {
         // 修改 schema

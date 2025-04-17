@@ -5,10 +5,7 @@ import com.google.gson.JsonObject;
 import Table.*;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -30,6 +27,41 @@ public class Render {
                 || ub == Character.UnicodeBlock.GENERAL_PUNCTUATION
                 || ub == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
                 || ub == Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS;
+    }
+
+    public static void drawDatabaseList(List<String> dbNames) {
+
+        // 1. 先把 List<String> 转成 JsonArray，其中每一行只有一列：Database
+        JsonArray data = new JsonArray();
+        for (String name : dbNames) {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("Database", name);
+            data.add(obj);
+        }
+
+        // 2. 构造列名列表
+        ArrayList<String> columns = new ArrayList<>();
+        columns.add("Database");
+
+        // 3. 直接复用现有的 DrawSelectedTable
+        DrawSelectedTable(data, columns);
+    }
+    public static void drawTablesList(List<String> tbNames) {
+
+        // 1. 先把 List<String> 转成 JsonArray，其中每一行只有一列：Database
+        JsonArray data = new JsonArray();
+        for (String name : tbNames) {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("Table", name);
+            data.add(obj);
+        }
+
+        // 2. 构造列名列表
+        ArrayList<String> columns = new ArrayList<>();
+        columns.add("Table");
+
+        // 3. 直接复用现有的 DrawSelectedTable
+        DrawSelectedTable(data, columns);
     }
 
     /**

@@ -1,5 +1,6 @@
 package Controller;
 
+import User.User;
 import User.UserManager;
 
 import java.util.Scanner;
@@ -19,6 +20,7 @@ public class UserAuthentication {
         }else if(result==3){
 
             System.out.println("login successful! welcome "+username);
+            UserManager.SetCurrentUser(new User(username,password,3));
             return true;
         }else{
             System.out.println("error.exiting......");
@@ -37,6 +39,7 @@ public class UserAuthentication {
         if(result==2){
 
             System.out.println("login successful! welcome "+username);
+            UserManager.SetCurrentUser(new User(username,password,3));
             return true;
 
 

@@ -1,13 +1,24 @@
 package Database;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.*;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.*;
+
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 
 public class DatabaseManager {
 
     private static String currentDatabase;
-
+    private static final String BASE_DIR = "../TestData/DatabaseManager";
     public static String getCurrentDatabase(){
         return currentDatabase;
     }
@@ -24,6 +35,23 @@ public class DatabaseManager {
             }
         } else {
             System.out.println("The database has already existed : " + folder.getAbsolutePath());
+        }
+    }
+
+    public static List<String> listDatabases() {
+        Path base = Paths.get(BASE_DIR);
+        if (!Files.isDirectory(base)) {
+            return List.of();  // 根目录不存在或不是目录，返回空列表
+        }
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(base)) {
+            return StreamSupport.stream(stream.spliterator(), false)
+                    .filter(Files::isDirectory)           // 只保留目录
+                    .map(Path::getFileName)               // 取最后一段路径
+                    .map(Path::toString)                  // 转为 String
+                    .sorted()                             // 按字母排序（可选）
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new UncheckedIOException("列出数据库失败", e);
         }
     }
 
@@ -57,7 +85,10 @@ public class DatabaseManager {
 
     public static void dropDatabase(String dbName,int userLevel){
         if(userLevel==1){return;}
-        File folder = new File("../TestData/DatabaseManager" + dbName);
+        // 原来是
+
+        File folder = new File("../TestData/DatabaseManager/" + dbName);
+
         if(!folder.exists()||!folder.isDirectory()){
             System.out.println("not exist");
             return;

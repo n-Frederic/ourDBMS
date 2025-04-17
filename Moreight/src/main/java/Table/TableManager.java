@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * TableManager类用于管理数据库中的表。
@@ -98,7 +99,7 @@ public class TableManager {
         if (userLevel == 1) {
             return;
         }
-        Path filePath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + ".json");
+        Path filePath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
         Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
         try {
             // 删除文件
@@ -119,6 +120,48 @@ public class TableManager {
             System.err.println("deleted unsuccessfully!" + e.getMessage());
         }
     }
+    public static List<String> showTables() {
+        List<String> tables = new ArrayList<>();
+        Path dbDir = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase());
+
+        // 调试：打印当前目录
+        System.out.println("[DEBUG] showTables() dbDir = " + dbDir.toAbsolutePath());
+        System.out.println("[DEBUG] exists? " + Files.exists(dbDir) + ", isDirectory? " + Files.isDirectory(dbDir));
+
+        if (!Files.isDirectory(dbDir)) {
+            System.out.println("[DEBUG] 数据库目录不存在或不是目录，直接返回空列表");
+            return tables;
+        }
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dbDir)) {
+            for (Path file : stream) {
+                String name = file.getFileName().toString();
+                // 调试：打印每个文件名
+               // System.out.println("[DEBUG] found file: " + name);
+                // 调试：判断后缀
+                boolean endsSchemaJson = name.endsWith("_schema.json");
+                boolean endsSchema     = name.endsWith("_schema");
+
+                String tableName = null;
+                if (endsSchemaJson) {
+                    tableName = name.substring(0, name.length() - "_schema.json".length());
+                } else if (endsSchema) {
+                    tableName = name.substring(0, name.length() - "_schema".length());
+                }
+                if (tableName != null) {
+                    //System.out.println("[DEBUG] → 添加表名: " + tableName);
+                    tables.add(tableName);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("列出表失败: " + dbDir, e);
+        }
+
+        // 调试：打印最终结果
+        //System.out.println("[DEBUG] showTables() 返回表列表: " + tables);
+        return tables;
+    }
+
 
 
 }

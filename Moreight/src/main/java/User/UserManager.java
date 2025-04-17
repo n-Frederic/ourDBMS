@@ -42,6 +42,9 @@ public class UserManager {
         return currentUser;
     }
 
+    public static void SetCurrentUser(User current){
+        currentUser=current;
+    }
     /**
      * 创建新用户。
      * @param user 用户名。

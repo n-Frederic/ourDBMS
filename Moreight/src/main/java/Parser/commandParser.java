@@ -54,27 +54,29 @@ public class commandParser {
         return fieldList;
     }
 
-    public static Map<String,String> parseUpdateSet(String Str){
-        String[] line=Str.trim().split("\\s*,\\s*");
-        Map<String, String> fieldMap = new LinkedHashMap<>();
+    public static HashMap<String,String> parseUpdateSet(String str){
+        // 1. 先按逗号拆分，每段就是 "col=expr"
+        String[] parts = str.trim().split("\\s*,\\s*");
+        HashMap<String, String> fieldMap = new LinkedHashMap<>();
 
-        //解析字段为3组
+        // 2. 新的正则：只两组，忽略空白，支持 '…' 和 非逗号表达式
         Pattern fieldPattern = Pattern.compile(
-                "(\\w+)\\s+" +
-                        "([^\\s]+(?:\\([^)]+\\))?)" +
-                        "(?:\\s+(.*))?"
-        );//分123组
+                "\\s*(\\w+)\\s*=\\s*('[^']*'|[^,]+)\\s*"
+        );
 
-        for (String setStr : line) {
-            //修改了正则规则，需要末尾加;或空格才能匹配
-            Matcher relMatcher = fieldPattern.matcher(setStr + ";");
-            relMatcher.find();
-            //将组1做为key，组3作为value
-            fieldMap.put(relMatcher.group(1), relMatcher.group(3));
+        for (String part : parts) {
+            Matcher m = fieldPattern.matcher(part);
+            if (!m.matches()) {
+                throw new IllegalArgumentException("无法解析 SET 子句: " + part);
+            }
+            String col = m.group(1);
+            String val = m.group(2);
+            fieldMap.put(col, val);
         }
 
         return fieldMap;
     }
+
 
     public static ArrayList<String> parseAlter(String str){
         ArrayList<String> Alteralter=new ArrayList<>();
