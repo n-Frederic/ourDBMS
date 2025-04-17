@@ -30,47 +30,47 @@ public class TypeFilter {
      * @throws RuntimeException 如果表的结构定义不存在。
      * @throws IllegalArgumentException 如果数据不符合表的结构定义。
      */
-    public static boolean typeMatch(String table, JsonObject newRow){
-
-        Schema schema = Schema.loadSchema(DatabaseManager.getCurrentDatabase(), table);
-        if (schema == null) {
-            throw new RuntimeException("Schema not found for table: " + table);
-        }
-
-        for (Map.Entry<String, Schema.ColumnRule> entry : schema.getFields().entrySet()) {
-            String column = entry.getKey();
-            Schema.ColumnRule columnRule = entry.getValue();
-            String expectedType = columnRule.getType();
-
-            JsonElement element = newRow.get(column);
-
-            // 判断是否为空
-            if (element == null || element.isJsonNull() || element.getAsString().isEmpty()) {
-                if (columnRule.isNotNull()) {
-                    throw new IllegalArgumentException("Column '" + column + "' cannot be null.");
-                } else if (!columnRule.getDefaultValue().isEmpty()) {
-                    // 用默认值填充
-                    newRow.addProperty(column, columnRule.getDefaultValue());
-                } else {
-                    newRow.add(column, JsonNull.INSTANCE);
-                }
-                continue;
-            }
-            // 类型校验
-            if (!isValidType(element, expectedType)) {
-                throw new IllegalArgumentException("Invalid data type for column '" + column + "'. Expected: " + expectedType);
-            }
-
-            // 唯一性校验
-            if (columnRule.isUnique()) {
-                if (!isValueUnique(table, column, element.getAsString())) {
-                    throw new IllegalArgumentException("Value for column '" + column + "' must be unique.");
-                }
-            }
-
-        }
-        return true;
-    }
+//    public static boolean typeMatch(String table, JsonObject newRow){
+//
+//        Schema schema = Schema.loadSchema(DatabaseManager.getCurrentDatabase(), table);
+//        if (schema == null) {
+//            throw new RuntimeException("Schema not found for table: " + table);
+//        }
+//
+//        for (Map.Entry<String, Schema.ColumnRule> entry : schema.getFields().entrySet()) {
+//            String column = entry.getKey();
+//            Schema.ColumnRule columnRule = entry.getValue();
+//            String expectedType = columnRule.getType();
+//
+//            JsonElement element = newRow.get(column);
+//
+//            // 判断是否为空
+//            if (element == null || element.isJsonNull() || element.getAsString().isEmpty()) {
+//                if (columnRule.isNotNull()) {
+//                    throw new IllegalArgumentException("Column '" + column + "' cannot be null.");
+//                } else if (!columnRule.getDefaultValue().isEmpty()) {
+//                    // 用默认值填充
+//                    newRow.addProperty(column, columnRule.getDefaultValue());
+//                } else {
+//                    newRow.add(column, JsonNull.INSTANCE);
+//                }
+//                continue;
+//            }
+//            // 类型校验
+//            if (!isValidType(element, expectedType)) {
+//                throw new IllegalArgumentException("Invalid data type for column '" + column + "'. Expected: " + expectedType);
+//            }
+//
+//            // 唯一性校验
+//            if (columnRule.isUnique()) {
+//                if (!isValueUnique(table, column, element.getAsString())) {
+//                    throw new IllegalArgumentException("Value for column '" + column + "' must be unique.");
+//                }
+//            }
+//
+//        }
+//        return true;
+//    }
 
 
     /**

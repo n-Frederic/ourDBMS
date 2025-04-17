@@ -29,7 +29,7 @@ public class Schema {
     }
 
     public static Schema loadSchema(String dbName, String tableName) {
-        File schemaFile = new File("../TestData/" + dbName + "/" + tableName + "_schema.json");
+        File schemaFile = new File("../TestData/DatabaseManager/" + dbName + "/" + tableName + "_schema.json");
         try (FileReader reader = new FileReader(schemaFile)) {
             JsonObject schemaObject = JsonParser.parseReader(reader).getAsJsonObject();
             JsonArray fieldsArray = schemaObject.getAsJsonArray("fields");

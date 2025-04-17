@@ -1,0 +1,61 @@
+{
+  "table": "jj",
+  "fields": [
+    {
+      "fieldName": "name",
+      "constraint": [
+        {
+          "Type": "string"
+        },
+        {
+          "PRIMARY KEY": false
+        },
+        {
+          "UNIQUE": false
+        },
+        {
+          "NOT NULL": false
+        },
+        {
+          "Default": ""
+        }
+      ]
+    },
+    {
+      "fieldName": "age",
+      "constraint": [
+        {
+          "Type": "int"
+        },
+        {
+          "PRIMARY KEY": false
+        },
+        {
+          "UNIQUE": false
+        },
+        {
+          "NOT NULL": false
+        },
+        {
+          "Default": ""
+        }
+      ]
+    },
+    {
+      "fieldName": "sex",
+      "constraint": [
+        {
+          "Type": "string"
+        }
+      ]
+    },
+    {
+      "fieldName": "id",
+      "constraint": [
+        {
+          "Type": "int"
+        }
+      ]
+    }
+  ]
+}

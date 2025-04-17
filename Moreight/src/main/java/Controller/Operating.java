@@ -3,7 +3,7 @@ package Controller;
 import Conditions.Condition;
 import Conditions.ConditionNode;
 import Conditions.ConditionParser;
-import Table.Field;
+import Table.*;
 
 import Database.DatabaseManager;
 import Table.TableManager;
@@ -26,7 +26,15 @@ public class Operating {
     private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)\\s*\\(([^\\)]+)\\)\\s*values\\s*\\(([^\\)]+)\\);?");
 
     private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile("(?i)create\\s+table\\s(\\w+)\\s?\\(((?:\\s?\\w+\\s\\w+,?)+)\\)\\s?;");
-    private static final Pattern PATTERN_ALTER_TABLE = Pattern.compile("(?i)alter\\s+table\\s+(\\w+)\\s+(add|drop|modify|alter)\\s+(.+?);");
+    // 说明：(?i)表示不区分大小写；(?:column\s+)? 表示可选的 "column" 关键字及其后的空白字符
+    private static final Pattern PATTERN_ALTER_TABLE = Pattern.compile(
+            "(?i)alter\\s+table\\s+(\\w+)\\s+" +            // group1: 表名
+                    "(add|drop|modify|change|rename)\\s+" +           // group2: 操作类型
+                    "(?:column\\s+)?" +                              // 可选的 column 关键字（不捕获）
+                    "(\\w+)" +                                      // group3: 列名（或重命名前的旧列名）
+                    "(?:\\s+(.*?))?\\s*;"                           // group4: 其余部分，如列定义、数据类型、约束等（可选），以非贪婪方式匹配直到分号
+    );
+
 
     private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s([^\\;]+\\s?;))?");
     private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)update\\s(\\w+)\\s+set\\s(\\w+\\s?=\\s?[^,\\s]+(?:\\s?,\\s?\\w+\\s?=\\s?[^,\\s]+)*)(?:\\s+where\\s([^\\;]+\\s?;))?");
@@ -179,11 +187,10 @@ public class Operating {
             } else if (matcherAlterTable.find()) {
 
                 System.out.println("alter");
-                String tableName=matcherAlterTable.group(1);
-                String conditionstr=matcherAlterTable.group(2);
 
-                matched = true;
+
                 alter(matcherAlterTable);
+                matched = true;
                 continue;
 
 
@@ -311,7 +318,11 @@ public class Operating {
 
         String columnsStr = matcherSelect.group(1);
         if (columnsStr.equals("*")) {
-
+            Schema schema=Schema.loadSchema(DatabaseManager.getCurrentDatabase(),tableName);
+            columns = new ArrayList<>();
+            for (Field field : schema.getFields()) {
+                columns.add(field.getName());
+            }
 
         } else {
             columns = commandParser.parseSelectColumn(columnsStr);
@@ -353,14 +364,39 @@ public class Operating {
 
 
     private void alter(Matcher matcherAlter){
+
+        System.out.println("altering1");
         String tableName;
         String details;
+        String column;
         String operation;
         tableName = matcherAlter.group(1);
+        System.out.println(tableName);
 
-        details = matcherAlter.group(3);
+        column = matcherAlter.group(3);//name
+        System.out.println(column);
 
-        operation = matcherAlter.group(2);        // "add"
+        operation = matcherAlter.group(2);
+        System.out.println(operation);// "add"
+
+
+
+        if(operation.equals("add")||operation.equals("ADD")){
+            System.out.println("adding");
+            details=matcherAlter.group(4);
+            System.out.println("detail");
+            Field field=new Field(column,details);
+
+            Table.addColumn(tableName,field);
+        }else if(operation.equals("drop")||operation.equals("DROP")){
+            Table.deleteColumn(tableName,column);
+
+        }else if(operation.equals("modify")||operation.equals("MODIFY")){
+            details=matcherAlter.group(4);
+            Field field=new Field(column,details);
+
+
+        }
                   // "age int"
 
 //        switch (operation){

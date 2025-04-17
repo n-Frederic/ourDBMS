@@ -80,6 +80,8 @@ public class Table {
         JsonObject typeObj = new JsonObject();
         typeObj.addProperty("Type", newField.getType());
         constraintsArray.add(typeObj);
+        System.out.println(newFieldJson);
+        System.out.println(typeObj);
 
         if (newField.isNotNull()) {
             JsonObject notNullObj = new JsonObject();
