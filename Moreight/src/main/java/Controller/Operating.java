@@ -187,7 +187,7 @@ public class Operating {
 
             } else if (matcherDropTable.find()) {
                 System.out.println("drop");
-               // matched = true;
+                // matched = true;
                 String tableName = matcherDropTable.group(1);  //
                 System.out.println("删除表: " + tableName);     //
                 TableManager.DropTable(tableName, 2);
@@ -217,7 +217,7 @@ public class Operating {
 
                 System.out.println("alter");
                 alter(matcherAlterTable);
-               // matched = true;
+                // matched = true;
                 continue;
 
 
@@ -383,7 +383,7 @@ public class Operating {
 
 
         }
-                  // "age int
+        // "age int
 
 //        switch (operation){
 //            case "add":
