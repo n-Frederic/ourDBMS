@@ -3,9 +3,8 @@ package Table;
 import Conditions.Condition;
 import Conditions.ConditionNode;
 import Database.DatabaseManager;
-import Storage.BPlusTree.BPlusNode;
-import Storage.BPlusTree.BPlusTree;
-import Storage.BPlusTree.LeafNode;
+import Storage.BPlusTree.*;
+import Storage.BPlusTree.Value.*;
 import com.google.gson.*;
 
 import java.io.FileNotFoundException;
@@ -21,60 +20,362 @@ import java.util.*;
  * 它支持插入数据、添加列、更新数据、删除数据等功能，表的结构定义和数据分别存储在JSON文件中。
  */
 public class Table {
+    Table table;
     Schema schema ;
-    BPlusTree tree;
+    BpTree tree;
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
-    public Table() {
-
+    private Table(Schema s) {
+        this.table = new Table(s);
+        this.schema = s;
+        this.tree = new BpTree();
     }
 
 
     /**
      * 向表中插入一条新记录。
-     * @param dataPath 表的数据文件路径。
-     * @param columns 要插入的列名列表。
-     * @param values 要插入的值列表。
+     * @param key 行的信息
      */
-    public static void Insert(Path dataPath, ArrayList<String> columns, ArrayList<Object> values) {
-        JsonArray data;
 
-        try (FileReader reader = new FileReader(dataPath.toFile())) {
-            data = JsonParser.parseReader(reader).getAsJsonArray();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
+    public void Insert(Tuple key) {
+        tree.insert(key);
+    }
+
+    public void delete(Tuple tuple){
+        tree.remove(tuple);
+    }
+
+
+
+//    public static JsonArray Where(JsonArray a, JsonArray b, String mode) {
+//        JsonArray array = new JsonArray();
+//        if (mode.equals("and")) {
+//            for (JsonElement e : a) {
+//                if (b.contains(e)) {
+//                    array.add(e);
+//                }
+//            }
+//            return array;
+//        } else if (mode.equals("or")) {
+//            for (JsonElement e : a) {
+//                array.add(e);
+//            }
+//            for (JsonElement e : b) {
+//                if (!array.contains(e)) {
+//                    array.add(e);
+//                }
+//            }
+//            return array;
+//        } else return array;
+//    }
+
+//    public static void Where(JsonArray data, Condition condition) {
+//        Iterator<JsonElement> iterator = data.iterator();
+//
+//        while (iterator.hasNext()) {
+//            JsonElement element = iterator.next();
+//            JsonObject object = element.getAsJsonObject();
+//
+//            switch (condition.getOperator()) {
+//                case "=":
+//                    if (!object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
+//                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+//                    }
+//                    break;
+//                case "!=":
+//                    if (object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
+//                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+//                    }
+//                    break;
+//                case "<":
+//                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) >= 0) {
+//                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+//                    }
+//                    break;
+//                case ">":
+//                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) <= 0) {
+//                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+//                    }
+//                    break;
+//                case "<=":
+//                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) > 0) {
+//                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+//                    }
+//                    break;
+//                case ">=":
+//                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) < 0) {
+//                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+//                    }
+//                    break;
+//            }
+//        }
+//
+//    }
+
+    public ArrayList<Tuple> where(Condition condition) {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        Field field = schema.getField(condition.getColumn());
+        int index = schema.getIndex(field);
+
+        BpNode current = tree.getHead();
+        while(current != null) {
+            Tuple tuple = current.get(condition,index);
+            if(tuple!=null) {
+                tuples.add(current.get(condition,index));
+            }
+            current = current.getNext();
         }
 
-        JsonObject newRow = new JsonObject();
-        for (int i = 0; i < columns.size(); i++) {
-            String column = columns.get(i);
-            Object value = values.get(i);
+        return tuples;
+    }
 
-            if (value == null || value.toString().isEmpty()) {
-                newRow.add(column, JsonNull.INSTANCE);
-            } else {
-                newRow.addProperty(column, value.toString());
+    public ArrayList<Tuple> where (ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        if (mode.equals("and")) {
+            for (Tuple t : t1) {
+                if (t2.contains(t)) {
+                    tuples.add(t);
+                }
+            }
+            return tuples;
+        } else if (mode.equals("or")) {
+            for (Tuple t : t1) {
+                tuples.add(t);
+            }
+            for (Tuple t: t2) {
+                if (!t1.contains(t)) {
+                    tuples.add(t);
+                }
+            }
+            return tuples;
+        } else return tuples;
+    }
+
+    public void Set(ArrayList<Tuple> tuples,HashMap<String,Value> map){
+        BpNode root = tree.getRoot();
+        for(Tuple tuple : tuples) {
+            Tuple t = root.get(tuple);
+            for (Map.Entry<String, Value> entry : map.entrySet()) {
+                Field field = schema.getField(entry.getKey());
+                int index = schema.getIndex(field);
+                t.set(index,entry.getValue());
             }
         }
+    }
 
-        data.add(newRow);
+//    public static void deleteColumn(String tableName, String columnName) {
+//        // 处理 schema
+//        Path schemaPath = From_schema(tableName);
+//        JsonObject schemaObj;
+//        try (FileReader reader = new FileReader(schemaPath.toFile())) {
+//            schemaObj = JsonParser.parseReader(reader).getAsJsonObject();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return;
+//        }
+//
+//        JsonArray fields = schemaObj.getAsJsonArray("fields");
+//        JsonArray newFields = new JsonArray();
+//
+//        for (JsonElement elem : fields) {
+//            JsonObject field = elem.getAsJsonObject();
+//            if (!field.get("fieldName").getAsString().equals(columnName)) {
+//                newFields.add(field);
+//            }
+//        }
+//
+//        schemaObj.add("fields", newFields);
+//
+//        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
+//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//            gson.toJson(schemaObj, writer);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        // 处理 data
+//        Path dataPath = From_data(tableName);
+//        JsonArray data = readData(dataPath);
+//
+//        for (JsonElement element : data) {
+//            JsonObject obj = element.getAsJsonObject();
+//            obj.remove(columnName);
+//        }
+//
+//        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//            gson.toJson(data, writer);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
-        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(data, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
+    // 更新内存并保存到磁盘
+
+
+//    public static void saveData(String tableName, JsonArray data) {
+//        Path dataPath = From_data(tableName);
+//        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+//            Gson gson = new GsonBuilder()
+//                    .setPrettyPrinting()
+//                    .serializeNulls()
+//                    .create();
+//            gson.toJson(data, writer);
+//        } catch (IOException e) {
+//            throw new RuntimeException("写入表 " + tableName + " 失败", e);
+//        }
+//    }
+
+
+//    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
+//        // 1. 读出整表
+//        JsonArray all = readData(From_data(tableName));
+//
+//        // 2. 逻辑过滤，返回的是 all 中的部分元素（原始引用）
+//        JsonArray data = logicTree.evaluate(all);
+//
+//        // 3. 就地修改这些元素
+//        for (JsonElement e : data) {
+//            JsonObject obj = e.getAsJsonObject();
+//            for (Map.Entry<String,String> entry : map.entrySet()) {
+//                obj.addProperty(entry.getKey(), entry.getValue());
+//            }
+//        }
+//
+//        // 4. 最后将 all 整个写回文件
+//        saveData(tableName, all);
+//    }
+
+//    public static void renameColumn(String tableName, String oldName, String newName) {
+//        // 修改 schema
+//        Path schemaPath = From_schema(tableName);
+//        JsonObject schemaObj;
+//        try (FileReader reader = new FileReader(schemaPath.toFile())) {
+//            schemaObj = JsonParser.parseReader(reader).getAsJsonObject();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return;
+//        }
+//
+//        JsonArray fields = schemaObj.getAsJsonArray("fields");
+//        for (JsonElement elem : fields) {
+//            JsonObject field = elem.getAsJsonObject();
+//            if (field.get("fieldName").getAsString().equals(oldName)) {
+//                field.addProperty("fieldName", newName);
+//                break;
+//            }
+//        }
+//
+//        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
+//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//            gson.toJson(schemaObj, writer);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        // 修改 data
+//        Path dataPath = From_data(tableName);
+//        JsonArray data = readData(dataPath);
+//
+//        for (JsonElement element : data) {
+//            JsonObject obj = element.getAsJsonObject();
+//            if (obj.has(oldName)) {
+//                JsonElement value = obj.remove(oldName);
+//                obj.add(newName, value);
+//            }
+//        }
+//
+//        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//            gson.toJson(data, writer);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
+
+//    public static void Delete(JsonArray oldData, JsonArray newData) {
+//        Iterator<JsonElement> iterator = newData.iterator();
+//
+//        while (iterator.hasNext()) {
+//            JsonElement element = iterator.next();
+//            if(oldData.contains(element)) oldData.remove(element);
+//        }
+//    }
+
+//    public static Path From_data(String table) {
+//        Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
+//        return dataPath;
+//    }
+//
+//    public static Path From_schema(String table) {
+//        Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
+//        return schemaPath;
+//    }
+
+    public static JsonArray readData(Path dataPath) {
+        JsonArray data;
+        try {
+            FileReader reader = new FileReader(dataPath.toFile());
+            data = JsonParser.parseReader(reader).getAsJsonArray();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return data;
+    }
+
+    public static JsonArray readSchema(Path schemaPath) {
+        JsonArray fields;
+        try {
+            FileReader reader = new FileReader(schemaPath.toFile());
+            fields = JsonParser.parseReader(reader).getAsJsonArray();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return fields;
+    }
+        //传个al的tup，根据键找到位置，针对每个tp，内层是root调get()
+
+
+    public List<Tuple> getAllTuples() {
+        List<Tuple> allTuples = new ArrayList<>();
+        BpNode current = BpTree.getHead();
+        while (current != null) {
+            allTuples.addAll(current.getEntries());  // entries 是 Tuple 的列表
+            current = current.getNext();
+        }
+        return allTuples;
+    }
+
+    public void addColumn(Field newField){
+        schema.addColumn(newField);
+        for(Tuple tuple : getAllTuples()){
+            Value defaultValue = Value.parse(newField.getTypeClass(),newField.getDefault());
+            tuple.appendValue(defaultValue);
         }
     }
 
-    public void Insert(ArrayList<String> columns, ArrayList<Object> values) {
-        LeafNode root = tree.getRoot();
-        if(columns.contains(schema.getPrimaryKeyName()))
+    public void dropColumn(String columnName){
+        int index = -1;
+        List<String> columnNames = schema.getColumnNames();
+        for (int i = 0; i < columnNames.size(); i++) {
+            if(columnNames.get(i).equals(columnName)){
+                index = i;
+                break;
+            }
+        }
+        if (index == -1) throw new IllegalArgumentException("列名不存在：" + columnName);
 
+        schema.dropColumn(columnName);
+
+        for (Tuple tuple : getAllTuples()) {
+            tuple.removeValue(index);
+        }
     }
 
-    public static void addColumn(String tableName, Field newField) {
+
+
+    /*    public static void addColumn(String tableName, Field newField) {
         Path schemaPath = From_schema(tableName);
         Path dataPath = From_data(tableName);
 
@@ -151,88 +452,7 @@ public class Table {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public static void deleteColumn(String tableName, String columnName) {
-        // 处理 schema
-        Path schemaPath = From_schema(tableName);
-        JsonObject schemaObj;
-        try (FileReader reader = new FileReader(schemaPath.toFile())) {
-            schemaObj = JsonParser.parseReader(reader).getAsJsonObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        JsonArray fields = schemaObj.getAsJsonArray("fields");
-        JsonArray newFields = new JsonArray();
-
-        for (JsonElement elem : fields) {
-            JsonObject field = elem.getAsJsonObject();
-            if (!field.get("fieldName").getAsString().equals(columnName)) {
-                newFields.add(field);
-            }
-        }
-
-        schemaObj.add("fields", newFields);
-
-        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(schemaObj, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // 处理 data
-        Path dataPath = From_data(tableName);
-        JsonArray data = readData(dataPath);
-
-        for (JsonElement element : data) {
-            JsonObject obj = element.getAsJsonObject();
-            obj.remove(columnName);
-        }
-
-        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(data, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // 更新内存并保存到磁盘
-
-
-    public static void saveData(String tableName, JsonArray data) {
-        Path dataPath = From_data(tableName);
-        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-            Gson gson = new GsonBuilder()
-                    .setPrettyPrinting()
-                    .serializeNulls()
-                    .create();
-            gson.toJson(data, writer);
-        } catch (IOException e) {
-            throw new RuntimeException("写入表 " + tableName + " 失败", e);
-        }
-    }
-    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
-        // 1. 读出整表
-        JsonArray all = readData(From_data(tableName));
-
-        // 2. 逻辑过滤，返回的是 all 中的部分元素（原始引用）
-        JsonArray data = logicTree.evaluate(all);
-
-        // 3. 就地修改这些元素
-        for (JsonElement e : data) {
-            JsonObject obj = e.getAsJsonObject();
-            for (Map.Entry<String,String> entry : map.entrySet()) {
-                obj.addProperty(entry.getKey(), entry.getValue());
-            }
-        }
-
-        // 4. 最后将 all 整个写回文件
-        saveData(tableName, all);
-    }
+    }*/
 
     // set是针对于where筛选后的JsonArray修改列值
 //    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
@@ -255,159 +475,7 @@ public class Table {
 //    }
 
 
-    public static void renameColumn(String tableName, String oldName, String newName) {
-        // 修改 schema
-        Path schemaPath = From_schema(tableName);
-        JsonObject schemaObj;
-        try (FileReader reader = new FileReader(schemaPath.toFile())) {
-            schemaObj = JsonParser.parseReader(reader).getAsJsonObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
 
-        JsonArray fields = schemaObj.getAsJsonArray("fields");
-        for (JsonElement elem : fields) {
-            JsonObject field = elem.getAsJsonObject();
-            if (field.get("fieldName").getAsString().equals(oldName)) {
-                field.addProperty("fieldName", newName);
-                break;
-            }
-        }
-
-        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(schemaObj, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // 修改 data
-        Path dataPath = From_data(tableName);
-        JsonArray data = readData(dataPath);
-
-        for (JsonElement element : data) {
-            JsonObject obj = element.getAsJsonObject();
-            if (obj.has(oldName)) {
-                JsonElement value = obj.remove(oldName);
-                obj.add(newName, value);
-            }
-        }
-
-        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(data, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public static void Delete(JsonArray oldData, JsonArray newData) {
-        Iterator<JsonElement> iterator = newData.iterator();
-
-        while (iterator.hasNext()) {
-            JsonElement element = iterator.next();
-            if(oldData.contains(element)) oldData.remove(element);
-        }
-    }
-
-    public static Path From_data(String table) {
-        Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-        return dataPath;
-    }
-
-    public static Path From_schema(String table) {
-        Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
-        return schemaPath;
-    }
-
-    public static JsonArray Where(JsonArray a, JsonArray b, String mode) {
-        JsonArray array = new JsonArray();
-        if (mode.equals("and")) {
-            for (JsonElement e : a) {
-                if (b.contains(e)) {
-                    array.add(e);
-                }
-            }
-            return array;
-        } else if (mode.equals("or")) {
-            for (JsonElement e : a) {
-                array.add(e);
-            }
-            for (JsonElement e : b) {
-                if (!array.contains(e)) {
-                    array.add(e);
-                }
-            }
-            return array;
-        } else return array;
-    }
-
-    public static void Where(JsonArray data, Condition condition) {
-        Iterator<JsonElement> iterator = data.iterator();
-
-        while (iterator.hasNext()) {
-            JsonElement element = iterator.next();
-            JsonObject object = element.getAsJsonObject();
-
-            switch (condition.getOperator()) {
-                case "=":
-                    if (!object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-                case "!=":
-                    if (object.get(condition.getColumn()).getAsString().equals(condition.getValue())) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-                case "<":
-                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) >= 0) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-                case ">":
-                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) <= 0) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-                case "<=":
-                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) > 0) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-                case ">=":
-                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) < 0) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-            }
-        }
-
-    }
-
-    public static JsonArray readData(Path dataPath) {
-        JsonArray data;
-        try {
-            FileReader reader = new FileReader(dataPath.toFile());
-            data = JsonParser.parseReader(reader).getAsJsonArray();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        return data;
-    }
-
-    public static JsonArray readSchema(Path schemaPath) {
-        JsonArray fields;
-        try {
-            FileReader reader = new FileReader(schemaPath.toFile());
-            fields = JsonParser.parseReader(reader).getAsJsonArray();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        return fields;
-    }
 
 }
 

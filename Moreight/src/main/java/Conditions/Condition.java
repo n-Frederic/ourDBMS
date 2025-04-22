@@ -1,4 +1,5 @@
 package Conditions;
+import Storage.BPlusTree.Value.Value;
 import Table.Table;
 import com.google.gson.JsonArray;
 import java.util.*;
@@ -8,7 +9,7 @@ import java.nio.file.Path;
 public class Condition extends ConditionNode {
     Path tablepath;
     private String column;
-    private String value;
+    private Value value;
     private String operator;
 
     public void setTablepath(Path tablepath){
@@ -16,14 +17,14 @@ public class Condition extends ConditionNode {
 
     }
 
-    public Condition(String column, String value, String operator,Path filepath) {
+    public Condition(String column, Value value, String operator,Path filepath) {
         this.column = column;
         this.value = value;
         this.operator = operator;
         this.tablepath=filepath;
     }
 
-    public Condition(String column, String value, String operator) {
+    public Condition(String column, Value value, String operator) {
         this.column = column;
         this.value = value;
         this.operator = operator;
@@ -34,7 +35,7 @@ public class Condition extends ConditionNode {
         return column;
     }
 
-    public String getValue() {
+    public Value getValue() {
         return value;
     }
 

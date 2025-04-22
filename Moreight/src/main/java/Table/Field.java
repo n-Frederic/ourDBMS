@@ -1,5 +1,7 @@
 package Table;
 
+import Storage.BPlusTree.Value.*;
+
 public class Field {
     private String name;
     private String type;
@@ -78,6 +80,23 @@ public class Field {
                 ", Default='" + Default + '\'' +
                 '}';
     }
+
+
+    // 把字符串类型转换成你系统里定义的 Value 子类类型
+    public Class<? extends Value> getTypeClass() {
+        switch (type.toUpperCase()) {
+            case "INT":
+                return IntValue.class;
+            case "STRING":
+                return StringValue.class;
+            case "BOOLEAN":
+                return BooleanValue.class;
+            // 如果有其他类型可以补
+            default:
+                throw new IllegalArgumentException("未知字段类型：" + type);
+        }
+    }
+
 
 
 }
