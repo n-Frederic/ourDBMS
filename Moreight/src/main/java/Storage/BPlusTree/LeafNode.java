@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class LeafNode extends BPlusNode{
-    private Map<Object,Row> values;  // 存储键值对
+    private Map<Key,Row> values;  // 存储键值对
     private Page page;               // 叶子节点对应的存储页
 
 
@@ -25,6 +25,33 @@ public class LeafNode extends BPlusNode{
 
     @Override
     public BPlusNode split() {
-        return null;
+        Page newPage = new Page(page.getPageId(), page.getSchema());
+        LeafNode newLeaf = new LeafNode(newPage,maxKeys);
+
+        int mid = values.size()/2;
+        List<Key> keys = new ArrayList<>(values.keySet());
+
+        for (int i = mid; i < keys.size(); i++) {
+            Key key = keys.get(i);
+            Row row = values.get(key);
+            try {
+                newPage.insert(row);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            newLeaf.values.put(key, row);
+        }
+
+        // 删除原来的一半
+        for (int i = mid; i < keys.size(); i++) {
+            Key key = keys.get(i);
+            values.remove(key);
+         }
+
+        InternalNode newRoot = new InternalNode(maxKeys);
+        Object promotedKey = keys.get(mid);  // 中间 key 提升
+        newRoot.addChild(promotedKey, this, newLeaf);
+
+        return newRoot;
     }
 }

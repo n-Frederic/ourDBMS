@@ -3,6 +3,9 @@ package Table;
 import Conditions.Condition;
 import Conditions.ConditionNode;
 import Database.DatabaseManager;
+import Storage.BPlusTree.BPlusNode;
+import Storage.BPlusTree.BPlusTree;
+import Storage.BPlusTree.LeafNode;
 import com.google.gson.*;
 
 import java.io.FileNotFoundException;
@@ -18,7 +21,14 @@ import java.util.*;
  * 它支持插入数据、添加列、更新数据、删除数据等功能，表的结构定义和数据分别存储在JSON文件中。
  */
 public class Table {
+    Schema schema ;
+    BPlusTree tree;
     private static final String DIRECTORY = "../TestData/DatabaseManager";
+
+    public Table() {
+
+    }
+
 
     /**
      * 向表中插入一条新记录。
@@ -56,6 +66,12 @@ public class Table {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void Insert(ArrayList<String> columns, ArrayList<Object> values) {
+        LeafNode root = tree.getRoot();
+        if(columns.contains(schema.getPrimaryKeyName()))
+
     }
 
     public static void addColumn(String tableName, Field newField) {

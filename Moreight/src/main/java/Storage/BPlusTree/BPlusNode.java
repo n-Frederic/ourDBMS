@@ -7,15 +7,14 @@ import java.util.ArrayList;
 
 public abstract class BPlusNode {
     protected int maxKeys;
-    protected List<Integer> keys;  // 存储关键字
-    protected List<BPlusNode> children;  // 存储子节点
+    protected List<Key> keys;  // 存储关键字
+
 
     public BPlusNode(int maxKeys) {
         this.maxKeys = maxKeys;
         this.keys = new ArrayList<>(maxKeys);
-        this.children = new ArrayList<>(maxKeys + 1);
-    }
 
+    }
 
 
     // 判断节点是否溢出

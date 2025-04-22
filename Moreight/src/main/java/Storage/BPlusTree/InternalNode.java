@@ -4,8 +4,11 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class InternalNode extends BPlusNode {
+    protected List<BPlusNode> children;  // 存储子节点
+
     public InternalNode(int maxKeys) {
         super(maxKeys);
+        this.children = new ArrayList<>(maxKeys + 1);
     }
 
 
@@ -13,7 +16,7 @@ public class InternalNode extends BPlusNode {
     public BPlusNode split() {
         // 需要分裂内部节点
         int midIndex = keys.size() / 2;
-        List<Integer> rightKeys = keys.subList(midIndex, keys.size());
+        List<Key> rightKeys = new ArrayList<>(keys.subList(midIndex, keys.size()));
         List<BPlusNode> rightChildren = children.subList(midIndex + 1, children.size());
 
         InternalNode newInternalNode = new InternalNode(maxKeys);
@@ -28,12 +31,15 @@ public class InternalNode extends BPlusNode {
         return newInternalNode;
     }
 
-    private BPlusNode getChildForInsertion(int key) {
+    private BPlusNode getChildForInsertion(Key key) {
         for (int i = 0; i < keys.size(); i++) {
-            if (key < keys.get(i)) {
+            if (key.compareTo(keys.get(i)) < 0) {
                 return children.get(i);
             }
         }
         return children.get(keys.size());  // 默认返回最后一个子节点
     }
+
+
+
 }
