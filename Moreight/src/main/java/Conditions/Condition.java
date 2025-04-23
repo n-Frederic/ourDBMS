@@ -1,27 +1,29 @@
 package Conditions;
+import Storage.BPlusTree.Tuple;
 import Storage.BPlusTree.Value.Value;
 import Table.Table;
 import com.google.gson.JsonArray;
 import java.util.*;
 import java.util.Map;
 import java.nio.file.Path;
+import Storage.*;
 
 public class Condition extends ConditionNode {
-    Path tablepath;
+    Table table;
     private String column;
     private Value value;
     private String operator;
 
-    public void setTablepath(Path tablepath){
-        this.tablepath=tablepath;
+    public void setTable(Table table){
+        this.table=table;
 
     }
 
-    public Condition(String column, Value value, String operator,Path filepath) {
+    public Condition(String column, Value value, String operator,Table table) {
         this.column = column;
         this.value = value;
         this.operator = operator;
-        this.tablepath=filepath;
+        this.table=table;
     }
 
     public Condition(String column, Value value, String operator) {
@@ -53,22 +55,23 @@ public class Condition extends ConditionNode {
     }
 
     @Override
-    public JsonArray evaluate() {
-
-        JsonArray data=Table.readData(tablepath);
-        Table.Where(data,this);
-        return data;
+    public  ArrayList<Tuple> evaluate() {
 
 
-    }
-    public JsonArray evaluate(JsonArray data) {
 
-        //JsonArray data=Table.readData(tablepath);
-        Table.Where(data,this);
-        return data;
+        ArrayList<Tuple>tuples=table.where(this);
+        return tuples;
 
 
     }
+//    public  ArrayList<Tuple> evaluate(JsonArray data) {
+//
+//        //JsonArray data=Table.readData(tablepath);
+//        Table.Where(data,this);
+//        return data;
+//
+//
+//    }
 }
 
 

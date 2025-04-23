@@ -6,6 +6,7 @@ package Storage.BPlusTree.Value;
 public abstract class Value {
 
     public static final byte UNKNOW = 100;
+    public static final byte NULL = 0;
     public static final byte STRING = 1;
     public static final byte INT = 2;
     public static final byte LONG = 3;

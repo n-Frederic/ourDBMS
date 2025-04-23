@@ -21,7 +21,7 @@ public class BpTree implements Tree {
         head = root;
     }
 
-    public  BpNode getHead() {
+    public BpNode getHead() {
         return head;
     }
 
@@ -51,5 +51,40 @@ public class BpTree implements Tree {
     public boolean validate() {
         if (root.validate()) return true;
         else return false;
+    }
+
+    /**
+     * 清空 B+ 树，释放所有节点
+     */
+    public void truncate() {
+        if (root != null) {
+            // 递归删除所有节点
+            deleteNode(root);
+        }
+        // 重置树结构
+        root = null;
+        head = null;
+    }
+
+    /**
+     * 递归删除节点及其子树
+     * @param node 当前节点
+     */
+    private void deleteNode(BpNode node) {
+        if (node == null) {
+            return;
+        }
+
+        if (!node.isLeaf) {
+            for (BpNode child : node.children) {
+                deleteNode(child);
+            }
+        }
+
+        node.entries.clear();
+        node.children.clear();
+        node.parent = null;
+        node.previous = null;
+        node.next = null;
     }
 }

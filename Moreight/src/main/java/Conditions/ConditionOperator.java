@@ -1,12 +1,15 @@
 package Conditions;
+import java.util.ArrayList;
 import java.util.Map;
 
 import Conditions.ConditionNode;
+import Storage.BPlusTree.Tuple;
 import Table.Table;
 import com.google.gson.JsonArray;
 
 public class ConditionOperator extends ConditionNode {
     private final String operator; // "AND" or "OR"
+    private Table table;
     private final ConditionNode left;
     private final ConditionNode right;
 
@@ -34,20 +37,22 @@ public class ConditionOperator extends ConditionNode {
     }
 
     @Override
-    public JsonArray evaluate() {
-        JsonArray leftResult = left.evaluate();
-        JsonArray rightResult = right.evaluate();
-        return Table.Where(leftResult,rightResult,this.operator);
+    public ArrayList<Tuple>  evaluate() {
+        ArrayList<Tuple> leftResult = left.evaluate();
+        ArrayList<Tuple>rightResult = right.evaluate();
 
+        return table.where(leftResult,rightResult,this.operator);
 
-    }
-
-    public JsonArray evaluate(JsonArray data) {
-        JsonArray leftResult = left.evaluate(data);
-        JsonArray rightResult = right.evaluate(data);
-        return Table.Where(leftResult,rightResult,this.operator);
 
 
     }
+
+//    public  ArrayList<Tuple> evaluate(ArrayList<Tuple> data) {
+//        ArrayList<Tuple> leftResult = left.evaluate(data);
+//        ArrayList<Tuple> rightResult = right.evaluate(data);
+//        return Table.Where(leftResult,rightResult,this.operator);
+//
+//
+//    }
 }
 

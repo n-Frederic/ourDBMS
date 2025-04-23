@@ -1,5 +1,6 @@
 package Util.Func;
 
+import Storage.BPlusTree.Tuple;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import Table.*;
@@ -69,6 +70,7 @@ public class Render {
      * @param str 要计算的字符串。
      * @return 字符串的显示宽度。
      */
+
     private static int getDisplayWidth(String str) {
         int width = 0;
         for (char c : str.toCharArray()) {
@@ -99,13 +101,13 @@ public class Render {
 
     /**
      * 将JSON数组数据按照指定的列和列宽绘制为表格。
-     * @param data JSON数组数据。
+     * @param tuples 行的数组数据。
      * @param columns 指定的列名列表。
 
      */
-    public static void DrawSelectedTable(JsonArray data, ArrayList<String> columns) {
+    public static void DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
 
-
+        DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns)
 
         System.out.println(columns);
 
@@ -113,13 +115,19 @@ public class Render {
         for (String column : columns) {
             columnWidths.put(column, column.length());
         }
-        for (var rowElement : data) {
-            JsonObject row = rowElement.getAsJsonObject();
-            for (String col : columns) {
+        for (var tuple : tuples) {
+            for (int i = 0; i < columns.size(); i++) {
+                String val = tuple.getValue(i).toString();
+                columnWidths.put(columns.get(i), Math.max(columnWidths.get(columns.get(i)), getDisplayWidth(val)));
+            }
+        }
+
+/*        for (var rowElement : data) {
+            for (int i = 0; i < tuples.size(); i++) {
                 String val = row.has(col) ? row.get(col).getAsString() : "";
                 columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
             }
-        }
+        }*/
 
         Runnable printSeparator = () -> {
             System.out.print("+");
@@ -146,12 +154,11 @@ public class Render {
         printRow.accept(headerMap);
         printSeparator.run();
 
-        for (var rowElement : data) {
-            JsonObject row = rowElement.getAsJsonObject();
+        for (var tuple : tuples) {
             Map<String, String> rowMap = new LinkedHashMap<>();
-            for (String col : columns) {
-                String val = row.has(col) ? row.get(col).getAsString() : "";
-                rowMap.put(col, val);
+            for (int i = 0; i < columns.size(); i++) {
+                String val = tuple.getValue(i).toString();
+                rowMap.put(columns.get(i), val);
             }
             printRow.accept(rowMap);
         }

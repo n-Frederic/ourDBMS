@@ -9,7 +9,7 @@ import Conditions.Condition;
  */
 public class Tuple {
 
-    Value[] values;
+    protected Value[] values;
 
     public Tuple() {
     }
@@ -21,6 +21,8 @@ public class Tuple {
     public Value[] getValues() {
         return values;
     }
+
+    public Value getValue(int index) { return values[index];}
 
     public void setValues(Value[] values) {
         this.values = values;
@@ -36,6 +38,7 @@ public class Tuple {
 
     /**
      * 联合索引比较的时候,先比较第一个索引值,若相等则再比较下一个索引值,依次类推
+     * TODO ：更改为比较主键
      */
     public int compare(Tuple tuple) {
         int min = Math.min(values.length, tuple.values.length);
@@ -54,7 +57,7 @@ public class Tuple {
         values[index] = value;
     }
 
-    public boolean compare(Condition condition, int index) {
+    public boolean check(Condition condition, int index) {
         switch (condition.getOperator()) {
             case "=":
                 if (values[index].compare(condition.getValue())==0) {

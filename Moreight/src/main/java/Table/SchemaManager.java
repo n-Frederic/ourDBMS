@@ -13,10 +13,6 @@ public class SchemaManager {
         return instance;
     }
 
-    // 加载 schema（可能是从磁盘，可能是建表时）
-    public void register(Schema schema) {
-        schemas.put(schema.getTableName(), schema);
-    }
 
     public Schema get(String tableName) {
         return schemas.get(tableName);

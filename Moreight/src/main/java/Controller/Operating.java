@@ -3,6 +3,8 @@ package Controller;
 import Conditions.Condition;
 import Conditions.ConditionNode;
 import Conditions.ConditionParser;
+import Storage.BPlusTree.Tuple;
+import Storage.BPlusTree.Value.Value;
 import Table.*;
 
 import Database.DatabaseManager;
@@ -10,18 +12,18 @@ import Table.TableManager;
 import User.UserManager;
 import Parser.commandParser;
 
-import java.nio.file.Path;
+import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import Storage.BPlusTree.Value.NullValue;
 import Table.Table;
 import Util.Func.*;
-import com.google.gson.JsonArray;
+import Util.Filter.*;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
-
-import javax.swing.text.html.parser.Parser;
 
 public class Operating {
 
@@ -101,6 +103,10 @@ public class Operating {
                 String dbName = matcherCreateDB.group(1);
                 System.out.println("创建数据库: " + dbName);
 
+                if(TypeFilter.databaseExist(dbName)){
+                    System.out.println(dbName+" already exist!");
+                    continue;
+                }
                 DatabaseManager.createDataBase(dbName);
                 // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
                 continue;
@@ -108,6 +114,10 @@ public class Operating {
 
                 matched = true;
                 String dbName = matcherUserDB.group(1);
+                if(!TypeFilter.databaseExist(dbName)){
+                    System.out.println(dbName+" not exist!");
+                    continue;
+                }
                 //System.out.println("使用数据库: " + dbName);
                 boolean dbexist = false;
                 dbexist = DatabaseManager.useDatabase(dbName);
@@ -126,6 +136,10 @@ public class Operating {
                 matched = true;
                 String dbName = matcherDropDB.group(1);
 
+                if(!TypeFilter.databaseExist(dbName)){
+                    System.out.println(dbName+" not exist!");
+                    continue;
+                }
 
                 System.out.println("删除数据库: " + dbName);
                 DatabaseManager.dropDatabase(dbName, UserManager.GetCurrentUser().getLevel());
@@ -167,28 +181,61 @@ public class Operating {
 
                 // ✅ 取出表名
                 String tableName = matcherCreateTable.group(1);
+                if(TypeFilter.tableExist(tableName)){
+                    System.out.println("Table already exist!");
+                    continue;
+                }
+
+
+
 
                 // ✅ 取出字段定义并解析
                 String fieldsStr = matcherCreateTable.group(2);
                 ArrayList<Field> fieldList = commandParser.parseCreateTable(fieldsStr);
 
 
-                if (fieldList == null) {
+                Set<String> existingColumnNames = new HashSet<>();
+                for(Field fieldList1 : fieldList) {
+                    String columnName = fieldList1.getName();
+                    if(existingColumnNames.contains(columnName)) {
+                        System.out.println("column exist!");
+                        continue;
+                    }else{
+                        boolean validtype;
+                        validtype=TypeFilter.typeExist(fieldList);
+                        if(!validtype){
+                            System.out.println("type invalid!");
+                            continue;
+                        }else{
+                            if (fieldList == null) {
 
 
-                } else {
-                    System.out.println("创建表: " + tableName);
-                    for (Field f : fieldList) {
-                        System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
+
+                            } else {
+                                System.out.println("创建表: " + tableName);
+                                for (Field f : fieldList) {
+                                    System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
+                                }
+                                TableManager.CreateTable(tableName, fieldList);
+                            }
+                            continue;
+
+                        }
                     }
-                    TableManager.CreateTable(tableName, fieldList);
                 }
-                continue;
+
+
+
 
             } else if (matcherDropTable.find()) {
                 System.out.println("drop");
                 // matched = true;
                 String tableName = matcherDropTable.group(1);  //
+                if(!TypeFilter.tableExist(tableName)){
+                    System.out.println("Table 不存在!");
+                    continue;
+                }
+
                 System.out.println("删除表: " + tableName);     //
                 TableManager.DropTable(tableName, 2);
                 continue;
@@ -226,8 +273,8 @@ public class Operating {
                 String conditionstr = matcherDelete.group(2);
                 ArrayList<Condition> conditions;
 
-                Path fpath=Table.From_data(tableName);
-                ConditionParser parser=new ConditionParser(fpath);
+                Table table=TableCache.getTable(tableName);
+                ConditionParser parser=new ConditionParser(table);
                 parser.tokenizeWhere(matcherSelectTable.group(3));
 
 
@@ -292,64 +339,82 @@ public class Operating {
     }
 
 
-    private void select(Matcher matcherSelect) {
+    private boolean select(Matcher matcherSelect) {
         String tableName = matcherSelect.group(2);
-        Path path=Table.From_data(tableName);
-        ArrayList<String> columns = new ArrayList<>();
-        ArrayList<Condition> conditions = new ArrayList<>();
-
-        JsonArray data;
-
-
-//
-        String columnsStr = matcherSelect.group(1);
-        if (columnsStr.equals("*")) {
-            Schema schema=Schema.loadSchema(DatabaseManager.getCurrentDatabase(),tableName);
-            columns = new ArrayList<>();
-            for (Field field : schema.getFields()) {
-                columns.add(field.getName());
-            }
-
-        } else {
-            columns = commandParser.parseSelectColumn(columnsStr);
-
-        }
-        if(!(matcherSelect.group(3)==null)){
-            System.out.println("with conditions");
-            String conditionStr = matcherSelect.group(3).toLowerCase().trim();
-            conditionStr=commandParser.parseBetweenAnd(conditionStr);
-            ConditionNode logicTree;
-            ConditionParser parser=new ConditionParser(Table.From_data(tableName));
-            List<String> tokens = parser.tokenizeWhere(conditionStr);
-            logicTree = parser.parseConditionTree(tokens);
-            data=logicTree.evaluate();
-            System.out.println("条件表达式树结构为：");
-            System.out.println(logicTree);
-
+        if(!TypeFilter.tableExist(tableName)){
+            System.out.println(tableName+" not exist!");
 
         }else{
+            Table table=TableCache.getTable(tableName);
+            ArrayList<String> columns = new ArrayList<>();
+            ArrayList<Condition> conditions = new ArrayList<>();
 
-            data=Table.readData(path);
-
-        }
+            ArrayList<Tuple> data;
 
 
 //
-        // System.out.println("conditions: " + conditions);
+            String columnsStr = matcherSelect.group(1);
+            if (columnsStr.equals("*")) {
+                Schema schema=table.getSchema();
+                columns = new ArrayList<>();
+
+                for (Field field : schema.getFields()) {
+                    columns.add(field.getName());
+                }
+
+            } else {
+                columns = commandParser.parseSelectColumn(columnsStr);
+                for(String column:columns){
+                    if(!TypeFilter.columnExist(table,column)){
+                        System.out.println("column not exist!");
+                        return false;
+
+                    }
+                }
 
 
-        System.out.println(columns);
-        Render.DrawSelectedTable(data,columns);
-        //Table.SelectFromTable(tableName,columns,conditions);
+            }
+            if(!(matcherSelect.group(3)==null)){
+                System.out.println("with conditions");
+                String conditionStr = matcherSelect.group(3).toLowerCase().trim();
+                conditionStr=commandParser.parseBetweenAnd(conditionStr);
+                ConditionNode logicTree;
+                ConditionParser parser=new ConditionParser(table);
+                List<String> tokens = parser.tokenizeWhere(conditionStr);
+                logicTree = parser.parseConditionTree(tokens);
+                data=logicTree.evaluate();
+                System.out.println("条件表达式树结构为：");
+                System.out.println(logicTree);
 
-        //Table.From(tableName);
-        //Table.DrawSelectedTable();
+
+            }else{
+
+                data=table.selectAll();
+
+            }
+
+
+//
+            // System.out.println("conditions: " + conditions);
+
+
+            System.out.println(columns);
+            Render.DrawSelectedTable(data,columns);
+            //Table.SelectFromTable(tableName,columns,conditions);
+
+            //Table.From(tableName);
+            //Table.DrawSelectedTable();
+
+
+        }
+        return true;
 
 
     }
 
 
     private void alter(Matcher matcherAlter){
+
 
         //System.out.println("altering1");
         String tableName;
@@ -358,40 +423,49 @@ public class Operating {
         String operation;
         tableName = matcherAlter.group(1);
         System.out.println(tableName);
+        if(!TypeFilter.tableExist(tableName)){
+            System.out.println(tableName+" not exist!");
 
-        column = matcherAlter.group(3);//name
-        System.out.println(column);
+        }else{
+            column = matcherAlter.group(3);//name
+            System.out.println(column);
 
-        operation = matcherAlter.group(2);
-        System.out.println(operation);// "add"
+            operation = matcherAlter.group(2);
+            System.out.println(operation);// "add"
 
-
-
-        if(operation.equals("add")||operation.equals("ADD")){
-            //System.out.println("adding");
-            details=matcherAlter.group(4);
-            //System.out.println("detail");
-            Field field=new Field(column,details);
-
-            Table.addColumn(tableName,field);
-        }else if(operation.equals("drop")||operation.equals("DROP")){
-            Table.deleteColumn(tableName,column);
-
-        }else if(operation.equals("modify")||operation.equals("MODIFY")){
-            details=matcherAlter.group(4);
-            Field field=new Field(column,details);
+            Table table=TableCache.getTable(tableName);
 
 
-        }
-        // "age int
+            if(operation.equals("add")||operation.equals("ADD")){
+                //System.out.println("adding");
+                details=matcherAlter.group(4);
+                //System.out.println("detail");
+                Field field=new Field(column,details);
+
+                TableManager.addColumn(tableName,field);
+
+            }else if(operation.equals("drop")||operation.equals("DROP")){
+                TableManager.deleteColumn(tableName,column);
+
+            }else if(operation.equals("modify")||operation.equals("MODIFY")){
+                details=matcherAlter.group(4);
+                Field field=new Field(column,details);
+
+
+            }
+            // "age int
 
 //        switch (operation){
 //            case "add":
 //                ArrayList<String ,String>fields = commandParser.parseCreateTable(fieldString);
 //
 //        }
-        ArrayList<Field> fields = new ArrayList<>();
-        //fields = commandParser.parseCreateTable(fieldString);
+            ArrayList<Field> fields = new ArrayList<>();
+            //fields = commandParser.parseCreateTable(fieldString);
+
+        }
+
+
 
     }
 
@@ -400,75 +474,86 @@ public class Operating {
         String tableName=mathcerUpdate.group(1);
         String statement=mathcerUpdate.group(2);
         String conditionStr=mathcerUpdate.group(4);
-        JsonArray data;
+        ArrayList<Tuple> data;
         System.out.println(":"+tableName+":"+statement+":"+conditionStr);
+        if(!TypeFilter.tableExist(tableName)){
+            System.out.println(tableName+" not exist!");
 
-        conditionStr=commandParser.parseBetweenAnd(conditionStr);
-        ConditionNode logicTree;
-        ConditionParser parser=new ConditionParser(Table.From_data(tableName));
-        List<String> tokens = parser.tokenizeWhere(conditionStr);
-        logicTree = parser.parseConditionTree(tokens);
-        System.out.println(logicTree);
-        //data=logicTree.evaluate();
+        }else{
+            conditionStr=commandParser.parseBetweenAnd(conditionStr);
+            ConditionNode logicTree;
+            Table table=TableCache.getTable(tableName);
+            ConditionParser parser=new ConditionParser(table);
+            List<String> tokens = parser.tokenizeWhere(conditionStr);
+            logicTree = parser.parseConditionTree(tokens);
+            System.out.println(logicTree);
+            //data=logicTree.evaluate();
 
-        HashMap<String,String> statements=commandParser.parseUpdateSet(statement);
-        Table.Set(tableName,statements,logicTree);
+            HashMap<String,String> statements=commandParser.parseUpdateSet(statement);
+            table.update(tableName,statements,logicTree);
+
+        }
+
+
 
 
     }
     private void insert(Matcher matcherInsert) {
-        String tableName = matcherInsert.group(1);
-        ArrayList<String> columns = new ArrayList<>();
-        ArrayList<Object> values = new ArrayList<>();
+        String tableName   = matcherInsert.group(1);
+        List<String> columns   = commandParser.parseInsertColumn(matcherInsert.group(2));
+        List<Object> rawValues = commandParser.parseInsertValue(matcherInsert.group(3));
+
+        if(!TypeFilter.tableExist(tableName)){
+            System.out.println(tableName+" not exist!");
+
+        }else{
+            // --- load schema ---
+            Table table=TableCache.getTable(tableName);
+            Schema schema  = table.getSchema();
+
+            // 1. 校验并转换
+            List<Value> castedValues = TypeFilter.validateAndConvertValues(columns, rawValues, schema);
+
+            Tuple keyTuple = buildTuple(columns, castedValues, schema);
+            // 2. 真正调用插入
 
 
-        String columnsStr = matcherInsert.group(2);
-        String valuesStr = matcherInsert.group(3);
+            table.insert(keyTuple);
 
-        columns = commandParser.parseInsertColumn(columnsStr);
-        values = commandParser.parseInsertValue(valuesStr);
+        }
 
-
-        System.out.println("Table: " + tableName);
-        System.out.println("Columns: " + columns);
-        System.out.println("Values: " + values);
-
-        Path tablepath=Table.From_data(tableName);
-        Table.Insert(tablepath, columns, values);
-
-//                Map dictMap = table.getFieldMap();
-//                Map<String, String> data = new HashMap<>();
-//
-//                String[] fieldValues = matcherInsert.group(5).trim().split(",");
-//                //如果插入指定的字段
-//                if (null != matcherInsert.group(2)) {
-//                        String[] fieldNames = matcherInsert.group(3).trim().split(",");
-//                        //如果insert的名值数量不相等，错误
-//                        if (fieldNames.length != fieldValues.length) {
-//                                return;
-//                        }
-//                        for (int i = 0; i < fieldNames.length; i++) {
-//                                String fieldName = fieldNames[i].trim();
-//                                String fieldValue = fieldValues[i].trim();
-//                                //如果在数据字典中未发现这个字段，返回错误
-//                                if (!dictMap.containsKey(fieldName)) {
-//                                        return;
-//                                }
-//                                data.put(fieldName, fieldValue);
-//                        }
-//                } else {//否则插入全部字段
-//                        Set<String> fieldNames = dictMap.keySet();
-//                        int i = 0;
-//                        for (String fieldName : fieldNames) {
-//                                String fieldValue = fieldValues[i].trim();
-//
-//                                data.put(fieldName, fieldValue);
-//
-//                                i++;
-//                        }
-//                }
-//                table.insert(data);
     }
+    private Tuple buildTuple(
+            List<String> columns,
+            List<Value>  values,
+            Schema       schema) {
+
+        // 1. 准备列名→下标的映射
+        List<Field> fields = schema.getFields();
+        Map<String,Integer> colIdx = new HashMap<>();
+        for (int i = 0; i < fields.size(); i++) {
+            colIdx.put(fields.get(i).getName().toLowerCase(), i);
+        }
+
+        // 2. 创建一个和全表列数一样大的 Value 数组，默认填 null（或你定义的 NullValue）
+        Value[] arr = new Value[fields.size()];
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = new NullValue();  // 假设你已有一个 NullValue 实现
+        }
+
+        // 3. 把用户指定列的位置，用实际转换后的值覆盖进去
+        for (int i = 0; i < columns.size(); i++) {
+            String col = columns.get(i).toLowerCase();
+            int idx    = colIdx.get(col);    // 一定存在，否则前面 validate 就会报错
+            arr[idx]   = values.get(i);
+        }
+
+        // 4. 用这个数组构造一个 Tuple 返回
+        return new Tuple(arr);
+    }
+
+
+
 }
 
 

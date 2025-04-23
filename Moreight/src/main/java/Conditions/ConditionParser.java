@@ -1,17 +1,19 @@
 package Conditions;
+import Table.Table;
+
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.nio.file.Path;
 
 public class ConditionParser {
-    Path filepath;
-    public void setFilepath(Path filepath){
-        this.filepath=filepath;
+    Table table;
+    public void setFilepath(Table table){
+        this.table=table;
     }
 
-    public ConditionParser(Path filepath){
-        this.filepath=filepath;
+    public ConditionParser(Table table){
+        this.table=table;
     }
 
 

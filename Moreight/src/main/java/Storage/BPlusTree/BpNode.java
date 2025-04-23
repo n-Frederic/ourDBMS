@@ -39,12 +39,12 @@ public class BpNode {
     /**
      * 节点的关键字列表
      */
-    List<Tuple> entries;
+    ArrayList<Tuple> entries;
 
     /**
      * 节点的指针列表
      */
-    List<BpNode> children;
+    ArrayList<BpNode> children;
 
     /**
      * 节点指针的最大值
@@ -94,10 +94,10 @@ public class BpNode {
             return null;
         } else {
             // 小于首节点
-            if (key.compare(entries.get(0)) < 0) {
-                return children.get(0).get(key);
-            } else if (key.compare(entries.get(entries.size() - 1)) >= 0) {
-                return children.get(children.size() - 1).get(key);
+            if (key.compare(entries.getFirst()) < 0) {
+                return children.getFirst().get(key);
+            } else if (key.compare(entries.getLast()) >= 0) {
+                return children.getLast().get(key);
             } else {
                 // TODO 后续改为二分查找
                 for (int i = 0; i < (entries.size() - 1); i++) {
@@ -110,13 +110,15 @@ public class BpNode {
         return null;
     }
 
-    public Tuple get(Condition condition, int index) {
+    public ArrayList<Tuple> get(Condition condition, int index) {
+        ArrayList<Tuple> tuples = new ArrayList<>();
         if (isLeaf) {
             for (Tuple tuple : entries) {
-                if (tuple.compare(condition,index)) {
-                    return tuple;
+                if (tuple.check(condition,index)) {
+                    tuples.add(tuple);
                 }
             }
+            return tuples;
         }
         return null;
     }

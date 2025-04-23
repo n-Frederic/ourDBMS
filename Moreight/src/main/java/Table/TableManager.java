@@ -1,11 +1,14 @@
 package Table;
 
 import Database.DatabaseManager;
-import com.google.gson.Gson;
+import Storage.BPlusTree.BpNode;
+import Storage.BPlusTree.BpTree;
+import Storage.BPlusTree.Tuple;
+import Storage.BPlusTree.Value.*;
+import Util.Func.Render;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
-import java.io.FileWriter;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.io.IOException;
@@ -16,53 +19,24 @@ import java.util.List;
  * 它支持表的创建和删除功能，表的结构定义和数据分别存储在JSON文件中。
  */
 public class TableManager {
-
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
     /**
      * 创建新表。
-     * @param table 表名。
      * @param args 包含表字段定义的Field对象列表。
      */
     // (1) type (2) PRIMARY KEY (3) UNIQUE (4) NOT NULL (5) DEFAULT
-    public static void CreateTable(String table, ArrayList<Field> args) {
-        try {
-            final Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
-            final Path dataPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-            if (!Files.exists(schemaPath)) {
-                JsonObject schemaJson = new JsonObject();
-                JsonArray fieldsArray = new JsonArray();
-                for (Field field : args) {
-                    JsonObject fieldJson = new JsonObject();
-                    fieldJson.addProperty("fieldName", field.getName());
-                    JsonArray constraints = getConstraints(field);
-                    fieldJson.add("constraint", constraints);
-                    fieldsArray.add(fieldJson);
-                }
-
-                schemaJson.addProperty("table",table);
-                schemaJson.add("fields",fieldsArray);
-
-                try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
-                    Gson gson = new Gson();
-//                    System.out.println(schemaJson);
-                    gson.toJson(schemaJson, writer);
-                    writer.flush();
-                }
-
-                if (!Files.exists(dataPath)) {
-                    JsonArray emptyData = new JsonArray();
-                    try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-                        Gson gson = new Gson();
-                        gson.toJson(emptyData, writer);
-                        writer.flush();
-                    }
-                }
-
-            } else System.out.println("The table has existed.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static void CreateTable(String tableName,ArrayList<Field> args) {
+        Schema schema = new Schema(args);
+        Table table = new Table(schema);  // 构造空表对象
+    }
+    /**
+     * 删除表。
+     * @param tableName 表名。
+     * @param userLevel 用户权限等级（1为游客，其他为管理员）。
+     */
+    public static void DropTable(String tableName, int userLevel) {
+        // TODO:根据表名和权限，把文件直接删喽
     }
 
     /**
@@ -90,36 +64,6 @@ public class TableManager {
         return constraints;
     }
 
-    /**
-     * 删除表。
-     * @param table 表名。
-     * @param userLevel 用户权限等级（1为游客，其他为管理员）。
-     */
-    public static void DropTable(String table, int userLevel) {
-        if (userLevel == 1) {
-            return;
-        }
-        Path filePath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_data.json");
-        Path schemaPath = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase(), table + "_schema.json");
-        try {
-            // 删除文件
-            Files.delete(schemaPath);
-            System.out.println("deleted successfully : " + schemaPath);
-        } catch (NoSuchFileException e) {
-            System.err.println("not exist in: " + schemaPath);
-        } catch (IOException e) {
-            System.err.println("deleted unsuccessfully!" + e.getMessage());
-        }
-
-        try {
-            Files.delete(filePath);
-            System.out.println("deleted successfully : " + filePath);
-        } catch (NoSuchFileException e) {
-            System.err.println("not exist in: " + filePath);
-        } catch (IOException e) {
-            System.err.println("deleted unsuccessfully!" + e.getMessage());
-        }
-    }
     public static List<String> showTables() {
         List<String> tables = new ArrayList<>();
         Path dbDir = Paths.get(DIRECTORY, DatabaseManager.getCurrentDatabase());
@@ -162,6 +106,74 @@ public class TableManager {
         return tables;
     }
 
+    public void addColumn(Field newField,Table table){
+        if(table.getSchema().getIndex(newField)!=-1){
+            throw new IllegalArgumentException("列已存在：" + newField.getName());
+        }
 
+        table.getSchema().addColumn(newField);
 
+        // 更新树里的，新列默认都是nullValue
+        BpNode current = table.getTree().getHead();
+        while (current != null) {
+            for (Tuple tuple : current.getEntries()) {
+                tuple.appendValue(new NullValue());
+            }
+            current = current.getNext();
+        }
+    }
+
+    public void dropColumn(String fieldName,Table table){
+        Schema schema = table.getSchema();
+        BpTree tree = table.getTree();
+
+        int index = schema.getIndex(fieldName);
+        if (index == -1) throw new IllegalArgumentException("列名不存在：" + fieldName);
+
+        schema.dropColumn(fieldName);
+
+        // 遍历改Tuple
+        BpNode current  = tree.getHead();
+        while(current != null){
+            for(Tuple tuple:current.getEntries()){
+                tuple.removeValue(index);
+            }
+            current = current.getNext();
+        }
+    }
+
+    public void renameColumn(String fieldName, String newFieldName, Table table) {
+        Schema schema = table.getSchema();
+        int index = schema.getIndex(fieldName);
+        if (index == -1) {
+            throw new IllegalArgumentException("列名不存在: " + fieldName);
+        }
+        schema.getField(fieldName).setName(newFieldName);
+    }
+
+    public void desc(Table table, ArrayList<String> fieldNames) {
+        // 获取表的Schema
+        Schema schema = table.getSchema();
+        ArrayList<String> allfieldNames = schema.getField(fieldNames).getName();
+
+        // 如果没有传入 columnNames，则显示所有列
+        if (fieldNames == null || fieldNames.isEmpty()) {
+            fieldNames = allfieldNames;
+        }
+
+        // 准备存储选中的元组数据（这里只是展示表结构，不处理元组数据）
+        ArrayList<Tuple> dummyTuples = new ArrayList<>();
+
+        // 为了描述表的结构，假设每个元组的值都设置为一个空值（比如 NullValue）
+        for (String columnName : fieldNames) {
+            // 你可以为每个列生成一个空的 Tuple（这里我们只需要字段名和类型，不用实际数据）
+            Field field = schema.getField(columnName);
+            Value emptyValue = new NullValue();  // 使用 NullValue 作为占位符
+            Tuple tuple = new Tuple(new Value[]{emptyValue});
+            dummyTuples.add(tuple);
+        }
+
+        // 使用Render类的DrawSelectedTable方法来画表结构
+        Render.DrawSelectedTable(dummyTuples, fieldNames);
+    }
 }

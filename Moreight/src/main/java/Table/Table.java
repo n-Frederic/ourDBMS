@@ -1,18 +1,9 @@
 package Table;
 
 import Conditions.Condition;
-import Conditions.ConditionNode;
-import Database.DatabaseManager;
 import Storage.BPlusTree.*;
 import Storage.BPlusTree.Value.*;
-import com.google.gson.*;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -20,13 +11,12 @@ import java.util.*;
  * 它支持插入数据、添加列、更新数据、删除数据等功能，表的结构定义和数据分别存储在JSON文件中。
  */
 public class Table {
-    Table table;
-    Schema schema ;
-    BpTree tree;
+    private String tableName;
+    private Schema schema ;
+    private BpTree tree;
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
-    private Table(Schema s) {
-        this.table = new Table(s);
+    public Table(Schema s) {
         this.schema = s;
         this.tree = new BpTree();
     }
@@ -37,13 +27,211 @@ public class Table {
      * @param key 行的信息
      */
 
-    public void Insert(Tuple key) {
+    public void insert(Tuple key) {
         tree.insert(key);
     }
 
     public void delete(Tuple tuple){
         tree.remove(tuple);
     }
+
+    public ArrayList<Tuple> select(ArrayList<Tuple> tuples, ArrayList<String> fieldNames){
+        ArrayList<Tuple> result = new ArrayList<>();
+
+        ArrayList<Integer> indexes = new ArrayList<>();
+        for(String name : fieldNames){
+            indexes.add(schema.getIndex(name));
+        }
+
+        for(Tuple t : tuples){
+            Value[] selected = new Value[fieldNames.size()];
+            for (int i = 0; i < indexes.size(); i++) {
+                selected[i] = t.getValue(indexes.get(i));
+            }
+            result.add(new Tuple(selected));
+        }
+
+        return result;
+    }
+
+    public ArrayList<Tuple> selectAll() {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        BpNode current = tree.getHead();
+        while(current != null) {
+            tuples.addAll(current.getEntries());
+            current = current.getNext();
+        }
+        return tuples;
+    }
+
+    public ArrayList<Tuple> where(Condition condition) {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        Field field = schema.getField(condition.getColumn());
+        int index = schema.getIndex(field);
+
+        BpNode current = tree.getHead();
+        while(current != null) {
+            ArrayList<Tuple> temp = current.get(condition,index);
+            if(!temp.isEmpty()) {
+                tuples.addAll(temp);
+            }
+            current = current.getNext();
+        }
+
+        return tuples;
+    }
+
+    public ArrayList<Tuple> where (ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        if (mode.equals("and")) {
+            for (Tuple t : t1) {
+                if (t2.contains(t)) {
+                    tuples.add(t);
+                }
+            }
+            return tuples;
+        } else if (mode.equals("or")) {
+            for (Tuple t : t1) {
+                tuples.add(t);
+            }
+            for (Tuple t: t2) {
+                if (!t1.contains(t)) {
+                    tuples.add(t);
+                }
+            }
+            return tuples;
+        } else return tuples;
+    }
+
+
+    // TODO: 等待黄爱雷提供单个tuple的完整筛查
+//    public void update(ArrayList<Tuple> tuples, HashMap<String,Value> map){
+//        BpNode head = tree.getHead();
+//        for(Tuple tuple : tuples) {
+//            Tuple t = root.get(tuple);
+//            for (Map.Entry<String, Value> entry : map.entrySet()) {
+//                Field field = schema.getField(entry.getKey());
+//                int index = schema.getIndex(field);
+//                t.set(index,entry.getValue());
+//            }
+//        }
+//    }
+
+    // TODO: 等待一个能直接操作的
+//    public void delete()
+
+    public void truncate() {
+        tree.truncate();
+    }
+
+
+    public Schema getSchema(){
+        return schema;
+    }
+    public BpTree getTree(){
+        return tree;
+    }
+
+
+
+    /*    public static void addColumn(String tableName, Field newField) {
+        Path schemaPath = From_schema(tableName);
+        Path dataPath = From_data(tableName);
+
+        JsonObject schema;
+        try (FileReader reader = new FileReader(schemaPath.toFile())) {
+            schema = JsonParser.parseReader(reader).getAsJsonObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        JsonArray fields = schema.getAsJsonArray("fields");
+
+        // 添加新字段结构
+        JsonObject newFieldJson = new JsonObject();
+        newFieldJson.addProperty("fieldName", newField.getName());
+
+        JsonArray constraintsArray = new JsonArray();
+
+        JsonObject typeObj = new JsonObject();
+        typeObj.addProperty("Type", newField.getType());
+        constraintsArray.add(typeObj);
+        System.out.println(newFieldJson);
+        System.out.println(typeObj);
+
+        if (newField.isNotNull()) {
+            JsonObject notNullObj = new JsonObject();
+            notNullObj.addProperty("NOT NULL", true);
+            constraintsArray.add(notNullObj);
+        }
+
+        if (newField.isUnique()) {
+            JsonObject uniqueObj = new JsonObject();
+            uniqueObj.addProperty("UNIQUE", true);
+            constraintsArray.add(uniqueObj);
+        }
+
+        if (newField.isPrimaryKey()) {
+            JsonObject pkObj = new JsonObject();
+            pkObj.addProperty("PRIMARY KEY", true);
+            constraintsArray.add(pkObj);
+        }
+
+        if (newField.getDefault() != null && !newField.getDefault().isEmpty()) {
+            JsonObject defaultObj = new JsonObject();
+            defaultObj.addProperty("Default", newField.getDefault());
+            constraintsArray.add(defaultObj);
+        }
+
+        newFieldJson.add("constraint", constraintsArray);
+        fields.add(newFieldJson);
+
+        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(schema, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 更新所有旧数据记录，添加新字段默认值
+        JsonArray data = readData(dataPath);
+        for (JsonElement e : data) {
+            JsonObject obj = e.getAsJsonObject();
+            if (newField.getDefault() != null && !newField.getDefault().isEmpty()) {
+                obj.addProperty(newField.getName(), newField.getDefault());
+            } else {
+                obj.add(newField.getName(), JsonNull.INSTANCE);
+            }
+        }
+
+        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            gson.toJson(data, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }*/
+
+    // set是针对于where筛选后的JsonArray修改列值
+//    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
+////
+//        JsonArray all = Table.From_data(tableName);
+//
+//// 逻辑过滤，返回的是 all 中的部分元素，但它们和 all 中是同一个 JsonObject 引用
+//        JsonArray data = logicTree.evaluate();
+//
+//// 就地修改
+//        for (JsonElement e : data) {
+//            JsonObject obj = e.getAsJsonObject();
+//            for (Map.Entry<String,String> entry : map.entrySet()) {
+//                obj.addProperty(entry.getKey(), entry.getValue());
+//            }
+//        }
+//
+//// all 已经被改了，后面只要把 all 序列化/写文件就行
+//
+//    }
 
 
 
@@ -112,56 +300,6 @@ public class Table {
 //
 //    }
 
-    public ArrayList<Tuple> where(Condition condition) {
-        ArrayList<Tuple> tuples = new ArrayList<>();
-        Field field = schema.getField(condition.getColumn());
-        int index = schema.getIndex(field);
-
-        BpNode current = tree.getHead();
-        while(current != null) {
-            Tuple tuple = current.get(condition,index);
-            if(tuple!=null) {
-                tuples.add(current.get(condition,index));
-            }
-            current = current.getNext();
-        }
-
-        return tuples;
-    }
-
-    public ArrayList<Tuple> where (ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
-        ArrayList<Tuple> tuples = new ArrayList<>();
-        if (mode.equals("and")) {
-            for (Tuple t : t1) {
-                if (t2.contains(t)) {
-                    tuples.add(t);
-                }
-            }
-            return tuples;
-        } else if (mode.equals("or")) {
-            for (Tuple t : t1) {
-                tuples.add(t);
-            }
-            for (Tuple t: t2) {
-                if (!t1.contains(t)) {
-                    tuples.add(t);
-                }
-            }
-            return tuples;
-        } else return tuples;
-    }
-
-    public void Set(ArrayList<Tuple> tuples,HashMap<String,Value> map){
-        BpNode root = tree.getRoot();
-        for(Tuple tuple : tuples) {
-            Tuple t = root.get(tuple);
-            for (Map.Entry<String, Value> entry : map.entrySet()) {
-                Field field = schema.getField(entry.getKey());
-                int index = schema.getIndex(field);
-                t.set(index,entry.getValue());
-            }
-        }
-    }
 
 //    public static void deleteColumn(String tableName, String columnName) {
 //        // 处理 schema
@@ -313,169 +451,28 @@ public class Table {
 //        return schemaPath;
 //    }
 
-    public static JsonArray readData(Path dataPath) {
-        JsonArray data;
-        try {
-            FileReader reader = new FileReader(dataPath.toFile());
-            data = JsonParser.parseReader(reader).getAsJsonArray();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        return data;
-    }
-
-    public static JsonArray readSchema(Path schemaPath) {
-        JsonArray fields;
-        try {
-            FileReader reader = new FileReader(schemaPath.toFile());
-            fields = JsonParser.parseReader(reader).getAsJsonArray();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        return fields;
-    }
-        //传个al的tup，根据键找到位置，针对每个tp，内层是root调get()
-
-
-    public List<Tuple> getAllTuples() {
-        List<Tuple> allTuples = new ArrayList<>();
-        BpNode current = BpTree.getHead();
-        while (current != null) {
-            allTuples.addAll(current.getEntries());  // entries 是 Tuple 的列表
-            current = current.getNext();
-        }
-        return allTuples;
-    }
-
-    public void addColumn(Field newField){
-        schema.addColumn(newField);
-        for(Tuple tuple : getAllTuples()){
-            Value defaultValue = Value.parse(newField.getTypeClass(),newField.getDefault());
-            tuple.appendValue(defaultValue);
-        }
-    }
-
-    public void dropColumn(String columnName){
-        int index = -1;
-        List<String> columnNames = schema.getColumnNames();
-        for (int i = 0; i < columnNames.size(); i++) {
-            if(columnNames.get(i).equals(columnName)){
-                index = i;
-                break;
-            }
-        }
-        if (index == -1) throw new IllegalArgumentException("列名不存在：" + columnName);
-
-        schema.dropColumn(columnName);
-
-        for (Tuple tuple : getAllTuples()) {
-            tuple.removeValue(index);
-        }
-    }
-
-
-
-    /*    public static void addColumn(String tableName, Field newField) {
-        Path schemaPath = From_schema(tableName);
-        Path dataPath = From_data(tableName);
-
-        JsonObject schema;
-        try (FileReader reader = new FileReader(schemaPath.toFile())) {
-            schema = JsonParser.parseReader(reader).getAsJsonObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        JsonArray fields = schema.getAsJsonArray("fields");
-
-        // 添加新字段结构
-        JsonObject newFieldJson = new JsonObject();
-        newFieldJson.addProperty("fieldName", newField.getName());
-
-        JsonArray constraintsArray = new JsonArray();
-
-        JsonObject typeObj = new JsonObject();
-        typeObj.addProperty("Type", newField.getType());
-        constraintsArray.add(typeObj);
-        System.out.println(newFieldJson);
-        System.out.println(typeObj);
-
-        if (newField.isNotNull()) {
-            JsonObject notNullObj = new JsonObject();
-            notNullObj.addProperty("NOT NULL", true);
-            constraintsArray.add(notNullObj);
-        }
-
-        if (newField.isUnique()) {
-            JsonObject uniqueObj = new JsonObject();
-            uniqueObj.addProperty("UNIQUE", true);
-            constraintsArray.add(uniqueObj);
-        }
-
-        if (newField.isPrimaryKey()) {
-            JsonObject pkObj = new JsonObject();
-            pkObj.addProperty("PRIMARY KEY", true);
-            constraintsArray.add(pkObj);
-        }
-
-        if (newField.getDefault() != null && !newField.getDefault().isEmpty()) {
-            JsonObject defaultObj = new JsonObject();
-            defaultObj.addProperty("Default", newField.getDefault());
-            constraintsArray.add(defaultObj);
-        }
-
-        newFieldJson.add("constraint", constraintsArray);
-        fields.add(newFieldJson);
-
-        try (FileWriter writer = new FileWriter(schemaPath.toFile())) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(schema, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // 更新所有旧数据记录，添加新字段默认值
-        JsonArray data = readData(dataPath);
-        for (JsonElement e : data) {
-            JsonObject obj = e.getAsJsonObject();
-            if (newField.getDefault() != null && !newField.getDefault().isEmpty()) {
-                obj.addProperty(newField.getName(), newField.getDefault());
-            } else {
-                obj.add(newField.getName(), JsonNull.INSTANCE);
-            }
-        }
-
-        try (FileWriter writer = new FileWriter(dataPath.toFile())) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            gson.toJson(data, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }*/
-
-    // set是针对于where筛选后的JsonArray修改列值
-//    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
-////
-//        JsonArray all = Table.From_data(tableName);
-//
-//// 逻辑过滤，返回的是 all 中的部分元素，但它们和 all 中是同一个 JsonObject 引用
-//        JsonArray data = logicTree.evaluate();
-//
-//// 就地修改
-//        for (JsonElement e : data) {
-//            JsonObject obj = e.getAsJsonObject();
-//            for (Map.Entry<String,String> entry : map.entrySet()) {
-//                obj.addProperty(entry.getKey(), entry.getValue());
-//            }
+    //    public static JsonArray readData(Path dataPath) {
+//        JsonArray data;
+//        try {
+//            FileReader reader = new FileReader(dataPath.toFile());
+//            data = JsonParser.parseReader(reader).getAsJsonArray();
+//        } catch (FileNotFoundException e) {
+//            throw new RuntimeException(e);
 //        }
-//
-//// all 已经被改了，后面只要把 all 序列化/写文件就行
-//
+//        return data;
 //    }
 
-
-
+//    public static JsonArray readSchema(Path schemaPath) {
+//        JsonArray fields;
+//        try {
+//            FileReader reader = new FileReader(schemaPath.toFile());
+//            fields = JsonParser.parseReader(reader).getAsJsonArray();
+//        } catch (FileNotFoundException e) {
+//            throw new RuntimeException(e);
+//        }
+//        return fields;
+//    }
+//        //传个al的tup，根据键找到位置，针对每个tp，内层是root调get()
 
 }
 
