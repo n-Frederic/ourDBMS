@@ -13,7 +13,6 @@ public class SchemaManager {
         return instance;
     }
 
-
     public Schema get(String tableName) {
         return schemas.get(tableName);
     }

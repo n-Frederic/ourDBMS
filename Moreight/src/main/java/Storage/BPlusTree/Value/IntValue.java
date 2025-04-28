@@ -48,4 +48,6 @@ public class IntValue extends Value {
     public String toString() {
         return String.valueOf(i);
     }
+
+    public Object getValue() {return i;}
 }

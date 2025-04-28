@@ -66,6 +66,16 @@ public class Operating {
     private boolean login = false;
     private boolean enter_database = false;
 
+    //ui实验
+    String cmd1;
+
+    public Operating(String cmd1){
+        this.cmd1=cmd1;
+    }
+    public Operating(){
+
+    }
+
 
     public void dbms() {
 
@@ -89,6 +99,7 @@ public class Operating {
 
         Scanner sc = new Scanner(System.in);
         String cmd;
+        //尝试把这里的命令行输入变为ui里传来的字符串
         while (!"exit".equals(cmd = sc.nextLine()) && enter_database == false) {
 
             boolean matched = false;  // 标记是否匹配成功
@@ -552,8 +563,70 @@ public class Operating {
         return new Tuple(arr);
     }
 
+    /**
+     * 与ui连接的试用方法
+     * @param command
+     * @return
+     */
+    // 处理用户输入的命令
+    public String processCommand(String command) {
+        boolean matched = false;
+        // 匹配 create table 命令
+        Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(command);
+        if (matcherCreateTable.find()) {
+            return handleCreateTable(matcherCreateTable,matched);
+        }
 
+        // 如果命令不匹配，返回错误信息
+        return "无效命令: " + command;
+    }
 
+    // 处理 create table 命令
+    private String handleCreateTable(Matcher matcher,boolean matched ) {
+//        System.out.println("create");
+//        matched = true;
+//
+//        // ✅ 取出表名
+//        String tableName = matcher.group(1);
+//        if(TypeFilter.tableExist(tableName)){
+//            System.out.println("Table already exist!");
+//            return "Table already exist!";
+//        }
+//        // ✅ 取出字段定义并解析
+//        String fieldsStr = matcher.group(2);
+//        ArrayList<Field> fieldList = commandParser.parseCreateTable(fieldsStr);
+//
+//
+//        Set<String> existingColumnNames = new HashSet<>();
+//        for(Field fieldList1 : fieldList) {
+//            String columnName = fieldList1.getName();
+//            if(existingColumnNames.contains(columnName)) {
+//                System.out.println("column exist!");
+//                return "column exist!";
+//
+//            }else{
+//                boolean validtype;
+//                validtype=TypeFilter.typeExist(fieldList);
+//                if(!validtype){
+//                    System.out.println("type invalid!");
+//                    return "type invalid!";
+//
+//                }else{
+//                    if (fieldList == null) {
+//
+//                    } else {
+//                        System.out.println("创建表: " + tableName);
+//                        for (Field f : fieldList) {
+//                            System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
+//                            return "字段: " + f.getName() + ", 类型: " + f.getType();
+//                        }
+//                        //TableManager.CreateTable(tableName, fieldList);
+//                    }
+//                }
+//            }
+//        }
+        return "   ";
+    }
 }
 
 

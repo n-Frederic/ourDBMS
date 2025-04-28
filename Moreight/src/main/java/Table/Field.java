@@ -4,13 +4,13 @@ import Storage.BPlusTree.Value.*;
 
 public class Field {
     private String name;
-    private String type;
+    private Value type;
     private boolean primaryKey;
     private boolean unique;
     private boolean notNull;
     private String Default;
 
-    public Field(String name, String type) {
+    public Field(String name, Value type) {
         this.name = name;
         this.type = type;
         primaryKey = false;
@@ -28,11 +28,11 @@ public class Field {
         this.name = name;
     }
 
-    public String getType() {
+    public Value getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(Value type) {
         this.type = type;
     }
 
@@ -84,12 +84,14 @@ public class Field {
 
     // 把字符串类型转换成你系统里定义的 Value 子类类型
     public Class<? extends Value> getTypeClass() {
-        switch (type.toUpperCase()) {
-            case "INT":
-                return IntValue.class;
-            case "STRING":
+        switch (type.getType()) {
+            case 1:
                 return StringValue.class;
-            case "BOOLEAN":
+            case 2:
+                return IntValue.class;
+            case 3 :
+                return LongValue.class;
+            case 4:
                 return BooleanValue.class;
             // 如果有其他类型可以补
             default:

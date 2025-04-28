@@ -15,4 +15,6 @@ public class NullValue extends Value{
     public int compare(Value value) {
         return -1;
     }
+
+    public Object getValue() {return null;}
 }

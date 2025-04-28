@@ -107,7 +107,7 @@ public class Render {
      */
     public static void DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
 
-        DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns)
+        DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns);
 
         System.out.println(columns);
 

@@ -48,4 +48,6 @@ public class LongValue extends Value {
     public String toString() {
         return String.valueOf(i);
     }
+
+    public Object getValue() {return i;}
 }

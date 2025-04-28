@@ -1,5 +1,6 @@
 package Storage.Page;
 
+import Storage.BPlusTree.Tuple;
 import Table.Schema;
 
 import java.io.*;
@@ -10,29 +11,29 @@ public class Page {
 
     private int pageId;    // page 的 id
     private Schema schema;
-    private List<Row> rows;
+    private List<Tuple> tuples;
 
     public Page(int pageId, Schema schema) {
         this.pageId = pageId;
         this.schema = schema;
-        this.rows = new ArrayList<>();
+        this.tuples = new ArrayList<>();
     }
 
-    public boolean insert(Row row) throws IOException {
-        if (isFull(row)) return false;
-        rows.add(row);
+    public boolean insert(Tuple tuple) throws IOException {
+        if (isFull(tuple)) return false;
+        tuples.add(tuple);
         return true;
     }
 
-    public List<Row> getRows() {
-        return rows;
+    public List<Tuple> getTuples() {
+        return tuples;
     }
 
     public int getPageId() {
         return pageId;
     }
 
-    public boolean isFull(Row candidate) throws IOException {
+    public boolean isFull(Tuple candidate) throws IOException {
         int used = estimateCurrentSize();
         int added = candidate.toBytes().length;
         return used + added + 100 > PAGE_SIZE; // +100 留点空余防溢出
@@ -40,8 +41,8 @@ public class Page {
 
     private int estimateCurrentSize() throws IOException {
         int total = 8; // pageId + rowCount (2 * 4 byte)
-        for (Row r : rows) {
-            total += r.toBytes().length;
+        for (Tuple t : tuples) {
+            total += t.toBytes().length;
         }
         return total;
     }
@@ -52,11 +53,10 @@ public class Page {
         DataOutputStream dataOut = new DataOutputStream(out);
 
         dataOut.writeInt(pageId);
-        dataOut.writeInt(rows.size());
+        dataOut.writeInt(tuples.size());
 
-        for (Row r : rows) {
-            byte[] rowBytes = r.toBytes();
-            dataOut.writeInt(rowBytes.length);     // 每行前写长度
+        for (Tuple t : tuples) {
+            byte[] rowBytes = t.toBytes();
             dataOut.write(rowBytes);
         }
 
@@ -66,16 +66,21 @@ public class Page {
     // 从 byte[] 反序列化
     public static Page fromBytes(byte[] data, Schema schema) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
-        int pageId = in.readInt();
-        int rowCount = in.readInt();
+        int pageId = in.readShort();
+        int rowCount = in.readShort();
+        int begin = in.readShort();
+        int end = in.readShort();
+
+        ArrayList<Integer> offsets = new ArrayList<>(rowCount);
+        for(int i = 0; i < rowCount; i++) {
+            offsets.set(i, in.readInt());
+        }
 
         Page page = new Page(pageId, schema);
-        for (int i = 0; i < rowCount; i++) {
-            int len = in.readInt();
-            byte[] rowData = new byte[len];
-            in.readFully(rowData);
-            Row row = Row.fromBytes(rowData, schema);
-            page.rows.add(row);
+        for (int i = 0; i < rowCount - 1; i++) {
+            byte[] rowData = Arrays.copyOfRange(data, offsets.get(i), offsets.get(i+1));
+            Tuple tuple = Tuple.fromBytes(rowData, schema);
+            page.tuples.add(tuple);
         }
 
         return page;
@@ -87,8 +92,7 @@ public class Page {
 
     @Override
     public String toString() {
-        return "Page#" + pageId + " rows=" + rows.size();
+        return "Page#" + pageId + " rows=" + tuples.size();
+
     }
-
-
 }
