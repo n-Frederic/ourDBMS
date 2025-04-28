@@ -39,30 +39,26 @@ public class TableManager {
         // TODO:根据表名和权限，把文件直接删喽
     }
 
-    /**
-     * 将Field对象的约束条件转换为JSON数组。
-     * @param field 字段定义对象。
-     * @return 包含约束条件的JSON数组。
-     */
-    private static JsonArray getConstraints(Field field) {
-        JsonObject type = new JsonObject();
-        JsonObject primaryKey = new JsonObject();
-        JsonObject unique = new JsonObject();
-        JsonObject notNull = new JsonObject();
-        JsonObject Default = new JsonObject();
-        type.addProperty("Type", field.getType());
-        primaryKey.addProperty("PRIMARY KEY", field.isPrimaryKey());
-        unique.addProperty("UNIQUE", field.isUnique());
-        notNull.addProperty("NOT NULL", field.isNotNull());
-        Default.addProperty("Default", field.getDefault());
-        JsonArray constraints = new JsonArray();
-        constraints.add(type);
-        constraints.add(primaryKey);
-        constraints.add(unique);
-        constraints.add(notNull);
-        constraints.add(Default);
-        return constraints;
-    }
+
+//    private static JsonArray getConstraints(Field field) {
+//        JsonObject type = new JsonObject();
+//        JsonObject primaryKey = new JsonObject();
+//        JsonObject unique = new JsonObject();
+//        JsonObject notNull = new JsonObject();
+//        JsonObject Default = new JsonObject();
+//        type.addProperty("Type", field.getType());
+//        primaryKey.addProperty("PRIMARY KEY", field.isPrimaryKey());
+//        unique.addProperty("UNIQUE", field.isUnique());
+//        notNull.addProperty("NOT NULL", field.isNotNull());
+//        Default.addProperty("Default", field.getDefault());
+//        JsonArray constraints = new JsonArray();
+//        constraints.add(type);
+//        constraints.add(primaryKey);
+//        constraints.add(unique);
+//        constraints.add(notNull);
+//        constraints.add(Default);
+//        return constraints;
+//    }
 
     public static List<String> showTables() {
         List<String> tables = new ArrayList<>();
@@ -151,29 +147,24 @@ public class TableManager {
         schema.getField(fieldName).setName(newFieldName);
     }
 
-    public void desc(Table table, ArrayList<String> fieldNames) {
-        // 获取表的Schema
+    public void desc(Table table) {
         Schema schema = table.getSchema();
-        ArrayList<String> allfieldNames = schema.getField(fieldNames).getName();
+        ArrayList<Field> fields = schema.getFields();
+        ArrayList<String> columnNames = new ArrayList<>();
 
-        // 如果没有传入 columnNames，则显示所有列
-        if (fieldNames == null || fieldNames.isEmpty()) {
-            fieldNames = allfieldNames;
+        for (Field field : fields) {
+            columnNames.add(field.getName());
         }
 
-        // 准备存储选中的元组数据（这里只是展示表结构，不处理元组数据）
-        ArrayList<Tuple> dummyTuples = new ArrayList<>();
-
-        // 为了描述表的结构，假设每个元组的值都设置为一个空值（比如 NullValue）
-        for (String columnName : fieldNames) {
-            // 你可以为每个列生成一个空的 Tuple（这里我们只需要字段名和类型，不用实际数据）
-            Field field = schema.getField(columnName);
-            Value emptyValue = new NullValue();  // 使用 NullValue 作为占位符
-            Tuple tuple = new Tuple(new Value[]{emptyValue});
-            dummyTuples.add(tuple);
+        // 从B+树里取所有元组
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        BpNode node = table.getTree().getHead();
+        while (node != null) {
+            tuples.addAll(node.getEntries());
+            node = node.getNext();
         }
 
-        // 使用Render类的DrawSelectedTable方法来画表结构
-        Render.DrawSelectedTable(dummyTuples, fieldNames);
+        Render.DrawSelectedTable(tuples, columnNames);
     }
+
 }

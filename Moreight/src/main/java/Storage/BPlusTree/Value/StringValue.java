@@ -51,4 +51,6 @@ public class StringValue extends Value {
         return s;
     }
 
+    @Override
+    public Object getValue() {return s;}
 }

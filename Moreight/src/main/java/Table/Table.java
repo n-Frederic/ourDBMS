@@ -35,6 +35,7 @@ public class Table {
         tree.remove(tuple);
     }
 
+    // 最终返回只有fieldName的tuple的数组
     public ArrayList<Tuple> select(ArrayList<Tuple> tuples, ArrayList<String> fieldNames){
         ArrayList<Tuple> result = new ArrayList<>();
 
@@ -123,7 +124,6 @@ public class Table {
     public void truncate() {
         tree.truncate();
     }
-
 
     public Schema getSchema(){
         return schema;

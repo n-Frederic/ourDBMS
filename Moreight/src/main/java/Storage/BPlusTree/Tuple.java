@@ -1,6 +1,12 @@
 package Storage.BPlusTree;
 import Storage.BPlusTree.Value.*;
 import Conditions.Condition;
+import Storage.Page.Row;
+import Table.Field;
+import Table.Schema;
+
+import java.io.*;
+import java.util.List;
 
 /**
  * 元组
@@ -105,5 +111,49 @@ public class Tuple {
             }
         }
         this.values = newValues;
+    }
+
+    public byte[] toBytes() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(out);
+
+        for (Value value : values) {
+            writeTypedValue(dataOut, value);
+        }
+        
+        return out.toByteArray();
+    }
+
+    public static Tuple fromBytes(byte[] data, Schema schema) throws IOException {
+        DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
+        List<Field> fields = schema.getFields();
+        Value[] values = new Value[fields.size()];
+
+        for (int i = 0; i < fields.size(); i++) {
+            int len = in.readInt();
+            byte[] valueDate = new byte[len];
+            in.readFully(valueDate);
+            // values[i]都转化成对应类型的方法？
+        }
+        return new Tuple(values);
+    }
+
+    private void writeTypedValue(DataOutputStream out, Value value) throws IOException {
+        switch (value.getType()) {
+            case 1:
+                out.writeUTF((String) value.getValue());
+                break;
+            case 2:
+                out.writeInt((Integer) value.getValue());
+                break;
+            case 3:
+                out.writeLong((Long) value.getValue());
+                break;
+            case 4:
+                out.writeBoolean((Boolean) value.getValue());
+                break;
+            default:
+                throw new IOException("未知类型");
+        }
     }
 }

@@ -47,4 +47,6 @@ public class BooleanValue extends Value {
             return "false";
         }
     }
+
+    public Object getValue(){return b;}
 }
