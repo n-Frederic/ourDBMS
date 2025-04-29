@@ -1,18 +1,13 @@
 package Storage.BPlusTree;
 import Storage.BPlusTree.Value.*;
 import Conditions.Condition;
-import Storage.Page.Row;
 import Table.Field;
 import Table.Schema;
+import Conditions.*;
 
 import java.io.*;
 import java.util.List;
 
-/**
- * 元组
- *
- * @author zhangtianlong
- */
 public class Tuple {
 
     protected Value[] values;
@@ -59,9 +54,58 @@ public class Tuple {
         return (res == 0) ? 0 : (res > 1 ? 1 : -1);
     }
 
+    /**
+     * @param index 修改值下标
+     * @param value 修改值
+     */
     public void set(int index, Value value) {
         values[index] = value;
     }
+
+
+    // Method to check if the Tuple satisfies the given condition
+    public boolean checkCondition(ConditionNode conditionNode,Schema schema) {//对于每条tuple，传入条件筛选树和schema
+        if (conditionNode instanceof Condition) {
+            //叶节点
+            Condition condition = (Condition) conditionNode;
+            int columnIndex = getColumnIndex(condition.getColumn(),schema);//获取condition所约束的字段位置,需要对照schema
+            return check(condition, columnIndex);//判断是否符合条件
+        } else if (conditionNode instanceof ConditionOperator) {
+            // 运算符节点，递归
+            ConditionOperator operatorNode = (ConditionOperator) conditionNode;
+            boolean leftResult = getLeftCheckResult(operatorNode.getLeft(),schema);
+            boolean rightResult = getRightCheckResult(operatorNode.getRight(),schema);
+
+            if (operatorNode.getOperator().equals("AND")) {
+                return leftResult && rightResult;
+            } else if (operatorNode.getOperator().equals("OR")) {
+                return leftResult || rightResult;
+            }
+        }
+        return false;
+    }
+
+    private boolean getLeftCheckResult(ConditionNode leftNode,Schema schema) {
+        return checkCondition(leftNode,schema);
+    }
+
+    private boolean getRightCheckResult(ConditionNode rightNode,Schema schema) {
+        return checkCondition(rightNode,schema);
+    }
+
+    // Helper method to get the index of the column (this assumes columns are ordered in the table schema)
+    private int getColumnIndex(String columnName,Schema schema) {
+        // Assuming the table's schema is available through a method `getSchema()` on the table object
+        // You would fetch the index of the column based on its name
+
+        return schema.getIndex(columnName);
+    }
+
+    /**
+     * @param condition 比较条件
+     * @param index 比较的下表
+     * @return 是否符合条件
+     */
 
     public boolean check(Condition condition, int index) {
         switch (condition.getOperator()) {
@@ -93,7 +137,11 @@ public class Tuple {
         return false;
     }
 
-    // 添加一个值到末尾
+    /**
+     * 添加值到末尾
+     * @param value 添加的value
+     */
+
     public void appendValue(Value value) {
         Value[] newValues = new Value[values.length + 1];
         System.arraycopy(values, 0, newValues, 0, values.length);
@@ -101,7 +149,10 @@ public class Tuple {
         this.values = newValues;
     }
 
-    // 根据列号移除一个值（比如删除一列的时候用）
+    /**
+     * 删除某个列的元素
+     * @param index 要删除的列的下表
+     */
     public void removeValue(int index) {
         if (index < 0 || index >= values.length) return;
         Value[] newValues = new Value[values.length - 1];
@@ -113,6 +164,11 @@ public class Tuple {
         this.values = newValues;
     }
 
+    /**
+     * 将tuple序列化，考量每个value的种类
+     * @return tuple的序列化后的字节数组
+     * @throws IOException
+     */
     public byte[] toBytes() throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream dataOut = new DataOutputStream(out);
@@ -120,10 +176,17 @@ public class Tuple {
         for (Value value : values) {
             writeTypedValue(dataOut, value);
         }
-        
+
         return out.toByteArray();
     }
 
+    /**
+     * 将字节数组读下来反序列化为tuple对象
+     * @param data 字节数组
+     * @param schema tuple对应的模式，以进行类型转化
+     * @return 反序列化得到的tuple对象
+     * @throws IOException
+     */
     public static Tuple fromBytes(byte[] data, Schema schema) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
         List<Field> fields = schema.getFields();
@@ -138,6 +201,12 @@ public class Tuple {
         return new Tuple(values);
     }
 
+    /**
+     * 将不同类value写入DataOutputStream
+     * @param out DataOutputStream对象
+     * @param value 要写入的value
+     * @throws IOException
+     */
     private void writeTypedValue(DataOutputStream out, Value value) throws IOException {
         switch (value.getType()) {
             case 1:
