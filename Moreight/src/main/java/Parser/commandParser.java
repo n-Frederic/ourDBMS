@@ -7,10 +7,12 @@ import java.util.regex.Pattern;
 
 import Conditions.Condition;
 import Table.Field;
+import Storage.BPlusTree.Value.*;
 
 public class commandParser {
 
-    static Set<String> validTypes = Set.of("int", "string", "float", "boolean");
+
+    static Set<String> validTypes = Set.of("int", "string", "long", "boolean");
 
     public static ArrayList<Field> parseCreateTable(String fieldsStr) {//！！！！
         String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
@@ -30,7 +32,10 @@ public class commandParser {
                 throw new IllegalArgumentException("Invalid field definition: " + line);
             }
 
-            Field field = new Field(matcher.group(1), matcher.group(2));
+
+
+            Field field = new Field(matcher.group(1),matcher.group(2));
+
             if (!validTypes.contains(field.getType())){
                 System.out.println("类型不合法");
                 return null;

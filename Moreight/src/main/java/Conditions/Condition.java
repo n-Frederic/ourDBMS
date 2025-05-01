@@ -1,12 +1,9 @@
 package Conditions;
-import Storage.BPlusTree.Tuple;
-import Storage.BPlusTree.Value.Value;
+import Storage.Page.Tuple;
+import Storage.Value.Value;
 import Table.Table;
-import com.google.gson.JsonArray;
+
 import java.util.*;
-import java.util.Map;
-import java.nio.file.Path;
-import Storage.*;
 
 public class Condition extends ConditionNode {
     Table table;

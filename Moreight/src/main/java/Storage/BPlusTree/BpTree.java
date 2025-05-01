@@ -1,5 +1,7 @@
 package Storage.BPlusTree;
 
+import Storage.Page.Tuple;
+
 /**
  * B+树
  * @author zhangtianlong

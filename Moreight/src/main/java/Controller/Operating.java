@@ -3,8 +3,8 @@ package Controller;
 import Conditions.Condition;
 import Conditions.ConditionNode;
 import Conditions.ConditionParser;
-import Storage.BPlusTree.Tuple;
-import Storage.BPlusTree.Value.Value;
+import Storage.Page.Tuple;
+import Storage.Value.Value;
 import Table.*;
 
 import Database.DatabaseManager;
@@ -12,12 +12,10 @@ import Table.TableManager;
 import User.UserManager;
 import Parser.commandParser;
 
-import java.lang.reflect.Type;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import Storage.BPlusTree.Value.NullValue;
+import Storage.Value.NullValue;
 import Table.Table;
 import Util.Func.*;
 import Util.Filter.*;
@@ -60,6 +58,8 @@ public class Operating {
     private static final Pattern PATTERN_CREATE_DATABASE = Pattern.compile("(?i)create\\s+database\\s+(\\w+)\\s*;");
     private static final Pattern PATTERN_USE_DATABASE = Pattern.compile("(?i)use\\s+(\\w+)\\s*;");
     private static final Pattern PATTERN_DROP_DATABASE = Pattern.compile("(?i)drop\\s+database\\s+(\\w+)\\s*;");
+    private static final Pattern PATTERN_DESC =
+            Pattern.compile("(?i)^\\s*(?:DESC|DESCRIBE)\\s+(\\w+)\\s*;?\\s*$");
 
 
     private static Scanner sc = new Scanner(System.in);
@@ -184,6 +184,8 @@ public class Operating {
             Matcher matcherDelete = PATTERN_DELETE.matcher(cmd);
             Matcher matcherUpdate = PATTERN_UPDATE.matcher(cmd);
             Matcher matcherShowTB=PATTERN_SHOW_TABLES.matcher(cmd);
+            Matcher matcherDESC=PATTERN_DESC.matcher(cmd);
+
 
 
             if (matcherCreateTable.find()) {
@@ -298,6 +300,10 @@ public class Operating {
                 matched = true;
                 continue;
 
+
+            }else if(matcherDESC.find()){
+                String tableName=matcherDESC.group(1);
+                TableManager.desc( TableCache.getTable(tableName));
 
             }
 
@@ -451,12 +457,13 @@ public class Operating {
                 //System.out.println("adding");
                 details=matcherAlter.group(4);
                 //System.out.println("detail");
+
                 Field field=new Field(column,details);
 
-                TableManager.addColumn(tableName,field);
+                TableManager.addColumn(field,table);
 
             }else if(operation.equals("drop")||operation.equals("DROP")){
-                TableManager.deleteColumn(tableName,column);
+                TableManager.dropColumn(column,table);
 
             }else if(operation.equals("modify")||operation.equals("MODIFY")){
                 details=matcherAlter.group(4);
@@ -501,7 +508,7 @@ public class Operating {
             //data=logicTree.evaluate();
 
             HashMap<String,String> statements=commandParser.parseUpdateSet(statement);
-            table.update(tableName,statements,logicTree);
+//            table.update(tableName,statements,logicTree);
 
         }
 

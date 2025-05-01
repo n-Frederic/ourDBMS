@@ -1,23 +1,25 @@
 package Table;
 
 import Storage.BPlusTree.Value.*;
+import Storage.Value.Value;
 
 public class Field {
     private String name;
-    private Value type;
+    private String type;
     private boolean primaryKey;
     private boolean unique;
     private boolean notNull;
-    private String Default;
+    private Value Default;
 
-    public Field(String name, Value type) {
+    public Field(String name, String type) {
         this.name = name;
         this.type = type;
         primaryKey = false;
         unique = false;
         notNull = false;
-        Default = "";
+        Default=null;
     }
+
 
     
     public String getName() {
@@ -28,11 +30,11 @@ public class Field {
         this.name = name;
     }
 
-    public Value getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(Value type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -61,11 +63,11 @@ public class Field {
         this.notNull =notNUll;
     }
 
-    public String getDefault() {
+    public Value getDefault() {
         return Default;
     }
 
-    public void setDefault(String aDefault) {
+    public void setDefault(Value aDefault) {
         Default = aDefault;
     }
 
@@ -83,21 +85,21 @@ public class Field {
 
 
     // 把字符串类型转换成你系统里定义的 Value 子类类型
-    public Class<? extends Value> getTypeClass() {
-        switch (type.getType()) {
-            case 1:
-                return StringValue.class;
-            case 2:
-                return IntValue.class;
-            case 3 :
-                return LongValue.class;
-            case 4:
-                return BooleanValue.class;
-            // 如果有其他类型可以补
-            default:
-                throw new IllegalArgumentException("未知字段类型：" + type);
-        }
-    }
+//    public Class<? extends Value> getTypeClass() {
+//        switch (type.getType()) {
+//            case 1:
+//                return StringValue.class;
+//            case 2:
+//                return IntValue.class;
+//            case 3 :
+//                return LongValue.class;
+//            case 4:
+//                return BooleanValue.class;
+//            // 如果有其他类型可以补
+//            default:
+//                throw new IllegalArgumentException("未知字段类型：" + type);
+//        }
+//    }
 
 
 

@@ -3,12 +3,11 @@ package Table;
 import Database.DatabaseManager;
 import Storage.BPlusTree.BpNode;
 import Storage.BPlusTree.BpTree;
-import Storage.BPlusTree.Tuple;
+import Storage.Page.Tuple;
 import Storage.BPlusTree.Value.*;
+import Storage.Value.NullValue;
 import Util.Func.Render;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.io.IOException;
@@ -102,7 +101,7 @@ public class TableManager {
         return tables;
     }
 
-    public void addColumn(Field newField,Table table){
+    public static void addColumn(Field newField,Table table){
         if(table.getSchema().getIndex(newField)!=-1){
             throw new IllegalArgumentException("列已存在：" + newField.getName());
         }
@@ -119,7 +118,7 @@ public class TableManager {
         }
     }
 
-    public void dropColumn(String fieldName,Table table){
+    public static void dropColumn(String fieldName,Table table){
         Schema schema = table.getSchema();
         BpTree tree = table.getTree();
 
@@ -138,7 +137,7 @@ public class TableManager {
         }
     }
 
-    public void renameColumn(String fieldName, String newFieldName, Table table) {
+    public static void  renameColumn(String fieldName, String newFieldName, Table table) {
         Schema schema = table.getSchema();
         int index = schema.getIndex(fieldName);
         if (index == -1) {
@@ -147,7 +146,7 @@ public class TableManager {
         schema.getField(fieldName).setName(newFieldName);
     }
 
-    public void desc(Table table) {
+    public static void desc(Table table) {
         Schema schema = table.getSchema();
         ArrayList<Field> fields = schema.getFields();
         ArrayList<String> columnNames = new ArrayList<>();

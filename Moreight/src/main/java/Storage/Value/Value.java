@@ -1,8 +1,5 @@
-package Storage.BPlusTree.Value;
+package Storage.Value;
 
-/**
- * Created by zhangtianlong on 17/10/15.
- */
 public abstract class Value {
 
     public static final byte UNKNOW = 100;
@@ -18,14 +15,13 @@ public abstract class Value {
 
     public abstract int compare(Value value);
     // 根据类型字符串和字符串值解析成具体子类实例
-    public static Value parse(String typeName, String literalValue) {
-        return switch (typeName.toLowerCase()) {
-            case "int", "integer" -> new IntValue(Integer.parseInt(literalValue));
-            case "string" -> new StringValue(literalValue);
-            case "boolean" -> new BooleanValue(Boolean.parseBoolean(literalValue));
-            default -> throw new IllegalArgumentException("Unknown type: " + typeName);
-        };
-    }
+
+    /**
+     * 把字符串类型，判断实际类型后，转化成Value的子类
+     * @param clazz
+     * @param literalValue
+     * @return
+     */
     public static Value parse(Class<? extends Value> clazz, String literalValue) {
         if (clazz == IntValue.class) {
             return new IntValue(Integer.parseInt(literalValue));

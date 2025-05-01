@@ -1,10 +1,10 @@
 package Conditions;
+import Storage.Value.Value;
 import Table.Table;
-
+import Storage.BPlusTree.Value.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.nio.file.Path;
 
 public class ConditionParser {
     Table table;
@@ -56,15 +56,16 @@ public class ConditionParser {
     }
 
     private  ConditionNode parseAnd(List<String> tokens) {
-        ConditionNode left = parsePrimary(tokens);
+        ConditionNode left = parsePrimary(tokens,table);
         while (!tokens.isEmpty() && tokens.get(0).equalsIgnoreCase("AND")) {
             tokens.remove(0);
-            ConditionNode right = parsePrimary(tokens);
+            ConditionNode right = parsePrimary(tokens,table);
             left = new ConditionOperator("AND", left, right);
         }
         return left;
     }
-    private  ConditionNode parsePrimary(List<String> tokens) {
+    //where条件解析
+    private  ConditionNode parsePrimary(List<String> tokens,Table table) {
         if (tokens.get(0).equals("(")) {
             tokens.remove(0);
             ConditionNode node = parseOr(tokens);
@@ -76,8 +77,14 @@ public class ConditionParser {
         } else {
             String raw = tokens.remove(0);
             Matcher m = Pattern.compile("(\\w+)\\s*(=|!=|<=|>=|<|>)\\s*(.+)").matcher(raw);
+
+            String type=table.getSchema().getField(m.group(1)).getType();;
+            value= Value.getType(,table);
+            Value.parse(value,m.group(3));
+
             if (m.matches()) {
-                return new Condition(m.group(1), m.group(3), m.group(2),this.filepath);
+
+                return new Condition(m.group(1),value, m.group(2),table);
             } else {
                 throw new IllegalArgumentException("非法条件: " + raw);
             }

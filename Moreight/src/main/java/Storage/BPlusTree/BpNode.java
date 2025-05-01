@@ -1,6 +1,9 @@
 package Storage.BPlusTree;
 
 import Conditions.Condition;
+import Storage.Page.Page;
+import Storage.Page.Tuple;
+import Table.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +42,7 @@ public class BpNode {
     /**
      * 节点的关键字列表
      */
-    ArrayList<Tuple> entries;
+    Page page;
 
     /**
      * 节点的指针列表
@@ -64,7 +67,7 @@ public class BpNode {
     }
 
     public List<Tuple> getEntries() {
-        return entries;
+        return page.getTuples();
     }
 
     public List<BpNode> getChildren() {
@@ -76,33 +79,41 @@ public class BpNode {
         if (!isLeaf) {
             children = new ArrayList<BpNode>();
         }
-        entries = new ArrayList<Tuple>();
+        page = new Page();
     }
 
     public BpNode(boolean isLeaf, boolean isRoot) {
         this(isLeaf);
         this.isRoot = isRoot;
+        page = new Page();
     }
 
-    public Tuple get(Tuple key) {
+    public Tuple get(Tuple tuple, Schema schema) {
         if (isLeaf) {
-            for (Tuple tuple : entries) {
-                if (key.compare(tuple) == 0) {
-                    return tuple;
-                }
-            }
-            return null;
+            return page.get(tuple);
         } else {
-            // 小于首节点
-            if (key.compare(entries.getFirst()) < 0) {
-                return children.getFirst().get(key);
-            } else if (key.compare(entries.getLast()) >= 0) {
-                return children.getLast().get(key);
+            int primaryIndex = schema.getIndex(schema.getPrimaryKeyName());
+            List<Tuple> tuples = page.getTuples();
+            if (tuple.compare(tuples.getFirst(),primaryIndex) < 0) {
+                return children.getFirst().get(tuple,schema);
+            } else if (tuple.compare(tuples.getLast(),primaryIndex) >= 0) {
+                return children.getLast().get(tuple,schema);
             } else {
-                // TODO 后续改为二分查找
-                for (int i = 0; i < (entries.size() - 1); i++) {
-                    if (key.compare(entries.get(i)) >= 0 && key.compare(entries.get(i + 1)) < 0) {
-                        return children.get(i + 1).get(key);
+                int left = 0;
+                int right = tuples.size() - 2;  // 注意最多查到 size-2，避免越界
+
+                while (left <= right) {
+                    int mid = (left + right) / 2;
+                    Tuple midTuple = tuples.get(mid);
+                    Tuple nextTuple = tuples.get(mid + 1);
+
+                    if (tuple.compare(midTuple, primaryIndex) >= 0 &&
+                            tuple.compare(nextTuple, primaryIndex) < 0) {
+                        return children.get(mid + 1).get(tuple, schema);
+                    } else if (tuple.compare(tuple, midTuple, primaryIndex) < 0) {
+                        right = mid - 1;
+                    } else {
+                        left = mid + 1;
                     }
                 }
             }

@@ -2,8 +2,7 @@
 package Conditions;
 import java.util.*;
 
-import Storage.BPlusTree.Tuple;
-import com.google.gson.*;
+import Storage.Page.Tuple;
 
 public class ConditionEvaluator {
     public static  ArrayList<Tuple> evaluateConditions(ConditionNode root) {

@@ -1,9 +1,6 @@
 package Util.Func;
 
-import Storage.BPlusTree.Tuple;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import Table.*;
+import Storage.Page.Tuple;
 
 
 import java.util.*;
@@ -33,9 +30,9 @@ public class Render {
     public static void drawDatabaseList(List<String> dbNames) {
 
         // 1. 先把 List<String> 转成 JsonArray，其中每一行只有一列：Database
-        JsonArray data = new JsonArray();
+        ArrayList<Tuple> data = new ArrayList<>();
         for (String name : dbNames) {
-            JsonObject obj = new JsonObject();
+            Tuple obj = new Tuple();
             obj.addProperty("Database", name);
             data.add(obj);
         }
@@ -50,9 +47,9 @@ public class Render {
     public static void drawTablesList(List<String> tbNames) {
 
         // 1. 先把 List<String> 转成 JsonArray，其中每一行只有一列：Database
-        JsonArray data = new JsonArray();
+        ArrayList<Tuple> data = new ArrayList<>();
         for (String name : tbNames) {
-            JsonObject obj = new JsonObject();
+            Tuple obj = new  Tuple();
             obj.addProperty("Table", name);
             data.add(obj);
         }
@@ -107,7 +104,7 @@ public class Render {
      */
     public static void DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
 
-        DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns);
+        DrawSelectedTable( tuples,columns);
 
         System.out.println(columns);
 

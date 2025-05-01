@@ -1,11 +1,8 @@
 package Conditions;
 import java.util.ArrayList;
-import java.util.Map;
 
-import Conditions.ConditionNode;
-import Storage.BPlusTree.Tuple;
+import Storage.Page.Tuple;
 import Table.Table;
-import com.google.gson.JsonArray;
 
 public class ConditionOperator extends ConditionNode {
     private final String operator; // "AND" or "OR"
