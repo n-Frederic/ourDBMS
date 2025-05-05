@@ -2,9 +2,14 @@ package Storage.BPlusTree;
 
 import Conditions.Condition;
 import Storage.Page.Page;
+import Storage.Page.PageManager;
 import Storage.Page.Tuple;
+import Storage.Value.Value;
 import Table.Schema;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +18,7 @@ import java.util.List;
  * @author zhangtianlong
  */
 public class BpNode {
+    public static final int PAGE_SIZE = 10 * 1024; // 10KB
 
     /**
      * 是否为叶子节点
@@ -27,17 +33,17 @@ public class BpNode {
     /**
      * 父节点
      */
-    BpNode parent;
+    int parent;
 
     /**
      * 叶节点的前节点
      */
-    BpNode previous;
+    int previous;
 
     /**
      * 叶节点的后节点
      */
-    BpNode next;
+    int next;
 
     /**
      * 节点的关键字列表
@@ -47,37 +53,35 @@ public class BpNode {
     /**
      * 节点的指针列表
      */
-    ArrayList<BpNode> children;
+    ArrayList<Integer> children;
+
+
 
     /**
      * 节点指针的最大值
      */
     final int maxLength = 5;
 
-    public BpNode getParent() {
+    public int getParent() {
         return parent;
     }
 
-    public void setParent(BpNode parent) {
+    public void setParent(int parent) {
         this.parent = parent;
     }
 
-    public BpNode getNext() {
+    public int getNext() {
         return next;
     }
 
-    public List<Tuple> getEntries() {
-        return page.getTuples();
-    }
-
-    public List<BpNode> getChildren() {
+    public ArrayList<Integer> getChildren() {
         return children;
     }
 
     public BpNode(boolean isLeaf) {
         this.isLeaf = isLeaf;
         if (!isLeaf) {
-            children = new ArrayList<BpNode>();
+            children = new ArrayList<Integer>();
         }
         page = new Page();
     }
@@ -88,51 +92,35 @@ public class BpNode {
         page = new Page();
     }
 
-    public Tuple get(Tuple tuple, Schema schema) {
-        if (isLeaf) {
-            return page.get(tuple);
-        } else {
-            int primaryIndex = schema.getIndex(schema.getPrimaryKeyName());
-            List<Tuple> tuples = page.getTuples();
-            if (tuple.compare(tuples.getFirst(),primaryIndex) < 0) {
-                return children.getFirst().get(tuple,schema);
-            } else if (tuple.compare(tuples.getLast(),primaryIndex) >= 0) {
-                return children.getLast().get(tuple,schema);
-            } else {
-                int left = 0;
-                int right = tuples.size() - 2;  // 注意最多查到 size-2，避免越界
 
-                while (left <= right) {
-                    int mid = (left + right) / 2;
-                    Tuple midTuple = tuples.get(mid);
-                    Tuple nextTuple = tuples.get(mid + 1);
+//    public Tuple get(Tuple tuple, Schema schema) {
+//        if(tuple.getPrimaryV().compare(min) < 0 && tuple.getPrimaryV().compare(max) > 0) {
+//            return null;
+//        } else {
+//            if (isLeaf) {
+//                return page.get(tuple);
+//            } else {
+//                for(int i : children) {
+//                    Page p = PageManager.getPages().get(i);
+//                    if(tuple.getPrimaryV().compare(min) < 0 && tuple.getPrimaryV().compare(max) > 0)
+//                }
+//            }
+//        }
+//
+//    }
 
-                    if (tuple.compare(midTuple, primaryIndex) >= 0 &&
-                            tuple.compare(nextTuple, primaryIndex) < 0) {
-                        return children.get(mid + 1).get(tuple, schema);
-                    } else if (tuple.compare(tuple, midTuple, primaryIndex) < 0) {
-                        right = mid - 1;
-                    } else {
-                        left = mid + 1;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    public ArrayList<Tuple> get(Condition condition, int index) {
-        ArrayList<Tuple> tuples = new ArrayList<>();
-        if (isLeaf) {
-            for (Tuple tuple : entries) {
-                if (tuple.check(condition,index)) {
-                    tuples.add(tuple);
-                }
-            }
-            return tuples;
-        }
-        return null;
-    }
+//    public ArrayList<Tuple> get(Condition condition, int index) {
+//        ArrayList<Tuple> tuples = new ArrayList<>();
+//        if (isLeaf) {
+//            for (Tuple tuple : entries) {
+//                if (tuple.check(condition,index)) {
+//                    tuples.add(tuple);
+//                }
+//            }
+//            return tuples;
+//        }
+//        return null;
+//    }
 
     public void insert(Tuple key, BpTree tree) {
         if (isLeaf) {
@@ -783,38 +771,23 @@ public class BpNode {
     /**
      * 插入到当前叶子节点中,不分裂
      */
-    private void insertInLeaf(Tuple key) {
+    private void insertInLeaf(Tuple key) throws IOException {
         if (!isLeaf) {
             throw new UnsupportedOperationException("can't insert into middle node.");
         }
-        insertImpl(key);
+        page.insert(key);
     }
 
     /**
      * 插入到非叶子节点中,不分裂
      */
-    private void insertInParent(Tuple key) {
+    private void insertInParent(Tuple key) throws IOException {
         if (isLeaf) {
             throw new UnsupportedOperationException("can't insert into leaf node.");
         }
-        insertImpl(key);
+        page.insert(key);
     }
 
-
-    private void insertImpl(Tuple key) {
-        //遍历插入
-        for (int i = 0; i < entries.size(); i++) {
-            if (entries.get(i).compare(key) == 0) {
-                // 如果该键值已存在,则不插入
-                return;
-            } else if (entries.get(i).compare(key) > 0) {
-                entries.add(i, key);
-                return;
-            }
-        }
-        // 插入到末尾
-        entries.add(key);
-    }
 
     /**
      * 验证节点是否满足 point数 = key数 + 1
@@ -933,6 +906,33 @@ public class BpNode {
         } else {
             return false;
         }
+    }
+
+    /**
+     * 对BpNode进行序列化
+     * **********************************************
+     * 非叶子BpNode结构如下
+     * isLeaf （bool，2B）
+     * isRoot （bool, 2B）
+     * PageId （int, 4B)
+     * parent （int, 4B）
+     * children （5个int，因为最多五个孩子，20B）
+     * **********************************************
+     * 叶子BpNode结构如下
+     * isLeaf （bool，2B）
+     * isRoot  (bool, 2B）
+     * PageId (int, 4B)
+     * parent  (int, 4B）
+     * children （5个int，因为最多五个孩子，20B）
+     * previous （int，4B）
+     * next （int，4B）
+     * Page (16KB)
+     * **********************************************
+     * @return 序列化的字节数组
+     */
+    byte[] toBytes() {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
+        DataOutputStream dataOut = new DataOutputStream(out);
     }
 
 }

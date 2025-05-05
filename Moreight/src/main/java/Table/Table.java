@@ -6,6 +6,8 @@ import Storage.BPlusTree.Value.*;
 import Storage.Page.Tuple;
 import Storage.Value.Value;
 
+import java.io.FileNotFoundException;
+import java.io.RandomAccessFile;
 import java.util.*;
 
 /**
@@ -35,6 +37,12 @@ public class Table {
 
     public void delete(Tuple tuple){
         tree.remove(tuple);
+    }
+
+    public RandomAccessFile From(String table) throws FileNotFoundException {
+        String path = DIRECTORY + "/" + table + "/" + table + ".ibd";
+        RandomAccessFile raf = new RandomAccessFile(path, "rw");
+        return raf;
     }
 
     // 最终返回只有fieldName的tuple的数组

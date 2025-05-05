@@ -6,7 +6,7 @@ import java.io.*;
 import java.util.*;
 
 public class Page {
-    public static final int PAGE_SIZE = 16 * 1024; // 16KB
+    public static final int PAGE_SIZE = 8 * 1024; // 8KB
 
     private int pageId;    // page 的 id
     private Schema schema;
@@ -62,6 +62,12 @@ public class Page {
      */
     public boolean insert(Tuple tuple) throws IOException {
         if (isFull(tuple)) return false;
+        for(int i = 0; i < tuples.size(); i++) {
+            if(tuples.get(i).compare(tuple) > 0) {
+                tuples.add(i,tuple);
+                return true;
+            }
+        }
         tuples.add(tuple);
         return true;
     }
@@ -79,12 +85,6 @@ public class Page {
         }
         return null;
     }
-
-
-
-
-
-
 
 
 
@@ -143,20 +143,23 @@ public class Page {
         // 实时维护偏移量
         int currentOffset = 16;
 
+        ArrayList<byte[]> info = new ArrayList<>();
+
         // 写入偏移量表
         for(Tuple tuple : tuples) {
             dataOut.writeInt(currentOffset);
-            currentOffset += tuple.toBytes().length;
+            byte[] bytes = tuple.toBytes();
+            info.add(bytes);
+            currentOffset += 4;
         }
 
         // 此时偏移量在真实数据开始的位置
         begin = currentOffset;
 
         // 写入实际数据
-        for (Tuple tuple : tuples) {
-            byte[] rowBytes = tuple.toBytes();
-            dataOut.write(rowBytes);
-            currentOffset += rowBytes.length;
+        for (byte[] b : info) {
+            dataOut.write(b);
+            currentOffset += b.length;
         }
 
         // 此时偏移量在真实数据结束的位置

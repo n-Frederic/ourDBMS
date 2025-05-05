@@ -1,5 +1,5 @@
 package Storage.Page;
-import Storage.BPlusTree.Value.*;
+import Storage.Value.*;
 import Conditions.Condition;
 import Storage.Value.Value;
 import Table.Field;
@@ -13,8 +13,9 @@ public class Tuple {
 
     protected Value[] values;
 
-    public Tuple() {
-    }
+    protected Value primaryV;
+
+    public Tuple() {}
 
     public Tuple(Value[] values) {
         this.values = values;
@@ -22,6 +23,10 @@ public class Tuple {
 
     public Value[] getValues() {
         return values;
+    }
+
+    public Value getPrimaryV() {
+        return primaryV;
     }
 
     public Value getValue(int index) { return values[index];}
@@ -40,19 +45,9 @@ public class Tuple {
 
     /**
      * 联合索引比较的时候,先比较第一个索引值,若相等则再比较下一个索引值,依次类推
-     * TODO ：更改为比较主键
      */
     public int compare(Tuple tuple) {
-        int min = Math.min(values.length, tuple.values.length);
-        for (int i = 0; i < min; i++) {
-            int comp = values[i].compare(tuple.values[i]);
-            if (comp == 0) {
-                continue;
-            }
-            return comp;
-        }
-        int res = values.length - tuple.values.length;
-        return (res == 0) ? 0 : (res > 1 ? 1 : -1);
+        return primaryV.compare(tuple.getPrimaryV());
     }
 
     /**
