@@ -1,5 +1,7 @@
 package Storage.Value;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Created by zhangtianlong on 17/10/15.
  */
@@ -53,4 +55,9 @@ public class StringValue extends Value {
 
     @Override
     public Object getValue() {return s;}
+
+    @Override
+    public byte[] toBytes() {
+        return s.getBytes(StandardCharsets.UTF_8);
+    }
 }

@@ -2,7 +2,7 @@ package Storage.Value;
 
 public abstract class Value {
 
-    public static final byte UNKNOW = 100;
+    public static final byte UNKNOWN = 100;
     public static final byte NULL = 0;
     public static final byte STRING = 1;
     public static final byte INT = 2;
@@ -35,4 +35,6 @@ public abstract class Value {
     }
 
     public abstract Object getValue();
+
+    public abstract byte[] toBytes();
 }

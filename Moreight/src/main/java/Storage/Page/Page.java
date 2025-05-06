@@ -9,12 +9,10 @@ public class Page {
     public static final int PAGE_SIZE = 8 * 1024; // 8KB
 
     private int pageId;    // page 的 id
-    private Schema schema;
     private List<Tuple> tuples;
 
-    public Page(int pageId, Schema schema) {
+    public Page(int pageId) {
         this.pageId = pageId;
-        this.schema = schema;
         this.tuples = new ArrayList<>();
     }
 
@@ -22,12 +20,6 @@ public class Page {
         this.tuples = new ArrayList<>();
     }
 
-
-
-
-    public Schema getSchema() {
-        return schema;
-    }
 
     @Override
     public String toString() {
@@ -188,7 +180,7 @@ public class Page {
      * @return 序列化好的page
      * @throws IOException
      */
-    public static Page fromBytes(byte[] bytes, Schema schema) throws IOException {
+    public static Page fromBytes(byte[] bytes) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
         int pageId = in.readInt();
         int rowCount = in.readInt();
@@ -204,15 +196,15 @@ public class Page {
 
         ArrayList<Integer> offsets = new ArrayList<>(rowCount);
         for(int i = 0; i < rowCount; i++) {
-            offsets.set(i, in.readInt());
+            offsets.add(in.readInt());
         }
 
-        Page page = new Page(pageId, schema);
+        Page page = new Page(pageId);
         for (int i = 0; i < rowCount - 1; i++) {
             int rowStart = offsets.get(i);
             int rowEnd = (i + 1 < rowCount) ? offsets.get(i + 1) : end;
             byte[] rowData = Arrays.copyOfRange(bytes, rowStart, rowEnd);
-            Tuple tuple = Tuple.fromBytes(rowData, schema);
+            Tuple tuple = Tuple.fromBytes(rowData);
             page.tuples.add(tuple);
         }
 

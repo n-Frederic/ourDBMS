@@ -1,22 +1,12 @@
 package Storage.BPlusTree;
 
-import Conditions.Condition;
-import Storage.Page.Page;
-import Storage.Page.PageManager;
 import Storage.Page.Tuple;
 import Storage.Value.Value;
-import Table.Schema;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
-/**
- * B+树节点
- * @author zhangtianlong
- */
 public class BpNode {
     public static final int PAGE_SIZE = 10 * 1024; // 10KB
 
@@ -33,102 +23,113 @@ public class BpNode {
     /**
      * 父节点
      */
-    int parent;
+    BpNode parent;
 
     /**
-     * 叶节点的前节点
+     * 该页的页码
      */
-    int previous;
+    int PageId;
 
     /**
-     * 叶节点的后节点
+     * 该节点(Page)的主键的值
      */
-    int next;
-
-    /**
-     * 节点的关键字列表
-     */
-    Page page;
-
-    /**
-     * 节点的指针列表
-     */
-    ArrayList<Integer> children;
-
-
+    ArrayList<Value> entries;
 
     /**
      * 节点指针的最大值
      */
     final int maxLength = 5;
 
-    public int getParent() {
+
+    // 以上是内部，叶子公共属性
+
+    BpNode previous;
+
+    /**
+     * 叶节点的后节点
+     */
+    BpNode next;
+
+    // 以上是叶子节点的属性
+
+    /**
+     * 节点的指针列表
+     */
+    ArrayList<BpNode> children;
+
+    // 以上是内部节点的属性
+
+
+
+    public BpNode getParent() {
         return parent;
     }
 
-    public void setParent(int parent) {
+    public void setParent(BpNode parent) {
         this.parent = parent;
     }
 
-    public int getNext() {
+    public BpNode getNext() {
         return next;
     }
 
-    public ArrayList<Integer> getChildren() {
+    public ArrayList<BpNode> getChildren() {
         return children;
     }
 
     public BpNode(boolean isLeaf) {
         this.isLeaf = isLeaf;
+        entries = new ArrayList<>();
         if (!isLeaf) {
-            children = new ArrayList<Integer>();
+            children = new ArrayList<BpNode>();
         }
-        page = new Page();
+
     }
 
     public BpNode(boolean isLeaf, boolean isRoot) {
         this(isLeaf);
         this.isRoot = isRoot;
-        page = new Page();
     }
 
+    /**
+     * 对BpNode进行序列化
+     * **********************************************
+     * 非叶子BpNode结构如下
+     * isLeaf （bool，2B）
+     * isRoot （bool, 2B）
+     * PageId （int, 4B)
+     * parent （int, 4B）
+     * children （5个int，因为最多五个孩子，20B）
+     * **********************************************
+     * 叶子BpNode结构如下
+     * isLeaf （bool，2B）
+     * isRoot  (bool, 2B）
+     * PageId (int, 4B)
+     * parent  (int, 4B）
+     * children （5个int，因为最多五个孩子，20B）
+     * previous （int，4B）
+     * next （int，4B）
+     * Page (16KB)
+     * **********************************************
+     * @return 序列化的字节数组
+     */
+    byte[] toBytes() {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
+        DataOutputStream dataOut = new DataOutputStream(out);
+    }
 
-//    public Tuple get(Tuple tuple, Schema schema) {
-//        if(tuple.getPrimaryV().compare(min) < 0 && tuple.getPrimaryV().compare(max) > 0) {
-//            return null;
-//        } else {
-//            if (isLeaf) {
-//                return page.get(tuple);
-//            } else {
-//                for(int i : children) {
-//                    Page p = PageManager.getPages().get(i);
-//                    if(tuple.getPrimaryV().compare(min) < 0 && tuple.getPrimaryV().compare(max) > 0)
-//                }
-//            }
-//        }
-//
-//    }
-
-//    public ArrayList<Tuple> get(Condition condition, int index) {
-//        ArrayList<Tuple> tuples = new ArrayList<>();
-//        if (isLeaf) {
-//            for (Tuple tuple : entries) {
-//                if (tuple.check(condition,index)) {
-//                    tuples.add(tuple);
-//                }
-//            }
-//            return tuples;
-//        }
-//        return null;
-//    }
-
+    /**
+     * 在树中插入一个节点
+     * @param key
+     * @param tree
+     */
     public void insert(Tuple key, BpTree tree) {
         if (isLeaf) {
             if (!isLeafToSplit()) {
-                System.out.println("直接插入叶节点");
+//                System.out.println("直接插入叶节点");
                 insertInLeaf(key);
             } else {
-                System.out.println("插入叶节点,且叶节点分裂");
+//                System.out.println("插入叶节点,且叶节点分裂");
                 //需要分裂为左右两个节点
                 BpNode left = new BpNode(true);
                 BpNode right = new BpNode(true);
@@ -148,11 +149,12 @@ public class BpNode {
                 previous = null;
                 next = null;
                 // 插入后再分裂
+                // TODO:分析
                 insertInLeaf(key);
 
                 int leftSize = getUpper(entries.size(), 2);
                 int rightSize = entries.size() - leftSize;
-                System.out.printf("leaf key left:%d  right:%d\n", leftSize, rightSize);
+//                System.out.printf("leaf key left:%d  right:%d\n", leftSize, rightSize);
                 // 左右节点拷贝
                 for (int i = 0; i < leftSize; i++) {
                     left.entries.add(entries.get(i));
@@ -745,8 +747,7 @@ public class BpNode {
         if (isLeaf) {
             if (entries.size() >= (maxLength - 1)) {
                 return true;
-            }
-            return false;
+            } else return false;
         } else {
             throw new UnsupportedOperationException("the node is not leaf.");
         }
@@ -908,31 +909,6 @@ public class BpNode {
         }
     }
 
-    /**
-     * 对BpNode进行序列化
-     * **********************************************
-     * 非叶子BpNode结构如下
-     * isLeaf （bool，2B）
-     * isRoot （bool, 2B）
-     * PageId （int, 4B)
-     * parent （int, 4B）
-     * children （5个int，因为最多五个孩子，20B）
-     * **********************************************
-     * 叶子BpNode结构如下
-     * isLeaf （bool，2B）
-     * isRoot  (bool, 2B）
-     * PageId (int, 4B)
-     * parent  (int, 4B）
-     * children （5个int，因为最多五个孩子，20B）
-     * previous （int，4B）
-     * next （int，4B）
-     * Page (16KB)
-     * **********************************************
-     * @return 序列化的字节数组
-     */
-    byte[] toBytes() {
-        ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
-        DataOutputStream dataOut = new DataOutputStream(out);
-    }
+
 
 }

@@ -8,6 +8,7 @@ import Conditions.*;
 
 import java.io.*;
 import java.util.List;
+import java.util.ArrayList;
 
 public class Tuple {
 
@@ -170,7 +171,13 @@ public class Tuple {
         DataOutputStream dataOut = new DataOutputStream(out);
 
         for (Value value : values) {
-            writeTypedValue(dataOut, value);
+            int type = value.getType();
+            byte[] valueBytes = value.toBytes();
+            int len = valueBytes.length;
+
+            dataOut.writeInt(type);
+            dataOut.writeInt(len);
+            dataOut.write(valueBytes);
         }
 
         return out.toByteArray();
@@ -179,22 +186,22 @@ public class Tuple {
     /**
      * 将字节数组读下来反序列化为tuple对象
      * @param data 字节数组
-     * @param schema tuple对应的模式，以进行类型转化
      * @return 反序列化得到的tuple对象
      * @throws IOException
      */
-    public static Tuple fromBytes(byte[] data, Schema schema) throws IOException {
+    public static Tuple fromBytes(byte[] data) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
-        List<Field> fields = schema.getFields();
-        Value[] values = new Value[fields.size()];
+        ArrayList<Value> values = new ArrayList<>();
 
-        for (int i = 0; i < fields.size(); i++) {
+        while(in.available() > 0) {
+            int type = in.readInt();
             int len = in.readInt();
-            byte[] valueDate = new byte[len];
-            in.readFully(valueDate);
-            // values[i]都转化成对应类型的方法？
+            byte[] valueBytes = new byte[len];
+            in.readFully(valueBytes);
+            Value value = decodeTypedValue(type,valueBytes);
+            values.add(value);
         }
-        return new Tuple(values);
+        return new Tuple(values.toArray(new Value[0]));
     }
 
     /**
@@ -204,21 +211,27 @@ public class Tuple {
      * @throws IOException
      */
     private void writeTypedValue(DataOutputStream out, Value value) throws IOException {
-        switch (value.getType()) {
+        out.writeInt(value.getType());
+        byte[] bytes = value.toBytes();
+        out.writeInt(bytes.length);
+        out.write(bytes);
+    }
+
+    private static Value decodeTypedValue(int type, byte[] valueBytes) throws IOException {
+        DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(valueBytes));
+        switch (type) {
+            case 0:
+                return new NullValue();
             case 1:
-                out.writeUTF((String) value.getValue());
-                break;
+                return new StringValue(dataIn.readUTF());
             case 2:
-                out.writeInt((Integer) value.getValue());
-                break;
+                return new IntValue(dataIn.readInt());
             case 3:
-                out.writeLong((Long) value.getValue());
-                break;
+                return new LongValue(dataIn.readLong());
             case 4:
-                out.writeBoolean((Boolean) value.getValue());
-                break;
+                return new BooleanValue(dataIn.readBoolean());
             default:
-                throw new IOException("未知类型");
+                throw new IOException("未知类型: " + type);
         }
     }
 }

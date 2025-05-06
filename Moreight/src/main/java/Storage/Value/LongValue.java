@@ -1,5 +1,8 @@
 package Storage.Value;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 /**
  * Created by zhangtianlong on 17/10/15.
  */
@@ -50,4 +53,12 @@ public class LongValue extends Value {
     }
 
     public Object getValue() {return i;}
+
+    @Override
+    public byte[] toBytes() {
+        ByteBuffer buffer = ByteBuffer.allocate(4);
+        buffer.order(ByteOrder.BIG_ENDIAN);  // 大端序
+        buffer.putLong(i);
+        return buffer.array();
+    }
 }

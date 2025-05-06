@@ -1,5 +1,8 @@
 package Storage.Value;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 /**
  * @author zhangtianlong
  */
@@ -49,4 +52,11 @@ public class BooleanValue extends Value {
     }
 
     public Object getValue(){return b;}
+
+    @Override
+    public byte[] toBytes() {
+        ByteBuffer buffer = ByteBuffer.allocate(1);
+        buffer.put((byte)(b ? 1 : 0));
+        return buffer.array();
+    }
 }
