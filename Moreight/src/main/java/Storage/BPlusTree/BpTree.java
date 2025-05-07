@@ -1,5 +1,6 @@
 package Storage.BPlusTree;
 
+import Storage.Page.Page;
 import Storage.Page.PageIO;
 import Storage.Page.Tuple;
 import Table.Schema;
@@ -12,8 +13,8 @@ import java.io.IOException;
  */
 public class BpTree {
 
-    BpNode head;
-    BpNode root;
+    Page head;
+    Page root;
     private final String filePath;
     private final PageIO pageIO;
     private int rootPageId;
@@ -25,7 +26,19 @@ public class BpTree {
         this.rootPageId = pageIO.getRootPageId();
     }
 
-    public BpNode getHead() {
+    public Page getHead() {
         return head;
+    }
+
+    public void setHead(Page head) {
+        this.head = head;
+    }
+
+    public Page getRoot() {
+        return root;
+    }
+
+    public void setRoot(Page root) {
+        this.root = root;
     }
 }

@@ -2,7 +2,7 @@ package Table;
 
 import Conditions.Condition;
 import Storage.BPlusTree.*;
-import Storage.BPlusTree.Value.*;
+import Storage.Page.Page;
 import Storage.Page.Tuple;
 import Storage.Value.Value;
 
@@ -67,7 +67,7 @@ public class Table {
 
     public ArrayList<Tuple> selectAll() {
         ArrayList<Tuple> tuples = new ArrayList<>();
-        BpNode current = tree.getHead();
+        Page current = tree.getHead();
         while(current != null) {
             tuples.addAll(current.getEntries());
             current = current.getNext();
@@ -141,6 +141,7 @@ public class Table {
     public BpTree getTree(){
         return tree;
     }
+
 
 
 

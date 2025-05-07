@@ -204,18 +204,6 @@ public class Tuple {
         return new Tuple(values.toArray(new Value[0]));
     }
 
-    /**
-     * 将不同类value写入DataOutputStream
-     * @param out DataOutputStream对象
-     * @param value 要写入的value
-     * @throws IOException
-     */
-    private void writeTypedValue(DataOutputStream out, Value value) throws IOException {
-        out.writeInt(value.getType());
-        byte[] bytes = value.toBytes();
-        out.writeInt(bytes.length);
-        out.write(bytes);
-    }
 
     private static Value decodeTypedValue(int type, byte[] valueBytes) throws IOException {
         DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(valueBytes));

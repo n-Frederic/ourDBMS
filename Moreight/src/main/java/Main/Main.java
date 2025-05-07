@@ -1,16 +1,6 @@
 package Main;
-import Database.DatabaseManager;
-import Table.*;
+
 import Controller.Operating;
-import UI.UI;
-import java.util.ArrayList;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import com.google.gson.*;
-import com.google.gson.*;
-import java.nio.file.Paths;
-import java.util.List;
-import Conditions.*;
 
 public class Main {
     public static void main(String[] args) {

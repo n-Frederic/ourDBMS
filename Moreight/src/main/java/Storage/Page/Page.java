@@ -1,15 +1,45 @@
 package Storage.Page;
-
-import Table.Schema;
+import Storage.BPlusTree.BpTree;
+import Storage.Value.BooleanValue;
+import Storage.Value.Value;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Page {
     public static final int PAGE_SIZE = 8 * 1024; // 8KB
 
     private int pageId;    // page 的 id
-    private List<Tuple> tuples;
+
+    boolean isLeaf;
+
+    boolean isRoot;
+
+    Page parent;
+
+    int PageId;
+
+
+    final int maxLength = 5;
+
+
+    // 以上是内部，叶子公共属性
+
+    Page previous;                                            ArrayList<Page> children;
+
+    Page next;                                                ArrayList<Value> entries;
+
+    ArrayList<Tuple> tuples;                                   // 以上是内部节点的属性
+
+
+
+    // 以上是叶子节点的属性
+
+
+
+
+
 
     public Page(int pageId) {
         this.pageId = pageId;
@@ -20,10 +50,33 @@ public class Page {
         this.tuples = new ArrayList<>();
     }
 
+    public Page(boolean isLeaf) {
+        this.isLeaf = isLeaf;
+        entries = new ArrayList<>();
+        if (!isLeaf) {
+            children = new ArrayList<>();
+        }
+    }
 
-    @Override
-    public String toString() {
-        return "Page#" + pageId + " rows=" + tuples.size();
+    public Page(boolean isLeaf, boolean isRoot) {
+        this(isLeaf);
+        this.isRoot = isRoot;
+    }
+
+
+
+
+
+    public Page getParent() {
+        return parent;
+    }
+
+    public void setParent(Page parent) {
+        this.parent = parent;
+    }
+
+    public Page getNext() {
+        return next;
     }
 
     /**
@@ -34,12 +87,43 @@ public class Page {
         return tuples;
     }
 
-    /**
-     * 获取page页码
-     * @return 页码
-     */
+    // 判断当前页是否是叶子页
+    public boolean isLeaf() {
+        return isLeaf;
+    }
+
+    // 获取子节点的页号
+    public int getChildPageId(Page currentPage, int index) {
+        // 如果当前页是叶子节点，没有子节点
+        if (currentPage.isLeaf()) {
+            throw new UnsupportedOperationException("叶子节点没有子节点");
+        }
+
+        // 如果当前是非叶子节点，从当前页的子节点列表中获取对应的子节点页号
+        Page childPage = currentPage.getChildren().get(index);
+
+        // 返回该子节点的页号
+        return childPage.getPageId();
+    }
+
+    // 获取当前页的页号
     public int getPageId() {
         return pageId;
+    }
+
+    // 获取当前页的子节点列表
+    public List<Page> getChildren() {
+        return children;
+    }
+
+    // 设置子节点列表
+    public void setChildren(ArrayList<Page> children) {
+        this.children = children;
+    }
+
+    // 设置当前页的页号
+    public void setPageId(int pageId) {
+        this.pageId = pageId;
     }
 
 
@@ -50,9 +134,8 @@ public class Page {
      * 将某一行插入page
      * @param tuple 待插入的行
      * @return 插入是否成功
-     * @throws IOException
      */
-    public boolean insert(Tuple tuple) throws IOException {
+    public boolean insertTuple(Tuple tuple) throws IOException {
         if (isFull(tuple)) return false;
         for(int i = 0; i < tuples.size(); i++) {
             if(tuples.get(i).compare(tuple) > 0) {
@@ -67,7 +150,7 @@ public class Page {
     /**
      * 在page的tuples里获取tuple
      * @param tuple tuple
-     * @return
+     * @return 一行信息
      */
     public Tuple get(Tuple tuple) {
         for (Tuple t : tuples) {
@@ -95,7 +178,6 @@ public class Page {
     /**
      * 估计当前页的大小
      * @return 总的字节数
-     * @throws IOException
      */
     private int estimateCurrentSize() throws IOException {
         int total = 16;
@@ -111,20 +193,30 @@ public class Page {
 
 
     /**
-     * 页的结构如下:
+     * 叶子页的结构如下:
      * 页id（int 4b）
+     * 是否是叶子节点 （bool, 1B)
+     * 是否是根节点 （bool, 1B)
+     * 父亲的页id （int, 4B)
+     * 前一个叶子页的id （int, 4B)
+     * 后一个叶子页的id (int, 4B)
      * 页的行数 （int 4b）
      * 真实数据开始的偏移量 begin (4b)
      * 真实数据结束的偏移量 end  (4b)
      * 每一行的开始的偏移量 (4b)
+     * 实际数据
      * @return 字节数组
-     * @throws IOException
      */
-    public byte[] toBytes() throws IOException {
+    public byte[] leafToBytes() throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
         DataOutputStream dataOut = new DataOutputStream(out);
 
         dataOut.writeInt(pageId);    // pageID
+        dataOut.write(new BooleanValue(isLeaf).toBytes());
+        dataOut.write(new BooleanValue(isRoot).toBytes());
+        dataOut.writeInt(parent.PageId);
+        dataOut.writeInt(previous.PageId);
+        dataOut.writeInt(next.PageId);
         dataOut.writeInt(tuples.size());     // 行数
         dataOut.writeInt(0);      // 真实数据开始位置的偏移量，占位
         dataOut.writeInt(0);   // 真实数据结束位置的偏移量，占位
@@ -133,7 +225,7 @@ public class Page {
         int end; // 真实数据结束位置的偏移量
 
         // 实时维护偏移量
-        int currentOffset = 16;
+        int currentOffset = 36;
 
         ArrayList<byte[]> info = new ArrayList<>();
 
@@ -159,30 +251,43 @@ public class Page {
 
         byte[] bytes = out.toByteArray();
         // 写 begin 到 bytes[4] ~ bytes[7]
-        bytes[4] = (byte) ((begin >> 24) & 0xFF);
-        bytes[5] = (byte) ((begin >> 16) & 0xFF);
-        bytes[6] = (byte) ((begin >> 8) & 0xFF);
-        bytes[7] = (byte) (begin & 0xFF);
+        bytes[29] = (byte) ((begin >> 24) & 0xFF);
+        bytes[30] = (byte) ((begin >> 16) & 0xFF);
+        bytes[31] = (byte) ((begin >> 8) & 0xFF);
+        bytes[32] = (byte) (begin & 0xFF);
 
         // 写 end 到 bytes[8] ~ bytes[11]
-        bytes[8]  = (byte) ((end >> 24) & 0xFF);
-        bytes[9]  = (byte) ((end >> 16) & 0xFF);
-        bytes[10] = (byte) ((end >> 8) & 0xFF);
-        bytes[11] = (byte) (end & 0xFF);
+        bytes[33]  = (byte) ((end >> 24) & 0xFF);
+        bytes[34]  = (byte) ((end >> 16) & 0xFF);
+        bytes[35] = (byte) ((end >> 8) & 0xFF);
+        bytes[36] = (byte) (end & 0xFF);
 
         return bytes;
     }
 
     /**
-     * 把bytes数组参考schema反序列化为Page
-     * @param bytes 字节数组
-     * @param schema 模式
-     * @return 序列化好的page
-     * @throws IOException
+     * 叶子页的结构如下:
+     * 页id（int 4b）
+     * 是否是叶子节点 （bool, 1B)
+     * 是否是根节点 （bool, 1B)
+     * 父亲的页id （int, 4B)
+     * 前一个叶子页的id （int, 4B)
+     * 后一个叶子页的id (int, 4B)
+     * 页的行数 （int 4b）
+     * 真实数据开始的偏移量 begin (4b)
+     * 真实数据结束的偏移量 end  (4b)
+     * 每一行的开始的偏移量 (4b)
+     * 实际数据
+     * @return 字节数组
      */
-    public static Page fromBytes(byte[] bytes) throws IOException {
+    public static Page leafFromBytes(byte[] bytes) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
         int pageId = in.readInt();
+        boolean isLeaf = in.readByte() == 1;
+        boolean isRoot = in.readByte() == 1;
+        int parentId = in.readInt();
+        int previousId = in.readInt();
+        int nextId = in.readInt();
         int rowCount = in.readInt();
         int begin = ((bytes[4] & 0xFF) << 24) |
                 ((bytes[5] & 0xFF) << 16) |
@@ -208,9 +313,959 @@ public class Page {
             page.tuples.add(tuple);
         }
 
+        page.isLeaf = isLeaf;
+        page.isRoot = isRoot;
+        page.PageId = pageId;
+        page.parent = new Page(parentId);
+        page.previous = new Page(previousId);
+        page.next = new Page(nextId);
+
         return page;
     }
 
+
+
+
+    /**
+     * 第零页的结构
+     * 根页的页码 ( int 4B )
+     * 目前的最高页码 （ int 4B ）
+     * 中间节点允许的最多key数量 （ int 4B ）
+     * 列名 （最多100个字段，每列是 int（列名长度） + n 字节（UTF-8 字节串）)
+     * 列类型 （ int 4B*100 , 最多允许400B)
+     *
+     */
+
+
+
+
+
+    /**
+     * 非叶子页的结构
+     * 页码 （ int 4B ）
+     * 是否是叶子节点 （bool, 1B)
+     * 是否是根节点 （bool, 1B)
+     * 父亲的页id （int, 4B)
+     * 目前孩子有几个 （int, 4B)
+     * 记录的索引的类型 （目前为主键）（int, 4B)
+     * 孩子页的行中主键的最小值序列 (value 不确认多长  *5）
+     * 孩子页的页码 （int 4B*5 ）
+     */
+    public byte[] InnerToBytes() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
+        DataOutputStream dataOut = new DataOutputStream(out);
+
+        dataOut.writeInt(pageId);    // pageID
+        dataOut.write(new BooleanValue(isLeaf).toBytes());
+        dataOut.write(new BooleanValue(isRoot).toBytes());
+        dataOut.writeInt(parent.PageId);
+        dataOut.writeInt(children.size());
+        dataOut.writeInt(entries.getFirst().getType());
+
+        for(Value value : entries) {
+            dataOut.write(value.toBytes());
+        }
+
+        for(Page page : children) {
+            dataOut.writeInt(page.PageId);
+        }
+
+        return out.toByteArray();
+    }
+
+    /**
+     * 非叶子页的结构
+     * 页码 （ int 4B ）
+     * 是否是叶子节点 （int 4B)
+     * 是否是根节点 （int, 4B)
+     * 父亲的页id （int, 4B)
+     * 记录的索引的类型 （目前为主键）（int, 4B)
+     * 孩子页的行中主键的最小值序列 （ 不确定长度 * 5 ）
+     * 孩子页的页码 （int 4B*5 ）
+     */
+    public static Page InnerFromBytes(byte[] bytes) throws IOException {
+        DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
+        int pageId = in.readInt();
+        boolean isLeaf = in.readByte() == 1;
+        boolean isRoot = in.readByte() == 1;
+        int parentId = in.readInt();
+        int size = in.readInt();
+        int type = in.readInt();
+
+        switch(type) {
+            case 1:
+
+            case 2:
+
+            case 3:
+
+            case 4:
+        }
+
+        Page page = new Page(pageId);
+
+
+        page.isLeaf = isLeaf;
+        page.isRoot = isRoot;
+        page.PageId = pageId;
+        page.parent = new Page(parentId);
+
+
+        return page;
+    }
+
+    private static int[] parseIntArray(byte[] data) {
+        int[] result = new int[data.length / 4];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = ((data[i * 4] & 0xFF) << 24) |
+                    ((data[i * 4 + 1] & 0xFF) << 16) |
+                    ((data[i * 4 + 2] & 0xFF) << 8) |
+                    (data[i * 4 + 3] & 0xFF);
+        }
+        return result;
+    }
+
+    // 解析 long 数组（8 字节）
+    private static long[] parseLongArray(byte[] data) {
+        long[] result = new long[data.length / 8];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = ((long) (data[i * 8] & 0xFF) << 56) |
+                    ((long) (data[i * 8 + 1] & 0xFF) << 48) |
+                    ((long) (data[i * 8 + 2] & 0xFF) << 40) |
+                    ((long) (data[i * 8 + 3] & 0xFF) << 32) |
+                    ((long) (data[i * 8 + 4] & 0xFF) << 24) |
+                    ((long) (data[i * 8 + 5] & 0xFF) << 16) |
+                    ((long) (data[i * 8 + 6] & 0xFF) << 8) |
+                    (data[i * 8 + 7] & 0xFF);
+        }
+        return result;
+    }
+
+    // 解析 boolean 数组（1 字节）
+    private static boolean[] parseBooleanArray(byte[] data) {
+        boolean[] result = new boolean[data.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = data[i] != 0; // 0=false, 非0=true
+        }
+        return result;
+    }
+
+    // 解析 string 数组（UTF-8 + \0）
+    private static String[] parseStringArray(byte[] data) {
+        List<String> strings = new ArrayList<>();
+        int offset = 0;
+        while (offset < data.length) {
+            int end = offset;
+            while (end < data.length && data[end] != 0) {
+                end++;
+            }
+            strings.add(new String(data, offset, end - offset, StandardCharsets.UTF_8));
+            offset = end + 1; // 跳过 \0
+        }
+        return strings.toArray(new String[0]);
+    }
+
+
+
+    /**
+     * 在树中插入一个节点
+     * @param key 待插入的行
+     * @param tree B+树
+     */
+
+    public void insert(Tuple key, BpTree tree) {
+        if (isLeaf) {
+            if (!isLeafToSplit()) {
+//                System.out.println("直接插入叶节点");
+                insertInLeaf(key.getPrimaryV());
+            } else {
+//                System.out.println("插入叶节点,且叶节点分裂");
+                //需要分裂为左右两个节点
+                Page left = new Page(true);
+                Page right = new Page(true);
+                if (previous != null) {
+                    left.previous = previous;
+                    previous.next = left;
+                } else {
+                    tree.setHead(left);
+                }
+                if (next != null) {
+                    right.next = next;
+                    next.previous = right;
+                }
+                left.next = right;
+                right.previous = left;
+                // for GC
+                previous = null;
+                next = null;
+                // 插入后再分裂
+                insertInLeaf(key.getPrimaryV());
+
+                int leftSize = getUpper(entries.size(), 2);
+                int rightSize = entries.size() - leftSize;
+//                System.out.printf("leaf key left:%d  right:%d\n", leftSize, rightSize);
+                // 左右节点拷贝
+                for (int i = 0; i < leftSize; i++) {
+                    left.entries.add(entries.get(i));
+                }
+                for (int i = 0; i < rightSize; i++) {
+                    right.entries.add(entries.get(leftSize + i));
+                }
+                // 不是根节点
+                if (!isRoot) {
+                    // 调整父子节点关系
+                    // 寻找当前节点在父节点的位置
+                    System.out.println("parent children is null:" + (parent.children == null));
+
+                    int index = parent.children.indexOf(this);
+//                    System.out.println("parent children size:" + parent.children.size());
+//                    System.out.println("index:" + index);
+
+                    // 删除当前指针
+                    parent.children.remove(this);
+                    left.setParent(parent);
+                    right.setParent(parent);
+                    // 将分裂后节点的指针添加到父节点
+                    parent.children.add(index, left);
+                    parent.children.add(index + 1, right);
+                    // for GC
+                    entries = null;
+                    children = null;
+
+                    // 父节点[非叶子节点]中插入关键字，是右边的第一位
+                    parent.insertInParent(right.entries.getFirst());
+                    System.out.println("父节点插入key");
+                    parent.updateNode(tree);
+                    // for GC
+                    parent = null;
+                } else {
+                    // 是根节点
+                    System.out.println("生成新的根节点");
+                    isRoot = false;
+                    Page rootPage = new Page(false, true);
+                    tree.setRoot(rootPage);
+                    left.parent = rootPage;
+                    right.parent = rootPage;
+                    rootPage.children.add(left);
+                    rootPage.children.add(right);
+                    // for GC
+                    entries = null;
+                    children = null;
+                    // 根节点插入关键字
+                    rootPage.insertInParent(right.entries.getFirst());
+                }
+            }
+        } else {
+            // 如果不是叶子节点,沿着指针向下搜索
+            if (isRoot) {
+                System.out.println("根节点,向下搜索");
+            }
+            if (key.getPrimaryV().compare(entries.getFirst()) < 0) {
+                System.out.println("中间节点,向下搜索");
+                children.getFirst().insert(key, tree);
+            } else if (key.getPrimaryV().compare(entries.getLast()) >= 0) {
+                System.out.println("中间节点,向下搜索");
+                children.getLast().insert(key, tree);
+            } else {
+                // 遍历比较
+                System.out.println("中间节点,向下搜索");
+                int left = 0;
+                int right = entries.size() - 1;
+                Value keyValue = key.getPrimaryV();
+
+                while (left <= right) {
+                    int mid = left + (right - left) / 2;
+                    if (keyValue.compare(entries.get(mid)) < 0) {
+                        right = mid - 1;
+                    } else {
+                        left = mid + 1;
+                    }
+                }
+                children.get(left).insert(key, tree);
+            }
+        }
+    }
+
+    public boolean remove(Tuple key, BpTree tree) {
+        boolean isFound = false;
+        if (isLeaf) {
+            // 如果是叶子节点
+            if (!contains(key)) {
+                // 不包含关键字
+                return false;
+            }
+            // 是 叶子节点 且是 根节点,直接删除
+            if (isRoot) {
+                if (removeInLeaf(key)) {
+                    isFound = true;
+                }
+            } else {
+                if (canRemoveDirectInLeaf()) {
+                    // 可以在叶节点中直接删除
+                    if (removeInLeaf(key)) {
+                        isFound = true;
+                    }
+                } else {
+                    // 如果当前关键字不够,并且前节点有足够的关键字,从前节点借
+                    if (leafCanBorrow(previous)) {
+                        if (removeInLeaf(key)) {
+                            borrowLeafPrevious();
+                            isFound = true;
+                        }
+                    } else if (leafCanBorrow(next)) {
+                        if (removeInLeaf(key)) {
+                            borrowLeafNext();
+                            isFound = true;
+                        }
+                        // 从后兄弟节点借
+                    } else {
+                        // 合并叶子节点, 先合并后删除
+                        Page tmpParent = this.parent;
+                        if (leafCanMerge(previous)) {
+                            // 和前叶子节点合并
+                            mergeToPreLeaf(this.previous, this);
+                            if (previous.removeInLeaf(key)) {
+                                isFound = true;
+                            }
+                            // 删除在父节点中的key
+                            int parentKeyIdx = getMiddleKeyIdxInParent(this);
+                            parent.entries.remove(parentKeyIdx);
+                            // 删除在父节点中的指针
+                            parent.children.remove(this);
+                            // for GC
+                            parent = null;
+                            entries = null;
+                            // 更新 叶节点链表
+                            if (this.next != null) {
+                                Page tmp = this;
+                                tmp.previous.next = tmp.next;
+                                tmp.next.previous = tmp.previous;
+                                tmp.previous = null;
+                                tmp.next = null;
+                            } else {
+                                this.previous.next = null;
+                                this.previous = null;
+                            }
+                        } else if (leafCanMerge(next)) {
+                            // 和后叶子节点合并
+                            mergeToPreLeaf(this, this.next);
+                            if (removeInLeaf(key)) {
+                                isFound = true;
+                            }
+                            // 删除在父节点中的key
+                            int parentKeyIdx = getMiddleKeyIdxInParent(this.next);
+                            parent.entries.remove(parentKeyIdx);
+                            // 删除在父节点中的指针
+                            parent.children.remove(this.next);
+                            // for GC
+                            next.parent = null;
+                            next.entries = null;
+                            // 更新 叶节点链表
+                            if (this.next.next != null) {
+                                Page tmp = this.next;
+                                this.next = tmp.next;
+                                tmp.next.previous = this;
+                                tmp.previous = null;
+                                tmp.next = null;
+                            } else {
+                                this.next.previous = null;
+                                this.next = null;
+                            }
+                        }
+                        tmpParent.updateRemove(tree);
+                    }
+                }
+            }
+        } else {
+            // 非叶子节点,继续向下搜索
+            if (key.getPrimaryV().compare(entries.getFirst()) < 0) {
+                if (children.getFirst().remove(key, tree)) {
+                    isFound = true;
+                }
+            } else if (key.getPrimaryV().compare(entries.getLast()) >= 0) {
+                if (children.getLast().remove(key, tree)) {
+                    isFound = true;
+                }
+            } else {
+                for (int i = 0; i < (entries.size() - 1); i++) {
+                    if (key.getPrimaryV().compare(entries.get(i)) >= 0 && key.getPrimaryV().compare(entries.get(i + 1)) < 0) {
+                        if (children.get(i + 1).remove(key, tree)) {
+                            isFound = true;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        return isFound;
+    }
+
+    /**
+     * 中间节点删除后的更新操作
+     */
+    private void updateRemove(BpTree tree) {
+        int half = getUpper(maxLength, 2);
+        if (children.size() < half || children.size() < 2) {
+            if (isRoot) {
+                if (children.size() >= 2) {
+                    return;
+                } else {
+                    // 如果根节点只有一个指针,则删除 根节点,让其孩子节点作为根节点
+                    Page rootPage = children.getFirst();
+                    tree.setRoot(rootPage);
+                    rootPage.isRoot = true;
+                    rootPage.parent = null;
+                    // for GC
+                    this.entries = null;
+                    this.children = null;
+                }
+            } else {
+                // 计算前后兄弟节点
+                int curIdx = parent.children.indexOf(this);
+                int preIdx = curIdx - 1;
+                int nextIdx = curIdx + 1;
+                Page preNode = null;
+                Page nextNode = null;
+                if (preIdx >= 0) {
+                    preNode = parent.children.get(preIdx);
+                }
+                if (nextIdx < parent.children.size()) {
+                    nextNode = parent.children.get(nextIdx);
+                }
+                if (middleNodeCanBorrow(preNode)) {
+                    // 从前节点借
+                    borrowMiddleNodePrevious(preNode);
+                } else if (middleNodeCanBorrow(nextNode)) {
+                    // 从后继节点借
+                    borrowMiddleNodeNext(nextNode);
+                } else {
+                    // 和兄弟节点合并
+                    Page tmpParent = this.parent;
+                    if (middleNodeCanMerge(preNode)) {
+                        // 与前节点合并
+                        mergeToPreMiddleNode(preNode, this);
+                        int parentKeyIdx = getMiddleKeyIdxInParent(this);
+                        this.parent.entries.remove(parentKeyIdx);
+                        this.parent.children.remove(parentKeyIdx + 1);
+                        // for GC
+                        this.parent = null;
+                        this.entries = null;
+                        this.children = null;
+                    } else if (middleNodeCanMerge(nextNode)) {
+                        mergeToPreMiddleNode(this, nextNode);
+                        int parentKeyIdx = getMiddleKeyIdxInParent(nextNode);
+                        this.parent.entries.remove(parentKeyIdx);
+                        this.parent.children.remove(parentKeyIdx + 1);
+                        // for GC
+                        nextNode.parent = null;
+                        nextNode.entries = null;
+                        nextNode.children = null;
+                    }
+                    tmpParent.updateRemove(tree);
+                }
+            }
+        }
+    }
+
+    /**
+     * 从前兄弟节点中借
+     */
+    private void borrowMiddleNodePrevious(Page preNode) {
+        /**
+         *        20
+         * 3  7        30
+         * ---------------------
+         *        7
+         *    3        20   30
+         */
+        int parentKeyIdx = getMiddleKeyIdxInParent(this);
+        // 父节点中下沉的 key
+        Value downKey = parent.entries.get(parentKeyIdx);
+        this.entries.add(0, downKey);
+        // 从父节点中删除 key
+        parent.entries.remove(parentKeyIdx);
+
+        int preSize = preNode.entries.size();
+        // 前节点中提升到父节点的key
+        Value upKey = preNode.entries.get(preSize - 1);
+        parent.entries.add(parentKeyIdx, upKey);
+        // 删除提升节点
+        preNode.entries.remove(preSize - 1);
+        // 前节点的最后一个指针后移到当前节点
+        int preChildSize = preNode.children.size();
+        Page borrowPoint = preNode.children.get(preChildSize - 1);
+        this.children.add(0 , borrowPoint);
+        preNode.children.remove(preChildSize - 1);
+        borrowPoint.parent = this;
+    }
+
+    /**
+     * 从后继兄弟节点中借
+     */
+    private void borrowMiddleNodeNext(Page nextPage) {
+        /**
+         *        20
+         *   7        30   40
+         * ---------------------
+         *            30
+         *   7   20        40
+         */
+        int parentKeyIdx = getMiddleKeyIdxInParent(nextPage);
+        Value downKey = parent.entries.get(parentKeyIdx);
+        this.entries.add(downKey);
+        this.parent.entries.remove(parentKeyIdx);
+
+        Value upKey = nextPage.entries.getFirst();
+        this.parent.entries.add(parentKeyIdx, upKey);
+        nextPage.entries.removeFirst();
+        // 后继节点的第一个指针移到当前节点最后面
+        Page borrowPoint = nextPage.children.getFirst();
+        this.children.add(borrowPoint);
+        nextPage.children.removeFirst();
+    }
+
+    /**
+     * 将后一个节点中的关键字 合并到 前节点中
+     */
+    private void mergeToPreLeaf(Page first, Page sec) {
+        first.entries.addAll(sec.entries);
+    }
+
+    /**
+     * 将后一个中间节点的关键字和指针复制到 前一个中间节点中
+     */
+    private void mergeToPreMiddleNode(Page first, Page sec) {
+        int parentKeyIdx = getMiddleKeyIdxInParent(sec);
+        // 将父节点关键字下沉
+        first.entries.add(first.parent.entries.get(parentKeyIdx));
+
+        for (int i = 0; i < sec.entries.size(); i++) {
+            first.entries.add(sec.entries.get(i));
+        }
+        // sec的指针复制
+        for (int i = 0; i < sec.children.size(); i++) {
+            // 变更父亲节点
+            sec.children.get(i).parent = first;
+            first.children.add(sec.children.get(i));
+        }
+    }
+
+    /**
+     * 从前兄弟叶子节点 借
+     */
+    private void borrowLeafPrevious() {
+        int size = previous.entries.size();
+        Value borrowKey = previous.entries.get(size - 1);
+        previous.entries.remove(size - 1);
+        entries.add(0, borrowKey);
+        // 获取 当前节点指针 和 前节点指针 之间的 关键字 在父节点中的位置
+        int parentEntryIdx = getMiddleKeyIdxInParent(this);
+        parent.entries.remove(parentEntryIdx);
+        parent.entries.add(parentEntryIdx, borrowKey);
+    }
+
+    /**
+     * 从后兄弟叶子节点 借
+     */
+    private void borrowLeafNext() {
+        Value borrowKey = next.entries.getFirst();
+        next.entries.removeFirst();
+        entries.add(borrowKey);
+        // 获取 当前节点指针 和 后节点指针 之间的 关键字 在父节点中的位置
+        int parentEntryIdx = getMiddleKeyIdxInParent(this.next);
+        parent.entries.remove(parentEntryIdx);
+        // 将后叶子节点 第1个关键字(从0开始计数)提升到父节点中
+        // 由于前面已经删除第0个关键字,所以这里添加的还是0
+        parent.entries.add(parentEntryIdx, next.entries.getFirst());
+    }
+
+    /**
+     * 获取 当前节点指针 和 前节点指针 之间的 关键字 在父节点中的位置
+     */
+    private int getMiddleKeyIdxInParent(Page node) {
+        int index = parent.children.indexOf(node);
+        return index - 1;
+    }
+
+    /**
+     * 兄弟叶节点是否能够借出
+     */
+    private boolean leafCanBorrow(Page node) {
+        if (node != null) {
+            int min = getUpper(maxLength - 1, 2);
+            return node.entries.size() > min && node.parent == parent;
+        }
+        return false;
+    }
+
+    /**
+     * 兄弟中间节点是否可以借
+     */
+    private boolean middleNodeCanBorrow(Page node) {
+        if (node != null) {
+            int min = getUpper(maxLength, 2);
+            return node.children.size() > min && node.parent == parent;
+        }
+        return false;
+    }
+
+    /**
+     * 叶子节点是否可以合并
+     */
+    private boolean leafCanMerge(Page node) {
+        if (node != null) {
+            return (entries.size() + node.entries.size() - 1) <= (maxLength - 1)
+                    && parent == node.parent;
+        }
+        return false;
+    }
+
+    /**
+     * 中间节点是否可以合并
+     */
+    private boolean middleNodeCanMerge(Page node) {
+        if (node != null) {
+            return (entries.size() + node.entries.size() + 1) <= (maxLength - 1)
+                    && parent == node.parent;
+        }
+        return false;
+    }
+
+
+    /**
+     * 上取整
+     */
+    private int getUpper(int x, int y) {
+        if (y == 2) {
+            int remainder = x & 1;
+            if (remainder == 0) {
+                return x >> 1;
+            } else {
+                return (x >> 1) + 1;
+            }
+        } else {
+            int remainder = x % y;
+            if (remainder == 0) {
+                return x / y;
+            } else {
+                return x / y + 1;
+            }
+        }
+    }
+
+    /**
+     * 关键字是否可以直接在叶节点中删除
+     */
+    private boolean canRemoveDirectInLeaf() {
+        if (isLeaf) {
+            int maxKey = maxLength - 1;
+            int remainder = maxKey % 2;
+            int half;
+            if (remainder == 0) {
+                half = maxKey / 2;
+            } else {
+                half = maxKey / 2 + 1;
+            }
+            if ((entries.size() - 1) < half) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            throw new UnsupportedOperationException("it isn't leaf node.");
+        }
+    }
+
+    /**
+     * 直接在叶子节点中删除,不改变树结构
+     */
+    private boolean removeInLeaf(Tuple key) {
+        int index = -1;
+        boolean isFound = false;
+        for (int i = 0; i < entries.size(); i++) {
+            if (key.getPrimaryV().compare(entries.get(i)) == 0) {
+                index  = i;
+                isFound = true;
+                break;
+            }
+        }
+        if (index != -1) {
+            entries.remove(index);
+        }
+        return isFound;
+    }
+
+    /**
+     * 判断当前节点是否包含关键字
+     */
+    private boolean contains(Tuple key) {
+        for (Tuple tuple : entries) {
+            if (key.compare(tuple) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 非叶节点插入关键字后,检查是否需要分裂
+     */
+    private void updateNode(BpTree tree) {
+        // 需要分裂
+        if (isNodeToSplit()) {
+            System.out.println("非叶节点插入关键字后,需要分裂");
+            Page left = new Page(false);
+            Page right = new Page(false);
+
+            int pLeftSize = getUpper(children.size(), 2);
+            int pRightSize = children.size() - pLeftSize;   //fix bug
+
+            // 提升到父节点的关键字
+            Value keyToParent = entries.get(pLeftSize - 1);
+
+            System.out.printf("middle node p left:%d  right:%d\n", pLeftSize, pRightSize);
+            // 复制左边的关键字
+            for (int i = 0; i < (pLeftSize - 1); i++) {
+                left.entries.add(entries.get(i));
+            }
+            // 复制左边的指针
+            for (int i = 0; i < pLeftSize; i++) {
+                left.children.add(children.get(i));
+                left.children.get(i).setParent(left);
+            }
+
+            // 复制右边关键字,右边的第一个关键字提升到父节点
+            for (int i = 0;  i < (pRightSize - 1); i++) {
+                right.entries.add(entries.get(pLeftSize + i));
+            }
+            // 复制右边的指针
+            for (int i = 0; i < pRightSize; i++) {
+                right.children.add(children.get(pLeftSize + i));
+                right.children.get(i).setParent(right);     // fix index bug
+            }
+
+            if (!isRoot) {
+                System.out.println("current is root:" + false);
+                System.out.println("非叶节点的父节点插入key");
+                int index = parent.children.indexOf(this);
+                parent.children.remove(index);
+                left.parent = parent;
+                right.parent = parent;
+                parent.children.add(index, left);
+                parent.children.add(index + 1, right);
+                // 插入关键字
+//                parent.insertInParent(keyToParent);
+                parent.entries.add(index, keyToParent);
+                parent.updateNode(tree);
+                entries.clear();
+                children.clear();
+                entries = null;
+                children = null;
+                parent = null;
+            } else {
+                // 是根节点
+                System.out.println("current is root:" + true);
+                System.out.println("parent null:" + (parent == null));
+                isRoot = false;
+                Page rootPage = new Page(false, true);
+                tree.setRoot(rootPage);
+                left.parent = rootPage;
+                right.parent = rootPage;
+                rootPage.children.add(left);
+                rootPage.children.add(right);
+                children.clear();
+                entries.clear();
+                children = null;
+                entries = null;
+                // 插入关键字
+//                rootPage.insertInParent(keyToParent);
+                rootPage.entries.add(keyToParent);
+            }
+        }
+    }
+
+    /**
+     * 叶子节点是否需要分裂,
+     * 用于插入前进行判断
+     */
+    private boolean isLeafToSplit() {
+        if (isLeaf) {
+            if (entries.size() >= (maxLength - 1)) {
+                return true;
+            } else return false;
+        } else {
+            throw new UnsupportedOperationException("the node is not leaf.");
+        }
+    }
+
+    /**
+     * 中间节点是否需要分裂,
+     * 已经插入指针和关键字
+     */
+    private boolean isNodeToSplit() {
+        // 由于是先插入关键字,所以不需要[=]
+        if (isLeaf) {
+            throw new UnsupportedOperationException("error access to leaf");
+        }
+        if (children.size() > maxLength) {
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * 插入到当前叶子节点中,不分裂
+     */
+    private void insertInLeaf(Value key) {
+        if (!isLeaf) {
+            throw new UnsupportedOperationException("can't insert into middle node.");
+        }
+
+        // 插入entry的适当位置，保持有序
+        for(int i = 0; i < entries.size(); i++) {
+            if(entries.get(i).compare(key) > 0) {
+                entries.add(i,key);
+                break;
+            }
+        }
+    }
+
+    /**
+     * 插入到非叶子节点中,不分裂
+     */
+    private void insertInParent(Value key){
+        if (isLeaf) {
+            throw new UnsupportedOperationException("can't insert into leaf node.");
+        }
+
+        for(int i = 0; i < entries.size(); i++) {
+            if(entries.get(i).compare(key) > 0) {
+                entries.add(i,key);
+                break;
+            }
+        }
+    }
+
+
+    /**
+     * 验证节点是否满足 point数 = key数 + 1
+     */
+    private boolean checkKeyPointRelation() {
+        if (!isLeaf) {
+            if ((entries.size() + 1) == children.size()) {
+                return true;
+            } else {
+                System.out.println("不满足 point数 = key数 + 1");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 检查关键字是否有序
+     */
+    private boolean keyIsOrder() {
+        for (int i = 0; i < (entries.size() - 1); i++) {
+            if (entries.get(i).compare(entries.get(i + 1)) > 0) {
+                System.out.println("节点关键字 不 有序");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 验证节点是否符合B+树 定义
+     */
+    boolean validate() {
+        if (checkKeyPointRelation()) {
+            // 检查关键字是否有序
+            if (keyIsOrder()) {
+                if (isLeaf) {
+                    if (isRoot) {
+                        // 是页节点 且是 根节点
+                        return true;
+                    } else {
+                        // 是叶子节点 不是 根节点
+                        if (entries.size() < getUpper(maxLength - 1, 2) || entries.size() > (maxLength - 1)) {
+                            System.out.println("叶节点key数 不合法");
+                            return false;
+                        }
+                        if (parent == null) {
+                            System.out.println("叶子节点的父节点的指针为空");
+                            return false;
+                        }
+                    }
+                    return true;
+                } else {
+                    // 非叶子节点
+                    // 先检查指针数是否符合
+                    if (isRoot) {
+                        if (children.size() < 2) {
+                            System.out.printf("根节点指针数 不合法, children:%d\n", children.size());
+                            return false;
+                        }
+                    } else {
+                        if (children.size() < getUpper(maxLength, 2) || children.size() > maxLength) {
+                            System.out.printf("非叶节点指针数 不合法, children:%d\n", children.size());
+                            System.out.printf("entry:%d\n", entries.size());
+                            return false;
+                        }
+                        for (Page node : children) {
+                            if (node.parent == null) {
+                                System.out.println("中间节点的父指针为空");
+                                return false;
+                            }
+                        }
+                    }
+                    for (Page node : children) {
+                        if (node.validate()) {
+                            // 子节点符合B+树定义
+                            int pIdx = children.indexOf(node);
+                            Value minChildKey = node.entries.getFirst();
+                            Value maxChildKey = node.entries.getLast();
+                            if (pIdx == 0) {
+                                // 第一个指针
+                                boolean isValid = maxChildKey.compare(entries.getFirst()) < 0;
+                                if (!isValid) {
+                                    System.out.println("子节点与父节点不满足大小关系");
+                                    return false;
+                                }
+                            } else if (pIdx == (children.size() - 1)) {
+                                // 最后一个指针
+                                boolean isValid = minChildKey.compare(entries.getLast()) >= 0;
+                                if (!isValid) {
+                                    System.out.println("子节点与父节点不满足大小关系");
+                                    return false;
+                                }
+                            } else {
+                                Value preKey = entries.get(pIdx - 1);
+                                Value nextKey = entries.get(pIdx);
+                                boolean isValid = minChildKey.compare(preKey) >= 0
+                                        && maxChildKey.compare(nextKey) < 0;
+                                if (!isValid) {
+                                    System.out.println("子节点与父节点不满足大小关系");
+                                    return false;
+                                }
+                            }
+                        } else {
+                            // 子节点违反B+树定义
+                            System.out.println("子节点违反B+树定义");
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            } else {
+                // 关键字不有序
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
 
 
 

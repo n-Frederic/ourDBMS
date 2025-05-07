@@ -37,4 +37,6 @@ public abstract class Value {
     public abstract Object getValue();
 
     public abstract byte[] toBytes();
+
+
 }

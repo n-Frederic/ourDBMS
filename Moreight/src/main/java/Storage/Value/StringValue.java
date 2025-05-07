@@ -58,6 +58,10 @@ public class StringValue extends Value {
 
     @Override
     public byte[] toBytes() {
-        return s.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        byte[] result = new byte[bytes.length+1];
+        System.arraycopy(bytes, 0, result, 0, bytes.length);
+        result[bytes.length] = 0;
+        return result;
     }
 }

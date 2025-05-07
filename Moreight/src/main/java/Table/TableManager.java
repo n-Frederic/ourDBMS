@@ -1,7 +1,6 @@
 package Table;
 
 import Database.DatabaseManager;
-import Storage.BPlusTree.BpNode;
 import Storage.BPlusTree.BpTree;
 import Storage.Page.Tuple;
 import Storage.BPlusTree.Value.*;
@@ -27,7 +26,8 @@ public class TableManager {
     // (1) type (2) PRIMARY KEY (3) UNIQUE (4) NOT NULL (5) DEFAULT
     public static void CreateTable(String tableName,ArrayList<Field> args) {
         Schema schema = new Schema(args);
-        Table table = new Table(schema);  // 构造空表对象
+        writeRootPageStructure(schema);
+        // Table table = new Table(schema);  // 构造空表对象
     }
     /**
      * 删除表。

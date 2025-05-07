@@ -96,6 +96,7 @@ public class commandParser {
         return Columns;
     }
 
+
     public static ArrayList<String> parseAlterDrop(String str){
         ArrayList<String> Columns=new ArrayList<>();
         if (str == null) {
@@ -302,29 +303,63 @@ public class commandParser {
      * 输入："name, age"
      * 输出：name,age
      */
-    public static ArrayList<String> parseSelectColumn(String str){
-        ArrayList<String> Columns=new ArrayList<>();
-        if (str == null) {
-            return Columns;
+    public static String[] parseAggregateFunction(String expr) {
+        if (expr == null) return null;
+
+        Pattern pattern = Pattern.compile(
+                "(?i)(count|sum|avg|min|max)\\s*\\(([^)]+)\\)(?:\\s+as\\s+(\\w+))?"
+        );
+
+        Matcher matcher = pattern.matcher(expr.trim());
+        if (!matcher.find()) {
+            return null; // 不是有效的聚合函数
         }
-        String word=str.trim().toLowerCase();
-        String[] lines=word.split(",");
-        int i=1;
-        for(String line:lines){
-            line=line.trim();
-            if(line.contains("count")||line.contains("sum")||line.contains("avg")||line.contains("min")||line.contains("max")){
-                int index=line.indexOf("as");
-                if(index!=-1){
-                    Columns.add(line.substring(index+"as".length()).trim());
-                }else{
-                    Columns.add("Column"+i);
-                    i++;
+
+        String[] result = new String[3];
+        result[0] = matcher.group(1).toUpperCase(); // 函数类型
+        result[1] = matcher.group(2).trim();       // 参数
+        result[2] = matcher.group(3);              // 别名
+
+        return result;
+    }
+    public static ArrayList<String[]> parseSelectColumn(String str) {
+        ArrayList<String[]> columns = new ArrayList<>();
+        if (str == null || str.trim().isEmpty()) {
+            return columns;
+        }
+
+        String[] parts = str.trim().split(",");
+        int colNum = 1;
+
+        for (String part : parts) {
+            part = part.trim();
+            if (part.isEmpty()) continue;
+
+            String[] colInfo = new String[2];
+            colInfo[0] = part; // 原始表达式
+
+            // 检查是否是聚合函数
+            Matcher aggMatcher = Pattern.compile(
+                    "(?i)(count|sum|avg|min|max)\\s*\\(([^)]+)\\)(?:\\s+as\\s+(\\w+))?"
+            ).matcher(part);
+
+            if (aggMatcher.find()) {
+                // 如果有AS别名，使用别名
+                if (aggMatcher.group(3) != null) {
+                    colInfo[1] = aggMatcher.group(3);
+                } else {
+                    // 否则生成默认列名
+                    colInfo[1] = "Column" + colNum++;
                 }
-            }else{
-                Columns.add(line);
+            } else {
+                // 不是聚合函数，直接使用列名
+                colInfo[1] = part;
             }
+
+            columns.add(colInfo);
         }
-        return Columns;
+
+        return columns;
     }
 
     public static List<String> parseFrom(String str){

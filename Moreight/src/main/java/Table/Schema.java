@@ -5,7 +5,6 @@ import java.util.*;
 /**
  * Schema类用于描述数据库表的结构。
  * 它包含表名和表中每个字段的规则定义。
- * 该类支持从JSON文件中加载表结构定义。
  */
 public class Schema {
     private ArrayList<Field> fields;

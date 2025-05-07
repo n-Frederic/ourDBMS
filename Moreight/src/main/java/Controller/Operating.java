@@ -62,6 +62,8 @@ public class Operating {
             Pattern.compile("(?i)^\\s*(?:DESC|DESCRIBE)\\s+(\\w+)\\s*;?\\s*$");
 
 
+
+
     private static Scanner sc = new Scanner(System.in);
     private boolean login = false;
     private boolean enter_database = false;
@@ -86,6 +88,7 @@ public class Operating {
             System.out.print("请输入选项：");
 
             String choice = sc.nextLine();
+            //String choice=cmd1;
             if ("1".equals(choice)) {
                 login=UserAuthentication.login(sc);
             } else if ("2".equals(choice)) {
@@ -96,6 +99,8 @@ public class Operating {
             }
 
         } while (!login);
+
+
 
         Scanner sc = new Scanner(System.in);
         String cmd;
@@ -355,6 +360,42 @@ public class Operating {
         }
     }
 
+    /**
+     * 检查列是否存在，支持聚合函数中的列
+     * @param table 表对象
+     * @param columns 要检查的列名列表（可能包含聚合函数）
+     * @return 所有列都有效返回true，否则返回false
+     */
+
+    private boolean checkColumnsExist(Table table, List<?>  columns) {
+        for (Object column : columns) {
+            // 检查是否是聚合函数
+            String[] aggInfo = commandParser.parseAggregateFunction(column);
+
+            if (aggInfo != null) {
+                // 处理聚合函数中的列
+                String aggColumn = aggInfo[1]; // 获取聚合参数
+
+                // 特殊处理count(*)
+                if (aggColumn.equals("*")) {
+                    continue; // count(*) 总是有效
+                }
+
+                // 检查聚合参数是否是有效列
+                if (!TypeFilter.columnExist(table, aggColumn)) {
+                    System.out.println("聚合函数 " + column + " 中的列 '" + aggColumn + "' 不存在!");
+                    return false;
+                }
+            } else {
+                // 普通列检查
+                if (!TypeFilter.columnExist(table, column)) {
+                    System.out.println("列 '" + column + "' 不存在!");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
     private boolean select(Matcher matcherSelect) {
         String tableName = matcherSelect.group(2);
@@ -363,7 +404,7 @@ public class Operating {
 
         }else{
             Table table=TableCache.getTable(tableName);
-            ArrayList<String> columns = new ArrayList<>();
+            ArrayList<String[]> columns = new ArrayList<>();
             ArrayList<Condition> conditions = new ArrayList<>();
 
             ArrayList<Tuple> data;
@@ -375,13 +416,12 @@ public class Operating {
                 Schema schema=table.getSchema();
                 columns = new ArrayList<>();
 
-                for (Field field : schema.getFields()) {
-                    columns.add(field.getName());
-                }
+
 
             } else {
                 columns = commandParser.parseSelectColumn(columnsStr);
-                for(String column:columns){
+                checkColumnsExist(table,columns);
+                for(Object column:columns){
                     if(!TypeFilter.columnExist(table,column)){
                         System.out.println("column not exist!");
                         return false;
