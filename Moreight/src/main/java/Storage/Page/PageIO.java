@@ -13,22 +13,23 @@ import java.nio.charset.StandardCharsets;
 
 public class PageIO {
     private RandomAccessFile file;
+    private static final String DIRECTORY = "../TestData/DatabaseManager";
     public static final int PAGE_SIZE = 8 * 1024; // 8KB
     private int highestPageId; // 当前最高页码
 
     public PageIO(String filePath) throws IOException {
         this.file = new RandomAccessFile(filePath, "rw");
         this.highestPageId = 0;
-        if (file.length() == 0) {
-            // 文件为空，初始化根页和最高页码
-            writeRootPageStructure(new Schema(new ArrayList<>()));
-            this.highestPageId = 1; // 初始化最高页码为1
-        } else {
-            // 读取当前最高页码（前8字节保存了根页和最高页码）
-            file.seek(4);
-            file.readInt();
-            this.highestPageId = file.readInt(); // 读取最高页码
-        }
+//        if (file.length() == 0) {
+//            // 文件为空，初始化根页和最高页码
+//            writeRootPageStructure(new Schema(new ArrayList<>()));
+//            this.highestPageId = 1; // 初始化最高页码为1
+//        } else {
+//            // 读取当前最高页码（前8字节保存了根页和最高页码）
+//            file.seek(4);
+//            file.readInt();
+//            this.highestPageId = file.readInt(); // 读取最高页码
+//        }
     }
 
     /**
@@ -79,68 +80,6 @@ public class PageIO {
         return newPageId;
     }
 
-    /**
-     * 写入第0页的结构
-     * @param schema 表的 Schema 对象
-     * @throws IOException
-     */
-    public void writeRootPageStructure(Schema schema) throws IOException {
-        file.seek(0);  // 定位到文件头部（第0页）
-
-        file.writeInt(0);  // 根页的页码
-
-        file.writeInt(highestPageId);  // 目前的最高页码
-
-        file.writeInt(5);  // 写入中间节点允许的最多key数量
-
-        // 写入列名（以每个列名长度 + UTF-8 字符串形式写入）
-        int fieldCount = Math.min(schema.getFields().size(), 100);
-        for (int i = 0; i < fieldCount; i++) {
-            String name = schema.getFields().get(i).getName();
-            byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
-
-            // 写入列名长度 + 内容
-            file.writeInt(nameBytes.length);
-            file.write(nameBytes);
-        }
-
-        // 如果字段数不足 100 个，补空列名（写入0长度）
-        for (int i = fieldCount; i < 100; i++) {
-            file.writeInt(0);
-        }
-        // 写入字段类型（int，4B * n，最多允许400B)
-        for (int i = 0; i < fieldCount; i++) {
-            String fieldType = schema.getFields().get(i).getType();  // 获取字段类型（String 类型）
-            int fieldTypeInt = mapFieldTypeToInt(fieldType);  // 将字段类型转换为数字
-            file.writeInt(fieldTypeInt);  // 写入字段类型
-        }
-
-        // 填充剩余的空间（如果字段数小于 100，填充 0）
-        for (int i = fieldCount; i < 100; i++) {
-            file.writeInt(0);  // 填充 0
-        }
-    }
-
-    // 将字段类型映射为对应的数字
-    private int mapFieldTypeToInt(String fieldType) {
-        switch (fieldType.toUpperCase()) {
-            case "Int":
-                return 1;
-            case "String":
-                return 2;
-            case "Boolean":
-                return 3;
-            case "Long":
-                return 4;
-            case"Null":
-                return 5;
-            default:
-                return 0;  // 未知类型
-        }
-    }
-
-
-
     // 根据主键和表名找到页号
     public int findPageNum(Tuple tuple, String tbname) throws IOException {
         int pageNum = -1; // 初始假设未找到页号
@@ -190,6 +129,17 @@ public class PageIO {
         // 这里假设我们有一个可以获取子节点页号的机制
         // 在实际的B+树中，可能是通过某种结构存储在页面上
         return currentPage.getChildren().get(index).getPageId(); // 假设我们有子节点
+    }
+
+    public void close() {
+        try {
+            if (file != null) {
+                file.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("关闭文件失败: " + e.getMessage());
+        }
     }
 }
 

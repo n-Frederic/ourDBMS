@@ -7,6 +7,7 @@ import Storage.Page.Tuple;
 import Storage.Value.Value;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
 
@@ -20,7 +21,7 @@ public class Table {
     private BpTree tree;
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
-    public Table(Schema s) {
+    public Table(Schema s) throws IOException {
         this.schema = s;
         this.tree = new BpTree();
     }
@@ -31,7 +32,7 @@ public class Table {
      * @param key 行的信息
      */
 
-    public void insert(Tuple key) {
+    public void insert(Tuple key) throws IOException {
         tree.insert(key);
     }
 
@@ -69,28 +70,28 @@ public class Table {
         ArrayList<Tuple> tuples = new ArrayList<>();
         Page current = tree.getHead();
         while(current != null) {
-            tuples.addAll(current.getEntries());
+            tuples.addAll(current.getTuples());
             current = current.getNext();
         }
         return tuples;
     }
 
-    public ArrayList<Tuple> where(Condition condition) {
-        ArrayList<Tuple> tuples = new ArrayList<>();
-        Field field = schema.getField(condition.getColumn());
-        int index = schema.getIndex(field);
-
-        BpNode current = tree.getHead();
-        while(current != null) {
-            ArrayList<Tuple> temp = current.get(condition,index);
-            if(!temp.isEmpty()) {
-                tuples.addAll(temp);
-            }
-            current = current.getNext();
-        }
-
-        return tuples;
-    }
+//    public ArrayList<Tuple> where(Condition condition) {
+//        ArrayList<Tuple> tuples = new ArrayList<>();
+//        Field field = schema.getField(condition.getColumn());
+//        int index = schema.getIndex(field);
+//
+//        BpNode current = tree.getHead();
+//        while(current != null) {
+//            ArrayList<Tuple> temp = current.get(condition,index);
+//            if(!temp.isEmpty()) {
+//                tuples.addAll(temp);
+//            }
+//            current = current.getNext();
+//        }
+//
+//        return tuples;
+//    }
 
     public ArrayList<Tuple> where (ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
         ArrayList<Tuple> tuples = new ArrayList<>();
@@ -131,9 +132,9 @@ public class Table {
     // TODO: 等待一个能直接操作的
 //    public void delete()
 
-    public void truncate() {
-        tree.truncate();
-    }
+//    public void truncate() {
+//        tree.truncate();
+//    }
 
     public Schema getSchema(){
         return schema;
@@ -141,6 +142,22 @@ public class Table {
     public BpTree getTree(){
         return tree;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

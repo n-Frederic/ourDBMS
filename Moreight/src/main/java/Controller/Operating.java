@@ -12,6 +12,7 @@ import Table.TableManager;
 import User.UserManager;
 import Parser.commandParser;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -79,7 +80,7 @@ public class Operating {
     }
 
 
-    public void dbms() {
+    public void dbms() throws IOException {
 
         do {
             System.out.println("欢迎使用 SimpleDBMS");
@@ -370,7 +371,7 @@ public class Operating {
     private boolean checkColumnsExist(Table table, List<?>  columns) {
         for (Object column : columns) {
             // 检查是否是聚合函数
-            String[] aggInfo = commandParser.parseAggregateFunction(column);
+            String[] aggInfo = commandParser.parseAggregateFunction(column.toString());
 
             if (aggInfo != null) {
                 // 处理聚合函数中的列
@@ -388,7 +389,7 @@ public class Operating {
                 }
             } else {
                 // 普通列检查
-                if (!TypeFilter.columnExist(table, column)) {
+                if (!TypeFilter.columnExist(table, column.toString())) {
                     System.out.println("列 '" + column + "' 不存在!");
                     return false;
                 }
@@ -422,7 +423,7 @@ public class Operating {
                 columns = commandParser.parseSelectColumn(columnsStr);
                 checkColumnsExist(table,columns);
                 for(Object column:columns){
-                    if(!TypeFilter.columnExist(table,column)){
+                    if(!TypeFilter.columnExist(table,column.toString())){
                         System.out.println("column not exist!");
                         return false;
 
@@ -456,7 +457,14 @@ public class Operating {
 
 
             System.out.println(columns);
-            Render.DrawSelectedTable(data,columns);
+            // TODO:待修改
+//            Render.DrawSelectedTable(data,columns);
+
+
+
+
+
+
             //Table.SelectFromTable(tableName,columns,conditions);
 
             //Table.From(tableName);
@@ -556,7 +564,7 @@ public class Operating {
 
 
     }
-    private void insert(Matcher matcherInsert) {
+    private void insert(Matcher matcherInsert) throws IOException {
         String tableName   = matcherInsert.group(1);
         List<String> columns   = commandParser.parseInsertColumn(matcherInsert.group(2));
         List<Object> rawValues = commandParser.parseInsertValue(matcherInsert.group(3));

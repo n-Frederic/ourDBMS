@@ -33,7 +33,7 @@ public class Render {
         ArrayList<Tuple> data = new ArrayList<>();
         for (String name : dbNames) {
             Tuple obj = new Tuple();
-            obj.addProperty("Database", name);
+            // obj.addProperty("Database", name);
             data.add(obj);
         }
 
@@ -50,7 +50,7 @@ public class Render {
         ArrayList<Tuple> data = new ArrayList<>();
         for (String name : tbNames) {
             Tuple obj = new  Tuple();
-            obj.addProperty("Table", name);
+            // obj.addProperty("Table", name);
             data.add(obj);
         }
 

@@ -1,7 +1,7 @@
 package Storage.Page;
 import Storage.BPlusTree.BpTree;
-import Storage.Value.BooleanValue;
-import Storage.Value.Value;
+import Storage.Value.*;
+import Table.Field;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -37,13 +37,10 @@ public class Page {
     // 以上是叶子节点的属性
 
 
-
-
-
-
     public Page(int pageId) {
         this.pageId = pageId;
         this.tuples = new ArrayList<>();
+        this.entries = new ArrayList<>();
     }
 
     public Page() {
@@ -52,9 +49,10 @@ public class Page {
 
     public Page(boolean isLeaf) {
         this.isLeaf = isLeaf;
-        entries = new ArrayList<>();
+        tuples = new ArrayList<>();
         if (!isLeaf) {
             children = new ArrayList<>();
+            entries = new ArrayList<>();
         }
     }
 
@@ -62,6 +60,7 @@ public class Page {
         this(isLeaf);
         this.isRoot = isRoot;
     }
+
 
 
 
@@ -126,7 +125,9 @@ public class Page {
         this.pageId = pageId;
     }
 
-
+    public ArrayList<Value> getEntries() {
+        return entries;
+    }
 
 
 
@@ -167,7 +168,6 @@ public class Page {
      * 通过调用预估大小函数，判断page是否还能插入行数组
      * @param candidate 待插入的行
      * @return 是否能插入
-     * @throws IOException
      */
     public boolean isFull(Tuple candidate) throws IOException {
         int used = estimateCurrentSize();
@@ -212,8 +212,8 @@ public class Page {
         DataOutputStream dataOut = new DataOutputStream(out);
 
         dataOut.writeInt(pageId);    // pageID
-        dataOut.write(new BooleanValue(isLeaf).toBytes());
-        dataOut.write(new BooleanValue(isRoot).toBytes());
+        dataOut.writeBoolean(isLeaf);
+        dataOut.writeBoolean(isRoot);
         dataOut.writeInt(parent.PageId);
         dataOut.writeInt(previous.PageId);
         dataOut.writeInt(next.PageId);
@@ -283,8 +283,8 @@ public class Page {
     public static Page leafFromBytes(byte[] bytes) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
         int pageId = in.readInt();
-        boolean isLeaf = in.readByte() == 1;
-        boolean isRoot = in.readByte() == 1;
+        boolean isLeaf = in.readBoolean();
+        boolean isRoot = in.readBoolean();
         int parentId = in.readInt();
         int previousId = in.readInt();
         int nextId = in.readInt();
@@ -315,7 +315,6 @@ public class Page {
 
         page.isLeaf = isLeaf;
         page.isRoot = isRoot;
-        page.PageId = pageId;
         page.parent = new Page(parentId);
         page.previous = new Page(previousId);
         page.next = new Page(nextId);
@@ -331,11 +330,62 @@ public class Page {
      * 根页的页码 ( int 4B )
      * 目前的最高页码 （ int 4B ）
      * 中间节点允许的最多key数量 （ int 4B ）
+     * 列的当前数量 （int 4B)
      * 列名 （最多100个字段，每列是 int（列名长度） + n 字节（UTF-8 字节串）)
      * 列类型 （ int 4B*100 , 最多允许400B)
-     *
      */
 
+    public byte[] ZeroToBytes(ArrayList<Field> fields) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
+        DataOutputStream dataOut = new DataOutputStream(out);
+
+        dataOut.writeInt(1);
+        dataOut.writeInt(1);
+        dataOut.writeInt(5);
+
+        int size = fields.size();
+        dataOut.writeInt(size);
+
+        // 写入列名（以每个列名长度 + UTF-8 字符串形式写入）
+        int fieldCount = Math.min(size, 100);
+        for (int i = 0; i < fieldCount; i++) {
+            String name = fields.get(i).getName();
+            byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+
+            // 写入列名长度 + 内容
+            dataOut.writeInt(nameBytes.length);
+            dataOut.write(nameBytes);
+        }
+
+        // 如果字段数不足 100 个，补空列名（写入0长度）
+        for (int i = fieldCount; i < 100; i++) {
+            dataOut.writeInt(0);
+        }
+        // 写入字段类型（int，4B * n，最多允许400B)
+        for (int i = 0; i < fieldCount; i++) {
+            String fieldType = fields.get(i).getType();  // 获取字段类型（String 类型）
+            int fieldTypeInt = mapFieldTypeToInt(fieldType);  // 将字段类型转换为数字
+            dataOut.writeInt(fieldTypeInt);  // 写入字段类型
+        }
+
+        // 填充剩余的空间（如果字段数小于 100，填充 0）
+        for (int i = fieldCount; i < 100; i++) {
+            dataOut.writeInt(0);  // 填充 0
+        }
+
+        return out.toByteArray();
+    }
+
+    private int mapFieldTypeToInt(String fieldType) {
+        return switch (fieldType.toUpperCase()) {
+            case "STRING" -> 1;
+            case "INT" -> 2;
+            case "LONG" -> 3;
+            case "BOOLEAN" -> 4;
+            case "NULL" -> 0;
+            default -> -1;  // 未知类型
+        };
+    }
 
 
 
@@ -356,8 +406,8 @@ public class Page {
         DataOutputStream dataOut = new DataOutputStream(out);
 
         dataOut.writeInt(pageId);    // pageID
-        dataOut.write(new BooleanValue(isLeaf).toBytes());
-        dataOut.write(new BooleanValue(isRoot).toBytes());
+        dataOut.writeBoolean(isLeaf);
+        dataOut.writeBoolean(isRoot);
         dataOut.writeInt(parent.PageId);
         dataOut.writeInt(children.size());
         dataOut.writeInt(entries.getFirst().getType());
@@ -386,84 +436,55 @@ public class Page {
     public static Page InnerFromBytes(byte[] bytes) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
         int pageId = in.readInt();
-        boolean isLeaf = in.readByte() == 1;
-        boolean isRoot = in.readByte() == 1;
+        Page page = new Page(pageId);
+
+        boolean isLeaf = in.readBoolean();
+        boolean isRoot = in.readBoolean();
         int parentId = in.readInt();
         int size = in.readInt();
         int type = in.readInt();
 
         switch(type) {
             case 1:
-
+                for(int i = 0; i < size; i++) {
+                    StringBuilder sb = new StringBuilder();
+                    byte b;
+                    while ((b = in.readByte()) != 0) {
+                        sb.append((char) b);
+                    }
+                    page.entries.add(new StringValue(sb.toString()));
+                }
+                break;
             case 2:
-
+                for(int i = 0; i < size; i++) {
+                    page.entries.add(new IntValue(in.readInt()));
+                }
+                break;
             case 3:
-
+                for(int i = 0; i < size; i++) {
+                    page.entries.add(new LongValue(in.readLong()));
+                }
+                break;
             case 4:
+                for(int i = 0; i < size; i++) {
+                    page.entries.add(new BooleanValue(in.readBoolean()));
+                }
+                break;
         }
 
-        Page page = new Page(pageId);
+        for(int i = 0; i < size; i++) {
+            page.children.add(new Page(in.readInt()));
+        }
 
 
         page.isLeaf = isLeaf;
         page.isRoot = isRoot;
-        page.PageId = pageId;
         page.parent = new Page(parentId);
-
 
         return page;
     }
 
-    private static int[] parseIntArray(byte[] data) {
-        int[] result = new int[data.length / 4];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = ((data[i * 4] & 0xFF) << 24) |
-                    ((data[i * 4 + 1] & 0xFF) << 16) |
-                    ((data[i * 4 + 2] & 0xFF) << 8) |
-                    (data[i * 4 + 3] & 0xFF);
-        }
-        return result;
-    }
 
-    // 解析 long 数组（8 字节）
-    private static long[] parseLongArray(byte[] data) {
-        long[] result = new long[data.length / 8];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = ((long) (data[i * 8] & 0xFF) << 56) |
-                    ((long) (data[i * 8 + 1] & 0xFF) << 48) |
-                    ((long) (data[i * 8 + 2] & 0xFF) << 40) |
-                    ((long) (data[i * 8 + 3] & 0xFF) << 32) |
-                    ((long) (data[i * 8 + 4] & 0xFF) << 24) |
-                    ((long) (data[i * 8 + 5] & 0xFF) << 16) |
-                    ((long) (data[i * 8 + 6] & 0xFF) << 8) |
-                    (data[i * 8 + 7] & 0xFF);
-        }
-        return result;
-    }
-
-    // 解析 boolean 数组（1 字节）
-    private static boolean[] parseBooleanArray(byte[] data) {
-        boolean[] result = new boolean[data.length];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = data[i] != 0; // 0=false, 非0=true
-        }
-        return result;
-    }
-
-    // 解析 string 数组（UTF-8 + \0）
-    private static String[] parseStringArray(byte[] data) {
-        List<String> strings = new ArrayList<>();
-        int offset = 0;
-        while (offset < data.length) {
-            int end = offset;
-            while (end < data.length && data[end] != 0) {
-                end++;
-            }
-            strings.add(new String(data, offset, end - offset, StandardCharsets.UTF_8));
-            offset = end + 1; // 跳过 \0
-        }
-        return strings.toArray(new String[0]);
-    }
 
 
 
@@ -691,9 +712,9 @@ public class Page {
                     if (key.getPrimaryV().compare(entries.get(i)) >= 0 && key.getPrimaryV().compare(entries.get(i + 1)) < 0) {
                         if (children.get(i + 1).remove(key, tree)) {
                             isFound = true;
+                            break;
                         }
                     }
-                    break;
                 }
             }
         }
@@ -999,8 +1020,8 @@ public class Page {
      * 判断当前节点是否包含关键字
      */
     private boolean contains(Tuple key) {
-        for (Tuple tuple : entries) {
-            if (key.compare(tuple) == 0) {
+        for (Value value: entries) {
+            if (key.getPrimaryV().compare(value) == 0) {
                 return true;
             }
         }
@@ -1266,8 +1287,4 @@ public class Page {
             return false;
         }
     }
-
-
-
-
 }

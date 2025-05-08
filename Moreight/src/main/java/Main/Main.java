@@ -1,12 +1,26 @@
 package Main;
 
 import Controller.Operating;
+import Table.Field;
+import Table.TableManager;
+
+import java.util.ArrayList;
 
 public class Main {
     public static void main(String[] args) {
+
+        TableManager tm = new TableManager();
+        ArrayList<Field> fields = new ArrayList<>();
+
+        fields.add(new Field("id", "INT"));
+        fields.add(new Field("name", "STRING"));
+        fields.add(new Field("age", "INT"));
+
+        TableManager.CreateTable("student", fields);
+
         // 登录注册的测试
-       Operating operating = new Operating();
-       operating.dbms();
+//       Operating operating = new Operating();
+//       operating.dbms();
 
 //       UI ui=new UI();
 //       ui.createUI();
@@ -79,46 +93,6 @@ public class Main {
 //        }
 
 
-//        Field field = new Field("Sno","VARCHAR(8)");
-//        Field field1 = new Field("Sname", "VARCHAR(8)");
-//        Field field2 = new Field("Ssex","VARCHAR(4)");
-//        Field field3 = new Field("Sbirthday", "VARCHAR(10)");
-//        ArrayList<Field> fields = new ArrayList<>();
-//        fields.add(field);
-//        fields.add(field1);
-//        fields.add(field2);
-//        fields.add(field3);
-//        TableManager.CreateTable("student",fields);
-
-//        DatabaseManager.showDatabases();
-
-        // 删库显示库的测试
-//        DatabaseManager.createDataBase("ndb");
-//        DatabaseManager.useDatabase("ndb");
-//        List<String> databases = DatabaseManager.showDatabases();
-//        System.out.println("Databases: " + databases);
-//        DatabaseManager.dropDatabase("ndb",2);
-
-        // 插入记录的测试
-//        DatabaseManager.useDatabase("20250324testDB");
-//        ArrayList<String> columns = new ArrayList<>();
-//        columns.add("Sno");
-//        columns.add("Sname");
-//        columns.add("Ssex");
-//        columns.add("Sbirthday");
-//        ArrayList<Object> value = new ArrayList<>();
-//        value.add("23301116");
-//        value.add("周学超");
-//        value.add("男");
-//        value.add("2005-01-16");
-//        ArrayList<Object> value1 = new ArrayList<>();
-//        value1.add("23301111");
-//        value1.add("未知");
-//        value1.add("女");
-//        value1.add("");
-//        Table.InsertIntoValue("student", columns, value);
-//        Table.InsertIntoValue("student",columns,value1);
-
         // 测试select
 //        DatabaseManager.useDatabase("testDB");
 //        Path datapath =Table.From_data("student");
@@ -159,29 +133,5 @@ public class Main {
 //        }
 
 
-
-
-//        System.out.println("中文");
-//        System.out.println("yeye");
-
-        // alter的测试，成功的
-//        DatabaseManager.useDatabase("testDB");
-//        String tableName = "student";
-//
-//        // 增加字段
-//        Schema.ColumnRule genderRule = new Schema.ColumnRule();
-//        genderRule.setType("string");
-//        genderRule.setNotNull(false);
-//        genderRule.setDefaultValue("www");
-//        Table.addColumn(tableName, "newColumn", genderRule);
-//        System.out.println("添加字段 newColumn 完成");
-//
-//        // 删除字段：name
-//        Table.deleteColumn(tableName, "Sname");
-//        System.out.println("删除字段 Sname 完成");
-//
-//        // 修改字段名
-//        Table.renameColumn(tableName, "Sno", "Snoo");
-//        System.out.println("重命名字段 Sno -> Snoo 完成");
     }
 }

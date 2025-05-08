@@ -2,14 +2,16 @@ package Table;
 
 import Database.DatabaseManager;
 import Storage.BPlusTree.BpTree;
-import Storage.Page.Tuple;
-import Storage.BPlusTree.Value.*;
+import Storage.Page.*;
 import Storage.Value.NullValue;
-import Util.Func.Render;
 
+
+import Util.Func.Render;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.io.IOException;
+import java.io.File;
+import java.io.RandomAccessFile;
 import java.util.List;
 
 /**
@@ -24,18 +26,51 @@ public class TableManager {
      * @param args 包含表字段定义的Field对象列表。
      */
     // (1) type (2) PRIMARY KEY (3) UNIQUE (4) NOT NULL (5) DEFAULT
-    public static void CreateTable(String tableName,ArrayList<Field> args) {
-        Schema schema = new Schema(args);
-        writeRootPageStructure(schema);
-        // Table table = new Table(schema);  // 构造空表对象
+    public static void CreateTable(String tableName, ArrayList<Field> args) {
+        try {
+            File dir = new File(DIRECTORY);
+            if (!dir.exists()) dir.mkdirs();
+
+            File file = new File(DIRECTORY + "/" + tableName + ".idb");
+            if (file.exists()) {
+                System.out.println("表已存在：" + tableName);
+                return;
+            }
+
+            RandomAccessFile raf = new RandomAccessFile(file, "rw");
+            Page page = new Page();
+            byte[] bytes = page.ZeroToBytes(args);
+            // 写入第0页
+            raf.write(bytes);
+            raf.close();
+
+            System.out.println("表 " + tableName + " 创建成功！");
+        } catch (IOException e) {
+            System.err.println("创建表失败：" + e.getMessage());
+            e.printStackTrace();
+        }
     }
+
     /**
      * 删除表。
      * @param tableName 表名。
      * @param userLevel 用户权限等级（1为游客，其他为管理员）。
      */
     public static void DropTable(String tableName, int userLevel) {
-        // TODO:根据表名和权限，把文件直接删喽
+        if (userLevel == 1) {
+            System.out.println("权限不足，游客无法删除表。");
+            return;
+        }
+        File tableFile = new File(DIRECTORY + "/" + tableName + ".idb");
+        if (tableFile.exists()) {
+            if (tableFile.delete()) {
+                System.out.println("表 " + tableName + " 已成功删除。");
+            } else {
+                System.out.println("删除表 " + tableName + " 失败。");
+            }
+        } else {
+            System.out.println("表 " + tableName + " 不存在。");
+        }
     }
 
 
@@ -102,39 +137,39 @@ public class TableManager {
     }
 
     public static void addColumn(Field newField,Table table){
-        if(table.getSchema().getIndex(newField)!=-1){
-            throw new IllegalArgumentException("列已存在：" + newField.getName());
-        }
-
-        table.getSchema().addColumn(newField);
-
-        // 更新树里的，新列默认都是nullValue
-        BpNode current = table.getTree().getHead();
-        while (current != null) {
-            for (Tuple tuple : current.getEntries()) {
-                tuple.appendValue(new NullValue());
-            }
-            current = current.getNext();
-        }
+//        if(table.getSchema().getIndex(newField)!=-1){
+//            throw new IllegalArgumentException("列已存在：" + newField.getName());
+//        }
+//
+//        table.getSchema().addColumn(newField);
+//
+//        // 更新树里的，新列默认都是nullValue
+//        Page current = table.getTree().getHead();
+//        while (current != null) {
+//            for (Tuple tuple : current.getEntries()) {
+//                tuple.appendValue(new NullValue());
+//            }
+//            current = current.getNext();
+//        }
     }
 
     public static void dropColumn(String fieldName,Table table){
-        Schema schema = table.getSchema();
-        BpTree tree = table.getTree();
-
-        int index = schema.getIndex(fieldName);
-        if (index == -1) throw new IllegalArgumentException("列名不存在：" + fieldName);
-
-        schema.dropColumn(fieldName);
-
-        // 遍历改Tuple
-        BpNode current  = tree.getHead();
-        while(current != null){
-            for(Tuple tuple:current.getEntries()){
-                tuple.removeValue(index);
-            }
-            current = current.getNext();
-        }
+//        Schema schema = table.getSchema();
+//        BpTree tree = table.getTree();
+//
+//        int index = schema.getIndex(fieldName);
+//        if (index == -1) throw new IllegalArgumentException("列名不存在：" + fieldName);
+//
+//        schema.dropColumn(fieldName);
+//
+//        // 遍历改Tuple
+//        Page current  = tree.getHead();
+//        while(current != null){
+//            for(Tuple tuple:current.getEntries()){
+//                tuple.removeValue(index);
+//            }
+//            current = current.getNext();
+//        }
     }
 
     public static void  renameColumn(String fieldName, String newFieldName, Table table) {
@@ -147,23 +182,22 @@ public class TableManager {
     }
 
     public static void desc(Table table) {
-        Schema schema = table.getSchema();
-        ArrayList<Field> fields = schema.getFields();
-        ArrayList<String> columnNames = new ArrayList<>();
-
-        for (Field field : fields) {
-            columnNames.add(field.getName());
-        }
-
-        // 从B+树里取所有元组
-        ArrayList<Tuple> tuples = new ArrayList<>();
-        BpNode node = table.getTree().getHead();
-        while (node != null) {
-            tuples.addAll(node.getEntries());
-            node = node.getNext();
-        }
-
-        Render.DrawSelectedTable(tuples, columnNames);
+//        Schema schema = table.getSchema();
+//        ArrayList<Field> fields = schema.getFields();
+//        ArrayList<String> columnNames = new ArrayList<>();
+//
+//        for (Field field : fields) {
+//            columnNames.add(field.getName());
+//        }
+//
+//        // 从B+树里取所有元组
+//        ArrayList<Tuple> tuples = new ArrayList<>();
+//        Page node = table.getTree().getHead();
+//        while (node != null) {
+//            tuples.addAll(node.getEntries());
+//            node = node.getNext();
+//        }
+//
+//        Render.DrawSelectedTable(tuples, columnNames);
     }
-
 }

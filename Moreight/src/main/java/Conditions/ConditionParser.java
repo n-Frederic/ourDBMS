@@ -1,7 +1,6 @@
 package Conditions;
 import Storage.Value.Value;
 import Table.Table;
-import Storage.BPlusTree.Value.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,7 +63,8 @@ public class ConditionParser {
         }
         return left;
     }
-    //where条件解析
+
+//    where条件解析
     private  ConditionNode parsePrimary(List<String> tokens,Table table) {
         if (tokens.get(0).equals("(")) {
             tokens.remove(0);
@@ -79,7 +79,7 @@ public class ConditionParser {
             Matcher m = Pattern.compile("(\\w+)\\s*(=|!=|<=|>=|<|>)\\s*(.+)").matcher(raw);
 
             String type=table.getSchema().getField(m.group(1)).getType();;
-            value= Value.getType(,table);
+            value = Value.getType();
             Value.parse(value,m.group(3));
 
             if (m.matches()) {
