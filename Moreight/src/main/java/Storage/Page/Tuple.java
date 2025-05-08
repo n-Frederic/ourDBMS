@@ -196,6 +196,11 @@ public class Tuple {
         while(in.available() > 0) {
             int type = in.readInt();
             int len = in.readInt();
+
+            if(type == 0){
+                break;
+            }
+
             byte[] valueBytes = new byte[len];
             in.readFully(valueBytes);
             Value value = decodeTypedValue(type,valueBytes);
@@ -208,7 +213,7 @@ public class Tuple {
     private static Value decodeTypedValue(int type, byte[] valueBytes) throws IOException {
         DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(valueBytes));
         switch (type) {
-            case 0:
+            case 5:
                 return new NullValue();
             case 1:
                 return new StringValue(dataIn.readUTF());

@@ -1,4 +1,5 @@
 package Conditions;
+import Parser.commandParser;
 import Storage.Value.Value;
 import Table.Table;
 import java.util.*;
@@ -64,7 +65,7 @@ public class ConditionParser {
         return left;
     }
 
-//    where条件解析
+    //    where条件解析
     private  ConditionNode parsePrimary(List<String> tokens,Table table) {
         if (tokens.get(0).equals("(")) {
             tokens.remove(0);
@@ -79,12 +80,13 @@ public class ConditionParser {
             Matcher m = Pattern.compile("(\\w+)\\s*(=|!=|<=|>=|<|>)\\s*(.+)").matcher(raw);
 
             String type=table.getSchema().getField(m.group(1)).getType();;
-            value = Value.getType();
-            Value.parse(value,m.group(3));
+            Class<? extends Value> classtype= commandParser.findClass(type);
+
+
 
             if (m.matches()) {
 
-                return new Condition(m.group(1),value, m.group(2),table);
+                return new Condition(m.group(1),Value.parse(classtype,m.group(3)), m.group(2),table);
             } else {
                 throw new IllegalArgumentException("非法条件: " + raw);
             }

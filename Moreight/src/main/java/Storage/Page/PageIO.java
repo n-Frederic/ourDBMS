@@ -1,15 +1,11 @@
 package Storage.Page;
 import Storage.Value.*;
-import Table.Schema;
-import Table.Field;
-
 import java.util.List;
+import Storage.Page.PageManager;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.lang.Math;
-import java.nio.charset.StandardCharsets;
+
 
 public class PageIO {
     private RandomAccessFile file;
@@ -55,11 +51,15 @@ public class PageIO {
         return Page.leafFromBytes(data);
     }
 
-    public void writePage(int pageId, Page page) throws IOException {
+    public void writeLeafPage(int pageId, Page page) throws IOException {
         byte[] data = page.leafToBytes();
         file.seek(pageId * Page.PAGE_SIZE);
         file.write(data);
     }
+
+    /**
+     * 获取/设置 第0页的根页页码
+     */
 
     public int getRootPageId() throws IOException {
         file.seek(0); // file header
@@ -71,11 +71,17 @@ public class PageIO {
         file.writeInt(rootId);
     }
 
+    /**
+     * 分配新页
+     * 更新最高页码
+     *
+     */
+
     public int allocateNewPage() throws IOException {
         highestPageId++;
         updateHighestPageId();
         long length = file.length();
-        int newPageId = (int)(length / Page.PAGE_SIZE);
+        int newPageId = (int) (length / Page.PAGE_SIZE);
         file.setLength(length + Page.PAGE_SIZE);
         return newPageId;
     }
@@ -141,6 +147,21 @@ public class PageIO {
             System.err.println("关闭文件失败: " + e.getMessage());
         }
     }
+
+    public void insert(byte[] record) throws IOException {
+        // 读第0页的元信息
+        file.seek(0);
+        int rootPageId = file.readInt();
+        int highestPageId = file.readInt();
+        int maxkeys = file.readInt();
+
+        // 空树的情况
+        if (rootPageId == 0) {
+            int newId = highestPageId + 1;
+            Page newRootPage = PageManager.createPage();  // 创建一个新的页
+            newRootPage.setPageId(newId);
+
+            Tuple newTuple = new Tuple();
+        }
+    }
 }
-
-

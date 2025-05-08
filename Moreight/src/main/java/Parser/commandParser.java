@@ -4,6 +4,7 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import Storage.Value.*;
 
 import Conditions.Condition;
 import Table.Field;
@@ -13,6 +14,31 @@ public class commandParser {
 
 
     static Set<String> validTypes = Set.of("int", "string", "long", "boolean");
+
+    public static  Class<? extends Value>  findClass(String type){
+        Class<? extends Value> valueClass;
+        switch (type) {
+            case "int":
+                valueClass = IntValue.class;
+                break;
+            case "string":
+                valueClass = StringValue.class;
+                break;
+            case "long":
+                valueClass = LongValue.class;
+                break;
+            case "null":
+                valueClass = NullValue.class;
+                break;
+            case "boolean":
+                valueClass = BooleanValue.class;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported type: " + type);
+        }
+        return valueClass;
+
+    }
 
     public static ArrayList<Field> parseCreateTable(String fieldsStr) {//！！！！
         String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
@@ -50,8 +76,12 @@ public class commandParser {
                 field.setNotnull(upperConstraints.contains("NOT NULL") || field.isPrimaryKey());
                 if (upperConstraints.contains("DEFAULT")) {
                     int index = upperConstraints.indexOf("DEFAULT");
+                    String type=field.getType();
                     String defaultValue = constraints.substring(index + "DEFAULT".length()).trim();
-                    field.setDefault(defaultValue);
+
+                    Class<? extends Value> valueClass=commandParser.findClass(type);
+
+                    field.setDefault(Value.parse(valueClass,defaultValue));
                 }
             }
             fieldList.add(field);
@@ -85,7 +115,7 @@ public class commandParser {
 
     public static ArrayList<String> parseAlter(String str){
         ArrayList<String> Alteralter=new ArrayList<>();
-        
+
 
 
         return Alteralter;
@@ -157,7 +187,8 @@ public class commandParser {
                 if (upperConstraints.contains("DEFAULT")) {
                     int index = upperConstraints.indexOf("DEFAULT");
                     String defaultValue = constraints.substring(index + "DEFAULT".length()).trim();
-                    field.setDefault(defaultValue);
+                    Class<? extends Value> valueType=commandParser.findClass(defaultValue);
+                    field.setDefault(Value.parse(valueType,defaultValue));
                 }
             }
             fieldList.add(field);
@@ -185,30 +216,30 @@ public class commandParser {
 
     public static ArrayList<Object> parseInsertValue(String valuesStr ) {
         // 正则表达式，用来匹配 SQL 语句中的表名、列名和对应的值
-            ArrayList<Object> values = new ArrayList<>();
-            // 列名处理
+        ArrayList<Object> values = new ArrayList<>();
+        // 列名处理
 
-            // 值处理
-            String[] valuesArray = valuesStr.split("\\s*,\\s*");
-            for (String value : valuesArray) {
-                // 判断值的类型
-                // 判断值的类型
-                if (value.matches("'[^']+'") || value.matches("\"[^\"]+\"")) { // 字符串类型（用单引号或双引号括起来）
-                    // 去除引号
-                    values.add(value.substring(1, value.length() - 1));
-                } else if (value.matches("-?\\d+")) { // 整数
-                    values.add(Integer.parseInt(value));
-                } else if (value.matches("-?\\d*\\.\\d+")) { // 浮动数字
-                    values.add(Double.parseDouble(value));
-                } else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) { // 布尔值
-                    values.add(Boolean.parseBoolean(value));
-                } else {
-                    // 默认情况下，如果值是未知类型，可以抛出异常或处理
-                    throw new IllegalArgumentException("Unsupported value type: " + value);
-                }
+        // 值处理
+        String[] valuesArray = valuesStr.split("\\s*,\\s*");
+        for (String value : valuesArray) {
+            // 判断值的类型
+            // 判断值的类型
+            if (value.matches("'[^']+'") || value.matches("\"[^\"]+\"")) { // 字符串类型（用单引号或双引号括起来）
+                // 去除引号
+                values.add(value.substring(1, value.length() - 1));
+            } else if (value.matches("-?\\d+")) { // 整数
+                values.add(Integer.parseInt(value));
+            } else if (value.matches("-?\\d*\\.\\d+")) { // 浮动数字
+                values.add(Double.parseDouble(value));
+            } else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) { // 布尔值
+                values.add(Boolean.parseBoolean(value));
+            } else {
+                // 默认情况下，如果值是未知类型，可以抛出异常或处理
+                throw new IllegalArgumentException("Unsupported value type: " + value);
             }
-           return values;
-}
+        }
+        return values;
+    }
     public static String parseBetweenAnd(String string){
         if (string == null || string.isEmpty()) {
             return string;
@@ -291,17 +322,6 @@ public class commandParser {
 
     /**
      * 解析SQL SELECT语句中的列部分，处理聚合函数并提取别名或生成默认列名
-     *
-     * @param str SQL SELECT语句的列部分字符串（例如："count(*) as total, sum(price)"）
-     * @return ArrayList<String> 解析后的列名列表：
-     *         - 包含聚合函数的列：提取AS别名或生成默认列名（Column0, Column1...）
-     *         - 普通列：直接保留原始列名
-     *
-     * @example
-     * 输入："count(*) as total, sum(price)"
-     * 输出：total,Column1
-     * 输入："name, age"
-     * 输出：name,age
      */
     public static String[] parseAggregateFunction(String expr) {
         if (expr == null) return null;
@@ -317,8 +337,13 @@ public class commandParser {
 
         String[] result = new String[3];
         result[0] = matcher.group(1).toUpperCase(); // 函数类型
+        System.out.println(result[0]);
         result[1] = matcher.group(2).trim();       // 参数
+        System.out.println(result[1]);
+
         result[2] = matcher.group(3);              // 别名
+        System.out.println(result[2]);
+
 
         return result;
     }

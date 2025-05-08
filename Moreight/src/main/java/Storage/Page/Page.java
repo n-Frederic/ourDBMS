@@ -22,8 +22,6 @@ public class Page {
 
 
     final int maxLength = 5;
-
-
     // 以上是内部，叶子公共属性
 
     Page previous;                                            ArrayList<Page> children;
@@ -31,8 +29,6 @@ public class Page {
     Page next;                                                ArrayList<Value> entries;
 
     ArrayList<Tuple> tuples;                                   // 以上是内部节点的属性
-
-
 
     // 以上是叶子节点的属性
 
@@ -60,11 +56,6 @@ public class Page {
         this(isLeaf);
         this.isRoot = isRoot;
     }
-
-
-
-
-
 
     public Page getParent() {
         return parent;
@@ -162,8 +153,6 @@ public class Page {
         return null;
     }
 
-
-
     /**
      * 通过调用预估大小函数，判断page是否还能插入行数组
      * @param candidate 待插入的行
@@ -187,11 +176,6 @@ public class Page {
         return total;
     }
 
-
-
-
-
-
     /**
      * 叶子页的结构如下:
      * 页id（int 4b）
@@ -201,9 +185,8 @@ public class Page {
      * 前一个叶子页的id （int, 4B)
      * 后一个叶子页的id (int, 4B)
      * 页的行数 （int 4b）
-     * 真实数据开始的偏移量 begin (4b)
-     * 真实数据结束的偏移量 end  (4b)
-     * 每一行的开始的偏移量 (4b)
+     * 每行规定好的长度（512B）（int 4B)
+     * 每一行的开始的偏移量 (4b * size)
      * 实际数据
      * @return 字节数组
      */
@@ -218,68 +201,53 @@ public class Page {
         dataOut.writeInt(previous.PageId);
         dataOut.writeInt(next.PageId);
         dataOut.writeInt(tuples.size());     // 行数
-        dataOut.writeInt(0);      // 真实数据开始位置的偏移量，占位
-        dataOut.writeInt(0);   // 真实数据结束位置的偏移量，占位
-
-        int begin; // 真实数据开始位置的偏移量
-        int end; // 真实数据结束位置的偏移量
+        dataOut.writeInt(512);     // 每行最多允许512B的数据
 
         // 实时维护偏移量
-        int currentOffset = 36;
+        int currentOffset = 26;
+        int dataPointer = 1024;
 
         ArrayList<byte[]> info = new ArrayList<>();
 
         // 写入偏移量表
         for(Tuple tuple : tuples) {
-            dataOut.writeInt(currentOffset);
+            dataOut.writeInt(dataPointer);
             byte[] bytes = tuple.toBytes();
             info.add(bytes);
+            dataPointer += 512;
             currentOffset += 4;
         }
 
-        // 此时偏移量在真实数据开始的位置
-        begin = currentOffset;
+        for(int i = currentOffset; i < 1024; i++) {
+            dataOut.writeByte(0);
+        }
+
+        currentOffset = 1024;
 
         // 写入实际数据
         for (byte[] b : info) {
             dataOut.write(b);
-            currentOffset += b.length;
+            currentOffset += 512;
         }
 
-        // 此时偏移量在真实数据结束的位置
-        end = currentOffset;
-
-        byte[] bytes = out.toByteArray();
-        // 写 begin 到 bytes[4] ~ bytes[7]
-        bytes[29] = (byte) ((begin >> 24) & 0xFF);
-        bytes[30] = (byte) ((begin >> 16) & 0xFF);
-        bytes[31] = (byte) ((begin >> 8) & 0xFF);
-        bytes[32] = (byte) (begin & 0xFF);
-
-        // 写 end 到 bytes[8] ~ bytes[11]
-        bytes[33]  = (byte) ((end >> 24) & 0xFF);
-        bytes[34]  = (byte) ((end >> 16) & 0xFF);
-        bytes[35] = (byte) ((end >> 8) & 0xFF);
-        bytes[36] = (byte) (end & 0xFF);
-
-        return bytes;
+        return out.toByteArray();
     }
 
     /**
      * 叶子页的结构如下:
-     * 页id（int 4b）
+     * 页id（int 4B）
      * 是否是叶子节点 （bool, 1B)
      * 是否是根节点 （bool, 1B)
      * 父亲的页id （int, 4B)
      * 前一个叶子页的id （int, 4B)
      * 后一个叶子页的id (int, 4B)
      * 页的行数 （int 4b）
-     * 真实数据开始的偏移量 begin (4b)
-     * 真实数据结束的偏移量 end  (4b)
+     * 每行规定好的长度（512B）（int 4B)
      * 每一行的开始的偏移量 (4b)
      * 实际数据
      * @return 字节数组
      */
+
     public static Page leafFromBytes(byte[] bytes) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes));
         int pageId = in.readInt();
@@ -289,15 +257,7 @@ public class Page {
         int previousId = in.readInt();
         int nextId = in.readInt();
         int rowCount = in.readInt();
-        int begin = ((bytes[4] & 0xFF) << 24) |
-                ((bytes[5] & 0xFF) << 16) |
-                ((bytes[6] & 0xFF) << 8) |
-                (bytes[7] & 0xFF);
-
-        int end = ((bytes[8] & 0xFF) << 24) |
-                ((bytes[9] & 0xFF) << 16) |
-                ((bytes[10] & 0xFF) << 8) |
-                (bytes[11] & 0xFF);
+        int len = in.readInt();
 
         ArrayList<Integer> offsets = new ArrayList<>(rowCount);
         for(int i = 0; i < rowCount; i++) {
@@ -307,7 +267,7 @@ public class Page {
         Page page = new Page(pageId);
         for (int i = 0; i < rowCount - 1; i++) {
             int rowStart = offsets.get(i);
-            int rowEnd = (i + 1 < rowCount) ? offsets.get(i + 1) : end;
+            int rowEnd = (i + 1 < rowCount) ? offsets.get(i + 1) : 1024+rowCount*512;
             byte[] rowData = Arrays.copyOfRange(bytes, rowStart, rowEnd);
             Tuple tuple = Tuple.fromBytes(rowData);
             page.tuples.add(tuple);
@@ -321,8 +281,6 @@ public class Page {
 
         return page;
     }
-
-
 
 
     /**
@@ -382,13 +340,10 @@ public class Page {
             case "INT" -> 2;
             case "LONG" -> 3;
             case "BOOLEAN" -> 4;
-            case "NULL" -> 0;
+            case "NULL" -> 5;
             default -> -1;  // 未知类型
         };
     }
-
-
-
 
     /**
      * 非叶子页的结构
@@ -398,7 +353,7 @@ public class Page {
      * 父亲的页id （int, 4B)
      * 目前孩子有几个 （int, 4B)
      * 记录的索引的类型 （目前为主键）（int, 4B)
-     * 孩子页的行中主键的最小值序列 (value 不确认多长  *5）
+     * 孩子页的行中主键的最小值序列 （（是否是字符串 1/0 1B + value ）*5）
      * 孩子页的页码 （int 4B*5 ）
      */
     public byte[] InnerToBytes() throws IOException {
@@ -483,10 +438,6 @@ public class Page {
 
         return page;
     }
-
-
-
-
 
     /**
      * 在树中插入一个节点
@@ -1287,4 +1238,5 @@ public class Page {
             return false;
         }
     }
+    
 }

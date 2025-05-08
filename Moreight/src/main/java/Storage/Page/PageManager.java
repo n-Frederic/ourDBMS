@@ -54,7 +54,7 @@ public class PageManager {
     }
 
     // 创建新页
-    public Page createPage(Table table) throws IOException {
+    public static Page createPage() throws IOException {
         for (int i = 1; i < MAX_PAGES; i++) {
             if (pages.get(i) == null) {
                 Page newPage = new Page(i);

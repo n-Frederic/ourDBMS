@@ -28,7 +28,7 @@ public class StringValue extends Value {
     @Override
     public int getLength() {
         return 1 + 4 + s.length();
-    }
+    } // 真实长度+/0+？
 
     @Override
     public byte getType() {

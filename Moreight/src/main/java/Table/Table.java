@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
+import Storage.Page.*;
 
 /**
  * Table类用于管理数据库表的操作。
@@ -28,24 +29,32 @@ public class Table {
 
 
     /**
-     * 向表中插入一条新记录。
-     * @param key 行的信息
+     * 可用，如果不可用，找page的insert的问题
      */
 
     public void insert(Tuple key) throws IOException {
         tree.insert(key);
     }
 
+    /**
+     * 可用，如果不可用，找page的remove的问题
+     */
     public void delete(Tuple tuple){
         tree.remove(tuple);
     }
 
+    /**
+     * 返回一个文件，可用
+     */
     public RandomAccessFile From(String table) throws FileNotFoundException {
         String path = DIRECTORY + "/" + table + "/" + table + ".ibd";
         RandomAccessFile raf = new RandomAccessFile(path, "rw");
         return raf;
     }
 
+    /**
+     * 可用，完全不涉及文件操作
+     */
     // 最终返回只有fieldName的tuple的数组
     public ArrayList<Tuple> select(ArrayList<Tuple> tuples, ArrayList<String> fieldNames){
         ArrayList<Tuple> result = new ArrayList<>();
@@ -66,6 +75,9 @@ public class Table {
         return result;
     }
 
+    /**
+     * 可用
+     */
     public ArrayList<Tuple> selectAll() {
         ArrayList<Tuple> tuples = new ArrayList<>();
         Page current = tree.getHead();
@@ -76,22 +88,23 @@ public class Table {
         return tuples;
     }
 
-//    public ArrayList<Tuple> where(Condition condition) {
-//        ArrayList<Tuple> tuples = new ArrayList<>();
-//        Field field = schema.getField(condition.getColumn());
-//        int index = schema.getIndex(field);
-//
-//        BpNode current = tree.getHead();
-//        while(current != null) {
-//            ArrayList<Tuple> temp = current.get(condition,index);
-//            if(!temp.isEmpty()) {
-//                tuples.addAll(temp);
-//            }
-//            current = current.getNext();
-//        }
-//
-//        return tuples;
-//    }
+
+    public ArrayList<Tuple> where(Condition condition) {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        Field field = schema.getField(condition.getColumn());
+        int index = schema.getIndex(field);
+
+        Page current = tree.getHead();
+        while(current != null) {
+            ArrayList<Tuple> temp = current.get(condition,index);
+            if(!temp.isEmpty()) {
+                tuples.addAll(temp);
+            }
+            current = current.getNext();
+        }
+
+        return tuples;
+    }
 
     public ArrayList<Tuple> where (ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
         ArrayList<Tuple> tuples = new ArrayList<>();
