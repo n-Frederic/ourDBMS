@@ -18,17 +18,18 @@ public class Page {
 
     Page parent;
 
-    int PageId;
 
 
-    final int maxLength = 5;
     // 以上是内部，叶子公共属性
 
+    final int maxTuples = 12;                                 final int maxLength = 5;
     Page previous;                                            ArrayList<Page> children;
 
     Page next;                                                ArrayList<Value> entries;
 
-    ArrayList<Tuple> tuples;                                   // 以上是内部节点的属性
+    ArrayList<Tuple> tuples;                                  // 以上是内部节点的属性
+
+    Value minValue;
 
     // 以上是叶子节点的属性
 
@@ -122,22 +123,22 @@ public class Page {
 
 
 
-    /**
-     * 将某一行插入page
-     * @param tuple 待插入的行
-     * @return 插入是否成功
-     */
-    public boolean insertTuple(Tuple tuple) throws IOException {
-        if (isFull(tuple)) return false;
-        for(int i = 0; i < tuples.size(); i++) {
-            if(tuples.get(i).compare(tuple) > 0) {
-                tuples.add(i,tuple);
-                return true;
-            }
-        }
-        tuples.add(tuple);
-        return true;
-    }
+//    /**
+//     * 将某一行插入page
+//     * @param tuple 待插入的行
+//     * @return 插入是否成功
+//     */
+//    public boolean insertTuple(Tuple tuple) throws IOException {
+//        if (isFull(tuple)) return false;
+//        for(int i = 0; i < tuples.size(); i++) {
+//            if(tuples.get(i).compare(tuple) > 0) {
+//                tuples.add(i,tuple);
+//                return true;
+//            }
+//        }
+//        tuples.add(tuple);
+//        return true;
+//    }
 
     /**
      * 在page的tuples里获取tuple
@@ -198,9 +199,9 @@ public class Page {
         dataOut.writeInt(pageId);    // pageID
         dataOut.writeBoolean(isLeaf);
         dataOut.writeBoolean(isRoot);
-        dataOut.writeInt(parent.PageId);
-        dataOut.writeInt(previous.PageId);
-        dataOut.writeInt(next.PageId);
+        dataOut.writeInt(parent.getPageId());
+        dataOut.writeInt(previous.getPageId());
+        dataOut.writeInt(next.getPageId());
         dataOut.writeInt(tuples.size());     // 行数
         dataOut.writeInt(512);     // 每行最多允许512B的数据
 
@@ -363,7 +364,7 @@ public class Page {
         dataOut.writeInt(pageId);    // pageID
         dataOut.writeBoolean(isLeaf);
         dataOut.writeBoolean(isRoot);
-        dataOut.writeInt(parent.PageId);
+        dataOut.writeInt(parent.getPageId());
         dataOut.writeInt(children.size());
         dataOut.writeInt(entries.getFirst().getType());
 
@@ -379,7 +380,7 @@ public class Page {
         }
 
         for(Page page : children) {
-            dataOut.writeInt(page.PageId);
+            dataOut.writeInt(page.getPageId());
         }
 
         return out.toByteArray();
@@ -452,6 +453,9 @@ public class Page {
         return page;
     }
 
+
+
+
     /**
      * 在树中插入一个节点
      * @param key 待插入的行
@@ -462,7 +466,7 @@ public class Page {
         if (isLeaf) {
             if (!isLeafToSplit()) {
 //                System.out.println("直接插入叶节点");
-                insertInLeaf(key.getPrimaryV());
+                insertInLeaf(key);
             } else {
 //                System.out.println("插入叶节点,且叶节点分裂");
                 //需要分裂为左右两个节点
@@ -484,17 +488,17 @@ public class Page {
                 previous = null;
                 next = null;
                 // 插入后再分裂
-                insertInLeaf(key.getPrimaryV());
+                insertInLeaf(key);
 
-                int leftSize = getUpper(entries.size(), 2);
-                int rightSize = entries.size() - leftSize;
+                int leftSize = getUpper(tuples.size(), 2);
+                int rightSize = tuples.size() - leftSize;
 //                System.out.printf("leaf key left:%d  right:%d\n", leftSize, rightSize);
                 // 左右节点拷贝
                 for (int i = 0; i < leftSize; i++) {
-                    left.entries.add(entries.get(i));
+                    left.tuples.add(tuples.get(i));
                 }
                 for (int i = 0; i < rightSize; i++) {
-                    right.entries.add(entries.get(leftSize + i));
+                    right.tuples.add(tuples.get(leftSize + i));
                 }
                 // 不是根节点
                 if (!isRoot) {
@@ -514,7 +518,7 @@ public class Page {
                     parent.children.add(index, left);
                     parent.children.add(index + 1, right);
                     // for GC
-                    entries = null;
+                    tuples = null;
                     children = null;
 
                     // 父节点[非叶子节点]中插入关键字，是右边的第一位
@@ -534,7 +538,7 @@ public class Page {
                     rootPage.children.add(left);
                     rootPage.children.add(right);
                     // for GC
-                    entries = null;
+                    tuples = null;
                     children = null;
                     // 根节点插入关键字
                     rootPage.insertInParent(right.entries.getFirst());
@@ -1075,7 +1079,7 @@ public class Page {
      */
     private boolean isLeafToSplit() {
         if (isLeaf) {
-            if (entries.size() >= (maxLength - 1)) {
+            if (tuples.size() >= (maxTuples - 1)) {
                 return true;
             } else return false;
         } else {
@@ -1102,15 +1106,15 @@ public class Page {
     /**
      * 插入到当前叶子节点中,不分裂
      */
-    private void insertInLeaf(Value key) {
+    private void insertInLeaf(Tuple tuple) {
         if (!isLeaf) {
             throw new UnsupportedOperationException("can't insert into middle node.");
         }
 
         // 插入entry的适当位置，保持有序
-        for(int i = 0; i < entries.size(); i++) {
-            if(entries.get(i).compare(key) > 0) {
-                entries.add(i,key);
+        for(int i = 0; i < tuples.size(); i++) {
+            if(tuples.get(i).compare(tuple) > 0) {
+                tuples.add(i,tuple);
                 break;
             }
         }

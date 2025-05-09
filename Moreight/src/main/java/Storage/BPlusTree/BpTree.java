@@ -44,15 +44,7 @@ public class BpTree {
         this.root = root;
     }
 
-    public boolean insert(Tuple tuple) throws IOException {
-        if(!root.isFull(tuple)) {
-            root.insert(tuple,this);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean remove(Tuple tuple) {
-        return root.remove(tuple, this);
+    public void remove(Tuple tuple) {
+        root.remove(tuple, this);
     }
 }
