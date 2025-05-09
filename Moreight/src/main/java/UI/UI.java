@@ -1,12 +1,13 @@
 package UI;
 
-import javax.swing.*; // 导入Swing库，用于创建图形用户界面
-import java.awt.*; // 导入AWT库，用于处理图形界面的基础组件
-import java.awt.event.KeyAdapter; // 导入键盘事件适配器，用于监听键盘事件
-import java.awt.event.KeyEvent; // 导入键盘事件类，用于获取键盘事件的详细信息
-import java.io.IOException; // 导入IOException，用于处理可能发生的输入输出异常
-import java.io.OutputStream; // 导入OutputStream，用于重定向输出
-import java.io.PrintStream; // 导入PrintStream，用于创建打印流
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
 public class UI extends JFrame { // 定义UI类，继承自JFrame，用于创建窗口
     private final JTextArea outputArea; // 定义输出区域，用于显示控制台输出和用户输入
@@ -42,23 +43,65 @@ public class UI extends JFrame { // 定义UI类，继承自JFrame，用于创建
 
         outputArea.append("Enter password:");
         outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
-        outputArea.addKeyListener(new KeyAdapter() { // 添加键盘事件监听器
+        boolean[] isRightCode = {false}; // 用于标记密码是否正确
+        boolean[] hasShownError = {false}; // 用于标记是否已经显示过错误提示
+
+// 定义密码验证的监听器
+        KeyListener passwordListener = new KeyAdapter() { // 添加键盘事件监听器
             @Override
             public void keyPressed(KeyEvent e) { // 重写按键事件方法
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
                     e.consume(); // 消耗事件，防止默认行为
                     int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
-                    String input = outputArea.getText().substring(promptIndex + "Enter password:".length()); // 获取用户输入
+                    String input = outputArea.getText().substring(promptIndex + "Enter password:".length()).trim(); // 获取用户输入并去除首尾空格
                     if (input.equals(useCode)) {
                         outputArea.append("\n");
                         outputArea.append("Welcome to the Moreight DBMS.Your Moreight DBMS connection id is ");
                         outputArea.append(usename + ".");
                         outputArea.append("\n");
-                        isRightCode = true;
+
+                        isRightCode[0] = true;
+
+                        // 移除密码验证的监听器
+                        outputArea.removeKeyListener(this);
+
+                        // 添加新的命令行输入监听器
+                        outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
+                        outputArea.append(prompt); // 在文本区域添加命令提示符
+
+                        KeyListener commandListener = new KeyAdapter() { // 添加键盘事件监听器
+                            @Override
+                            public void keyPressed(KeyEvent e) { // 重写按键事件方法
+                                if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
+                                    e.consume(); // 消耗事件，防止默认行为
+                                    int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
+                                    String input = outputArea.getText().substring(promptIndex + prompt.length()); // 获取用户输入
+                                    handleInput(input); // 处理用户输入
+                                    outputArea.setCaretPosition(outputArea.getDocument().getLength()); // 将光标移动到提示符后
+                                    outputArea.append("\n");
+                                    //outputArea.append(prompt); // 在文本区域添加新的提示符
+
+                                } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
+                                    int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
+                                    if (outputArea.getCaretPosition() <= promptIndex + prompt.length()) { // 如果光标在提示符后
+                                        e.consume(); // 消耗事件，防止默认行为
+                                    }
+                                } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf(prompt) + prompt.length()) { // 如果光标在提示符前
+                                    e.consume(); // 消耗事件，防止默认行为
+                                }
+                            }
+                        };
+
+                        outputArea.addKeyListener(commandListener);
+                    } else {
+                        if (!hasShownError[0]) {
+                            outputArea.append("\n");
+                            outputArea.append("Incorrect password. Please try again.");
+                            hasShownError[0] = true; // 标记已经显示过错误提示
+                        }
+                        outputArea.append("\nEnter password:");
+                        outputArea.setCaretPosition(outputArea.getText().length()); // 将光标移动到文本末尾
                     }
-                    outputArea.setCaretPosition(outputArea.getDocument().getLength()); // 将光标移动到提示符后
-                    outputArea.append("\n");
-                    //outputArea.append(prompt); // 在文本区域添加新的提示符
                 } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
                     int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
                     if (outputArea.getCaretPosition() <= promptIndex + "Enter password:".length()) { // 如果光标在提示符后
@@ -68,37 +111,78 @@ public class UI extends JFrame { // 定义UI类，继承自JFrame，用于创建
                     e.consume(); // 消耗事件，防止默认行为
                 }
             }
-        });
+        };
 
+        outputArea.addKeyListener(passwordListener);
 
-
-
-        if(isRightCode) {
-            // 模拟命令行输入
-            outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
-            outputArea.append(prompt); // 在文本区域添加命令提示符
-            outputArea.addKeyListener(new KeyAdapter() { // 添加键盘事件监听器
-                @Override
-                public void keyPressed(KeyEvent e) { // 重写按键事件方法
-                    if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
-                        e.consume(); // 消耗事件，防止默认行为
-                        int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
-                        String input = outputArea.getText().substring(promptIndex + prompt.length()); // 获取用户输入
-                        handleInput(input); // 处理用户输入
-                        outputArea.setCaretPosition(outputArea.getDocument().getLength()); // 将光标移动到提示符后
-                        outputArea.append("\n");
-                        //outputArea.append(prompt); // 在文本区域添加新的提示符
-                    } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
-                        int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
-                        if (outputArea.getCaretPosition() <= promptIndex + prompt.length()) { // 如果光标在提示符后
-                            e.consume(); // 消耗事件，防止默认行为
-                        }
-                    } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf(prompt) + prompt.length()) { // 如果光标在提示符前
-                        e.consume(); // 消耗事件，防止默认行为
-                    }
-                }
-            });
-        }
+//        outputArea.append("Enter password:");
+//        outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
+//        final boolean[] isRightCode = {false}; // 用于标记密码是否正确
+//        final boolean[] hasShownError = {false}; // 用于标记是否已经显示过错误提示
+//
+//        outputArea.addKeyListener(new KeyAdapter() { // 添加键盘事件监听器
+//            @Override
+//            public void keyPressed(KeyEvent e) { // 重写按键事件方法
+//                if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
+//                    e.consume(); // 消耗事件，防止默认行为
+//                    int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
+//                    String input = outputArea.getText().substring(promptIndex + "Enter password:".length()).trim(); // 获取用户输入并去除首尾空格
+//                    if (input.equals(useCode)) {
+//                        outputArea.append("\n");
+//                        outputArea.append("Welcome to the Moreight DBMS.Your Moreight DBMS connection id is ");
+//                        outputArea.append(usename + ".");
+//                        outputArea.append("\n");
+//                        isRightCode[0] = true;
+//                    } else {
+//                        if (!hasShownError[0]) {
+//                            outputArea.append("\n");
+//                            outputArea.append("Incorrect password. Please try again.");
+//                            hasShownError[0] = true; // 标记已经显示过错误提示
+//                        }
+//                        outputArea.append("\nEnter password:");
+//                        outputArea.setCaretPosition(outputArea.getText().length()); // 将光标移动到文本末尾
+//                    }
+//                } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
+//                    int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
+//                    if (outputArea.getCaretPosition() <= promptIndex + "Enter password:".length()) { // 如果光标在提示符后
+//                        e.consume(); // 消耗事件，防止默认行为
+//                    }
+//                } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf("Enter password:") + "Enter password:".length()) { // 如果光标在提示符前
+//                    e.consume(); // 消耗事件，防止默认行为
+//                }
+//            }
+//        });
+//
+//
+//
+//
+//        if(isRightCode[0]) {
+//            System.out.println(isRightCode[0]);
+//            // 模拟命令行输入
+//            outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
+//            outputArea.append(prompt); // 在文本区域添加命令提示符
+//            outputArea.addKeyListener(new KeyAdapter() { // 添加键盘事件监听器
+//                @Override
+//                public void keyPressed(KeyEvent e) { // 重写按键事件方法
+//                    if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
+//                        e.consume(); // 消耗事件，防止默认行为
+//                        int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
+//                        String input = outputArea.getText().substring(promptIndex + prompt.length()); // 获取用户输入
+//                        handleInput(input); // 处理用户输入
+//                        outputArea.setCaretPosition(outputArea.getDocument().getLength()); // 将光标移动到提示符后
+//                        outputArea.append("\n");
+//                        //outputArea.append(prompt); // 在文本区域添加新的提示符
+//                    } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
+//                        int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
+//                        if (outputArea.getCaretPosition() <= promptIndex + prompt.length()) { // 如果光标在提示符后
+//                            e.consume(); // 消耗事件，防止默认行为
+//                        }
+//                    } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf(prompt) + prompt.length()) { // 如果光标在提示符前
+//                        e.consume(); // 消耗事件，防止默认行为
+//                    }
+//                }
+//            });
+//        }
 
         contentPane.revalidate(); // 重新验证内容面板
         contentPane.repaint(); // 重新绘制内容面板

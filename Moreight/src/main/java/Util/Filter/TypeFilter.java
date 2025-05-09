@@ -87,7 +87,7 @@ public class TypeFilter {
     public static boolean databaseExist(String dbName){
         List<String>dbs= DatabaseManager.listDatabases();
         for(String db:dbs){
-            if(db==dbName)return true;
+            if(db.equals(dbName))return true;
         }
         return false;
     }
@@ -95,19 +95,13 @@ public class TypeFilter {
     public static boolean columnExist(Table table,String column) {
         Schema schema = table.getSchema();
         Field field=schema.getField(column);
-        if(field.equals(null))return false;
-        else return true;
-
+        return field != null;
     }
 
     public static boolean typeExist(ArrayList<Field> field){
         for(Field field1:field){
             String type=field1.getType();
-            if(type=="string"||type=="integer"||type=="long"||type=="boolean") {
-                return true;
-            }else{
-                return false;
-            }
+            return type.equals("string") || type.equals("Integer") || type == "long" || type == "boolean";
         }
         return false;
     }

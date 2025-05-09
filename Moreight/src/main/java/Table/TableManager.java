@@ -38,10 +38,9 @@ public class TableManager {
             }
 
             RandomAccessFile raf = new RandomAccessFile(file, "rw");
-            Page page = new Page();
-            byte[] bytes = page.ZeroToBytes(args);
-            // 写入第0页
-            raf.write(bytes);
+            Meta meta = new Meta(args);
+            meta.writeMetaToDisk(raf);
+
             raf.close();
 
             System.out.println("表 " + tableName + " 创建成功！");

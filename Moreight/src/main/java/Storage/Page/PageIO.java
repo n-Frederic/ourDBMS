@@ -1,70 +1,116 @@
 package Storage.Page;
 import Storage.Value.*;
 import java.util.List;
-import Storage.Page.PageManager;
+import java.util.ArrayList;
+import Storage.BPlusTree.BpTree;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
 
 public class PageIO {
-    private RandomAccessFile file;
+    private final RandomAccessFile file;
     private static final String DIRECTORY = "../TestData/DatabaseManager";
     public static final int PAGE_SIZE = 8 * 1024; // 8KB
-    private int highestPageId; // 当前最高页码
+    Meta meta;
+
 
     public PageIO(String filePath) throws IOException {
         this.file = new RandomAccessFile(filePath, "rw");
-        this.highestPageId = 0;
-//        if (file.length() == 0) {
-//            // 文件为空，初始化根页和最高页码
-//            writeRootPageStructure(new Schema(new ArrayList<>()));
-//            this.highestPageId = 1; // 初始化最高页码为1
-//        } else {
-//            // 读取当前最高页码（前8字节保存了根页和最高页码）
-//            file.seek(4);
-//            file.readInt();
-//            this.highestPageId = file.readInt(); // 读取最高页码
-//        }
     }
+
+    public RandomAccessFile getFile() {
+        return file;
+    }
+
+
 
     /**
-     * 获取当前最高页码
+     * 读序号为pageId的字节数组并反序列化为page （不包括第0页）
      */
-    public int getHighestPageId() {
-        return highestPageId;
-    }
-
-    /**
-     * 更新当前最高页码
-     */
-    private void updateHighestPageId() throws IOException {
-        file.seek(8);  // 定位到保存最高页码的位置（第8个字节）
-        file.writeInt(highestPageId);  // 更新文件中的最高页码
-    }
-
-
-    public Page readPage(int pageId) throws IOException {
+    public  Page readPage(int pageId) throws IOException {
         file.seek((long) pageId * Page.PAGE_SIZE);
         byte[] data = new byte[Page.PAGE_SIZE];
         file.readFully(data);
-        return Page.leafFromBytes(data);
-    }
 
-    public void writeLeafPage(int pageId, Page page) throws IOException {
-        byte[] data = page.leafToBytes();
-        file.seek(pageId * Page.PAGE_SIZE);
-        file.write(data);
+        boolean isLeaf = readIsLeafFlag(data);
+        if(isLeaf) {
+            return Page.leafFromBytes(data);
+        } else {
+            return Page.InnerFromBytes(data);
+        }
     }
 
     /**
-     * 获取/设置 第0页的根页页码
+     * 把已经构建好的page序列化进id所在的地方 （不包括第0页）
+     * 分为新页，旧页
+     * 由于开创新页的时候本没有必要初始化id，所以用allocate自动分配id
+     * 旧页直接按照id写回
      */
+    public void writePage(Page page) throws IOException {
+        if(page.PageId > meta.getHighestPageId()) {
+            int id = allocateNewPage();
+            page.setPageId(id);
+        }
 
+        byte[] data;
+        if(page.isLeaf) {
+            data = page.leafToBytes();
+        } else data = page.InnerToBytes();
+
+        file.seek((long) page.PageId * Page.PAGE_SIZE);
+        file.write(data);
+    }
+
+
+    /**
+     * 获取 第0页的根页页码
+     */
     public int getRootPageId() throws IOException {
         file.seek(0); // file header
-        return file.readInt();  // 假设前4字节是 rootPageId
+        return file.readInt();
     }
+
+    /**
+     * 确定是否为叶子节点
+     */
+    public static boolean readIsLeafFlag(byte[] pageData) {
+        // 第五个字节的索引是4（因为从0开始计数）
+        byte isLeafByte = pageData[4];
+
+        // 布尔值在Java中存储为1(true)或0(false)
+        return isLeafByte != 0;
+    }
+
+
+    public  BpTree buildTreeFromFile() throws IOException {
+        BpTree tree = new BpTree();
+       // PageIO pageIO = tree.pageIO;
+
+        Page rootPage=this.readPage(getRootPageId());
+        tree.setRoot(rootPage);
+
+
+
+
+//        // 1. 读取第0页获取元数据
+//        byte[] zeroPageData = pageIO.readPage(0);
+       // DataInputStream zeroIn = new DataInputStream(new ByteArrayInputStream(zeroPageData));
+//
+//        int rootPageId = zeroIn.readInt(); // 根页ID
+//        int maxPageId = zeroIn.readInt();  // 最大页ID
+//        int maxKeys = zeroIn.readInt();    // 最大键数
+
+
+//        // 3. 递归构建树结构
+//        buildTreeRecursively(tree, tree.root);
+//
+//        // 4. 设置叶子节点链表
+//        buildLeafLinkedList(tree);
+
+        return tree;
+    }
+
 
     public void setRootPageId(int rootId) throws IOException {
         file.seek(0);
@@ -74,55 +120,54 @@ public class PageIO {
     /**
      * 分配新页
      * 更新最高页码
-     *
      */
 
     public int allocateNewPage() throws IOException {
-        highestPageId++;
-        updateHighestPageId();
+        meta.setHighestPageId(meta.getHighestPageId()+1);  // 增加最高页码
+        meta.updateHighestPageId(file);  // 将新的 highestPageId 写入文件
         long length = file.length();
-        int newPageId = (int) (length / Page.PAGE_SIZE);
+        int newPageId = meta.getHighestPageId();
         file.setLength(length + Page.PAGE_SIZE);
         return newPageId;
     }
 
-    // 根据主键和表名找到页号
-    public int findPageNum(Tuple tuple, String tbname) throws IOException {
+    /**
+     * 根据主键找到页号
+     */
+    public int findPageNum(Tuple tuple) throws IOException {
         int pageNum = -1; // 初始假设未找到页号
-        String filename = tbname + ".ibd"; // 获取表的文件名（.ibd文件）
         Value value = tuple.getPrimaryV(); // 获取主键值
 
         // 从文件中获取第0页，作为根节点
-        Page rootPage = readPage(0);
+        Page rootPage = readPage(meta.getRootPageId());
 
         // 递归查找页号
-        pageNum = findPageNumHelper(rootPage, value, filename);
+        pageNum = findPageNumHelper(rootPage, value);
 
         return pageNum;
     }
 
-    // 递归方法，根据给定的值遍历树结构，找到对应的页号
-    private int findPageNumHelper(Page currentPage, Value keyValue, String filename) throws IOException {
-        // 获取当前页中的所有tuples
-        List<Tuple> tuples = currentPage.getTuples();
-
+    /**
+     * 递归方法，根据给定的值遍历树结构，找到对应的页号
+     */
+    private int findPageNumHelper(Page currentPage, Value keyValue) throws IOException {
         // 如果当前页是叶子页，直接返回
         if (currentPage.isLeaf()) {
+            List<Tuple> tuples = currentPage.getTuples();
             for (Tuple tuple : tuples) {
                 if (tuple.getPrimaryV().compare(keyValue) == 0) {
                     return currentPage.getPageId();
                 }
             }
         } else {
-            // 如果当前是非叶子节点，读取该页中每个子节点的主键最小值
-            for (int i = 0; i < tuples.size(); i++) {
-                // 假设每个tuple的主键最小值是第一个字段
-                Value minKey = tuples.get(i).getPrimaryV();
-                if (keyValue.compare(minKey) <= 0) {
+            ArrayList<Value> entries = currentPage.getEntries();
+            for (int i = 0; i < entries.size(); i++) {              // 要求叶子节点的最小值序列是递增的
+                Value minKey = entries.get(i);
+                if (keyValue.compare(minKey) > 0) {
                     // 找到符合条件的子节点，递归查找
                     int childPageId = getChildPageId(currentPage, i);
                     Page childPage = readPage(childPageId);
-                    return findPageNumHelper(childPage, keyValue, filename);
+                    return findPageNumHelper(childPage, keyValue);
                 }
             }
         }
@@ -131,22 +176,10 @@ public class PageIO {
 
     // 从当前页获取子节点的页号
     private int getChildPageId(Page currentPage, int index) {
-        // 返回当前页中第 index 个子节点的页号
-        // 这里假设我们有一个可以获取子节点页号的机制
-        // 在实际的B+树中，可能是通过某种结构存储在页面上
         return currentPage.getChildren().get(index).getPageId(); // 假设我们有子节点
+
     }
 
-    public void close() {
-        try {
-            if (file != null) {
-                file.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("关闭文件失败: " + e.getMessage());
-        }
-    }
 
     public void insert(byte[] record) throws IOException {
         // 读第0页的元信息

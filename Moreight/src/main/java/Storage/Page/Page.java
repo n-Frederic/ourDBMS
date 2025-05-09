@@ -102,7 +102,7 @@ public class Page {
     }
 
     // 获取当前页的子节点列表
-    public List<Page> getChildren() {
+    public ArrayList<Page> getChildren() {
         return children;
     }
 
@@ -187,6 +187,7 @@ public class Page {
      * 页的行数 （int 4b）
      * 每行规定好的长度（512B）（int 4B)
      * 每一行的开始的偏移量 (4b * size)
+     * ...（前面共1024B）
      * 实际数据
      * @return 字节数组
      */
@@ -218,7 +219,7 @@ public class Page {
             currentOffset += 4;
         }
 
-        for(int i = currentOffset; i < 1024; i++) {
+        for(int i = currentOffset; i <= 1024; i++) {
             dataOut.writeByte(0);
         }
 
@@ -227,7 +228,14 @@ public class Page {
         // 写入实际数据
         for (byte[] b : info) {
             dataOut.write(b);
+            for(int i = b.length; i <= 512; i++) {
+                dataOut.writeByte(0);
+            }
             currentOffset += 512;
+        }
+
+        for(int i = currentOffset; i < PAGE_SIZE; i++) {
+            dataOut.writeByte(0);
         }
 
         return out.toByteArray();
@@ -244,6 +252,7 @@ public class Page {
      * 页的行数 （int 4b）
      * 每行规定好的长度（512B）（int 4B)
      * 每一行的开始的偏移量 (4b)
+     * ... (前面共1024B）
      * 实际数据
      * @return 字节数组
      */
@@ -283,77 +292,68 @@ public class Page {
     }
 
 
-    /**
-     * 第零页的结构
-     * 根页的页码 ( int 4B )
-     * 目前的最高页码 （ int 4B ）
-     * 中间节点允许的最多key数量 （ int 4B ）
-     * 列的当前数量 （int 4B)
-     * 列名 （最多100个字段，每列是 int（列名长度） + n 字节（UTF-8 字节串）)
-     * 列类型 （ int 4B*100 , 最多允许400B)
-     */
-
-    public byte[] ZeroToBytes(ArrayList<Field> fields) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
-        DataOutputStream dataOut = new DataOutputStream(out);
-
-        dataOut.writeInt(1);
-        dataOut.writeInt(1);
-        dataOut.writeInt(5);
-
-        int size = fields.size();
-        dataOut.writeInt(size);
-
-        // 写入列名（以每个列名长度 + UTF-8 字符串形式写入）
-        int fieldCount = Math.min(size, 100);
-        for (int i = 0; i < fieldCount; i++) {
-            String name = fields.get(i).getName();
-            byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
-
-            // 写入列名长度 + 内容
-            dataOut.writeInt(nameBytes.length);
-            dataOut.write(nameBytes);
-        }
-
-        // 如果字段数不足 100 个，补空列名（写入0长度）
-        for (int i = fieldCount; i < 100; i++) {
-            dataOut.writeInt(0);
-        }
-        // 写入字段类型（int，4B * n，最多允许400B)
-        for (int i = 0; i < fieldCount; i++) {
-            String fieldType = fields.get(i).getType();  // 获取字段类型（String 类型）
-            int fieldTypeInt = mapFieldTypeToInt(fieldType);  // 将字段类型转换为数字
-            dataOut.writeInt(fieldTypeInt);  // 写入字段类型
-        }
-
-        // 填充剩余的空间（如果字段数小于 100，填充 0）
-        for (int i = fieldCount; i < 100; i++) {
-            dataOut.writeInt(0);  // 填充 0
-        }
-
-        return out.toByteArray();
-    }
-
-    private int mapFieldTypeToInt(String fieldType) {
-        return switch (fieldType.toUpperCase()) {
-            case "STRING" -> 1;
-            case "INT" -> 2;
-            case "LONG" -> 3;
-            case "BOOLEAN" -> 4;
-            case "NULL" -> 5;
-            default -> -1;  // 未知类型
-        };
-    }
+//    /**
+//     * 第零页的结构
+//     * 根页的页码 ( int 4B )
+//     * 目前的最高页码 （ int 4B ）
+//     * 中间节点允许的最多key数量 （ int 4B ）
+//     * ...（前面共1024B）
+//     * 列的当前数量 （int 4B)
+//     * 列名 （最多100个字段，每列是 int（列名长度） + n 字节（UTF-8 字节串）)
+//     * 列类型 （ int 4B*100 , 最多允许400B)
+//     * 每列的检查约束（256B*100，最多允许25600B）
+//     */
+//
+//    public byte[] ZeroToBytes(ArrayList<Field> fields) throws IOException {
+//        ByteArrayOutputStream out = new ByteArrayOutputStream(PAGE_SIZE);
+//        DataOutputStream dataOut = new DataOutputStream(out);
+//
+//        dataOut.writeInt(1);
+//        dataOut.writeInt(1);
+//        dataOut.writeInt(5);
+//
+//        int size = fields.size();
+//        dataOut.writeInt(size);
+//
+//        // 写入列名（以每个列名长度 + UTF-8 字符串形式写入）
+//        int fieldCount = Math.min(size, 100);
+//        for (int i = 0; i < fieldCount; i++) {
+//            String name = fields.get(i).getName();
+//            byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+//
+//            // 写入列名长度 + 内容
+//            dataOut.writeInt(nameBytes.length);
+//            dataOut.write(nameBytes);
+//        }
+//
+//        // 如果字段数不足 100 个，补空列名（写入0长度）
+//        for (int i = fieldCount; i < 100; i++) {
+//            dataOut.writeInt(0);
+//        }
+//        // 写入字段类型（int，4B * n，最多允许400B)
+//        for (int i = 0; i < fieldCount; i++) {
+//            int fieldTypeInt = fields.get(i).mapFieldTypeToInt();  // 将字段类型转换为数字
+//            dataOut.writeInt(fieldTypeInt);  // 写入字段类型
+//        }
+//
+//        // 填充剩余的空间（如果字段数小于 100，填充 0）
+//        for (int i = fieldCount; i < 100; i++) {
+//            dataOut.writeInt(0);  // 填充 0
+//        }
+//
+//        return out.toByteArray();
+//    }
+//
 
     /**
      * 非叶子页的结构
      * 页码 （ int 4B ）
-     * 是否是叶子节点 （bool, 1B)
-     * 是否是根节点 （bool, 1B)
+     * 是否是叶子节点 （boolean 1B)
+     * 是否是根节点 （boolean 1B)
      * 父亲的页id （int, 4B)
      * 目前孩子有几个 （int, 4B)
      * 记录的索引的类型 （目前为主键）（int, 4B)
-     * 孩子页的行中主键的最小值序列 （（是否是字符串 1/0 1B + value ）*5）
+     * 孩子页的行中主键的最小值序列 （ value * 5, 最多允许 512B）
      * 孩子页的页码 （int 4B*5 ）
      */
     public byte[] InnerToBytes() throws IOException {
@@ -367,8 +367,15 @@ public class Page {
         dataOut.writeInt(children.size());
         dataOut.writeInt(entries.getFirst().getType());
 
+        int offset = 0;
         for(Value value : entries) {
-            dataOut.write(value.toBytes());
+            byte[] bytes = value.toBytes();
+            dataOut.write(bytes);
+            offset += bytes.length;
+        }
+
+        for(int i = offset; i <= 512; i++) {
+            dataOut.writeByte(0);
         }
 
         for(Page page : children) {
@@ -381,11 +388,11 @@ public class Page {
     /**
      * 非叶子页的结构
      * 页码 （ int 4B ）
-     * 是否是叶子节点 （int 4B)
-     * 是否是根节点 （int, 4B)
+     * 是否是叶子节点 （boolean 1B)
+     * 是否是根节点 （boolean 1B)
      * 父亲的页id （int, 4B)
      * 记录的索引的类型 （目前为主键）（int, 4B)
-     * 孩子页的行中主键的最小值序列 （ 不确定长度 * 5 ）
+     * 孩子页的行中主键的最小值序列 （ Value * 5, 最多允许512B）
      * 孩子页的页码 （int 4B*5 ）
      */
     public static Page InnerFromBytes(byte[] bytes) throws IOException {
@@ -399,6 +406,7 @@ public class Page {
         int size = in.readInt();
         int type = in.readInt();
 
+        int entryBytes = 0;
         switch(type) {
             case 1:
                 for(int i = 0; i < size; i++) {
@@ -408,29 +416,34 @@ public class Page {
                         sb.append((char) b);
                     }
                     page.entries.add(new StringValue(sb.toString()));
+                    entryBytes += sb.length();
                 }
                 break;
             case 2:
                 for(int i = 0; i < size; i++) {
                     page.entries.add(new IntValue(in.readInt()));
                 }
+                entryBytes += 4 * size;
                 break;
             case 3:
                 for(int i = 0; i < size; i++) {
                     page.entries.add(new LongValue(in.readLong()));
                 }
+                entryBytes += 8 * size;
                 break;
             case 4:
                 for(int i = 0; i < size; i++) {
                     page.entries.add(new BooleanValue(in.readBoolean()));
                 }
+                entryBytes += size;
                 break;
         }
+
+        in.skipBytes(Math.max(0, 512 - entryBytes));
 
         for(int i = 0; i < size; i++) {
             page.children.add(new Page(in.readInt()));
         }
-
 
         page.isLeaf = isLeaf;
         page.isRoot = isRoot;

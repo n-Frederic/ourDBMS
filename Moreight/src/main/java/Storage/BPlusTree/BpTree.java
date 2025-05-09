@@ -15,9 +15,9 @@ public class BpTree {
 
     Page head;
     Page root;
-    private String filePath;
+
     private PageIO pageIO;
-    private int rootPageId;
+
     private Schema schema;
 
     public BpTree() {
@@ -25,9 +25,7 @@ public class BpTree {
     }
 
     public BpTree(String filePath) throws IOException {
-        this.filePath = filePath;
-        this.pageIO = new PageIO(filePath);
-        this.rootPageId = pageIO.getRootPageId();
+
     }
 
     public Page getHead() {

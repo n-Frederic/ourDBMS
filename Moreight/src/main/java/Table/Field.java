@@ -82,23 +82,19 @@ public class Field {
                 '}';
     }
 
+    public int mapFieldTypeToInt() {
+        return switch (type.toUpperCase()) {
+            case "STRING" -> 1;
+            case "INT" -> 2;
+            case "LONG" -> 3;
+            case "BOOLEAN" -> 4;
+            case "NULL" -> 5;
+            default -> -1;  // 未知类型
+        };
+    }
 
-    // 把字符串类型转换成你系统里定义的 Value 子类类型
-//    public Class<? extends Value> getTypeClass() {
-//        switch (type.getType()) {
-//            case 1:
-//                return StringValue.class;
-//            case 2:
-//                return IntValue.class;
-//            case 3 :
-//                return LongValue.class;
-//            case 4:
-//                return BooleanValue.class;
-//            // 如果有其他类型可以补
-//            default:
-//                throw new IllegalArgumentException("未知字段类型：" + type);
-//        }
-//    }
+
+
 
 
 
