@@ -120,6 +120,7 @@ public class PageManager {
                 return newPage;
             }
         }
+        return null;
     }
 
     /**

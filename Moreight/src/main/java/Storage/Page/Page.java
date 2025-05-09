@@ -522,7 +522,7 @@ public class Page {
                     children = null;
 
                     // 父节点[非叶子节点]中插入关键字，是右边的第一位
-                    parent.insertInParent(right.entries.getFirst());
+                    parent.insertInParent(right.tuples.getFirst().getPrimaryV());
                     System.out.println("父节点插入key");
                     parent.updateNode(tree);
                     // for GC
@@ -541,37 +541,22 @@ public class Page {
                     tuples = null;
                     children = null;
                     // 根节点插入关键字
-                    rootPage.insertInParent(right.entries.getFirst());
+                    rootPage.insertInParent(right.tuples.getFirst().getPrimaryV());
                 }
             }
         } else {
-            // 如果不是叶子节点,沿着指针向下搜索
-            if (isRoot) {
-                System.out.println("根节点,向下搜索");
-            }
-            if (key.getPrimaryV().compare(entries.getFirst()) < 0) {
-                System.out.println("中间节点,向下搜索");
-                children.getFirst().insert(key, tree);
-            } else if (key.getPrimaryV().compare(entries.getLast()) >= 0) {
-                System.out.println("中间节点,向下搜索");
-                children.getLast().insert(key, tree);
-            } else {
-                // 遍历比较
-                System.out.println("中间节点,向下搜索");
-                int left = 0;
-                int right = entries.size() - 1;
-                Value keyValue = key.getPrimaryV();
+            Value keyValue = key.getPrimaryV();
+            int left = 0, right = entries.size() - 1;
 
-                while (left <= right) {
-                    int mid = left + (right - left) / 2;
-                    if (keyValue.compare(entries.get(mid)) < 0) {
-                        right = mid - 1;
-                    } else {
-                        left = mid + 1;
-                    }
+            while (left <= right) {
+                int mid = left + (right - left) / 2;
+                if (keyValue.compare(entries.get(mid)) < 0) {
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
                 }
-                children.get(left).insert(key, tree);
             }
+            children.get(left).insert(key, tree);
         }
     }
 
@@ -971,15 +956,15 @@ public class Page {
     private boolean removeInLeaf(Tuple key) {
         int index = -1;
         boolean isFound = false;
-        for (int i = 0; i < entries.size(); i++) {
-            if (key.getPrimaryV().compare(entries.get(i)) == 0) {
+        for (int i = 0; i < tuples.size(); i++) {
+            if (key.compare(tuples.get(i)) == 0) {
                 index  = i;
                 isFound = true;
                 break;
             }
         }
         if (index != -1) {
-            entries.remove(index);
+            tuples.remove(index);
         }
         return isFound;
     }
@@ -1079,9 +1064,7 @@ public class Page {
      */
     private boolean isLeafToSplit() {
         if (isLeaf) {
-            if (tuples.size() >= (maxTuples - 1)) {
-                return true;
-            } else return false;
+            return tuples.size() > (maxTuples - 1);
         } else {
             throw new UnsupportedOperationException("the node is not leaf.");
         }
@@ -1096,10 +1079,7 @@ public class Page {
         if (isLeaf) {
             throw new UnsupportedOperationException("error access to leaf");
         }
-        if (children.size() > maxLength) {
-            return true;
-        }
-        return false;
+        return children.size() > maxLength;
     }
 
 
@@ -1111,13 +1091,15 @@ public class Page {
             throw new UnsupportedOperationException("can't insert into middle node.");
         }
 
-        // 插入entry的适当位置，保持有序
-        for(int i = 0; i < tuples.size(); i++) {
-            if(tuples.get(i).compare(tuple) > 0) {
-                tuples.add(i,tuple);
-                break;
+        // 插入tuples的适当位置，保持有序
+        for (int i = 0; i < tuples.size(); i++) {
+            if (tuples.get(i).compare(tuple) > 0) {
+                tuples.add(i, tuple);
+                return;
             }
         }
+        tuples.add(tuple); // 插入到末尾
+
     }
 
     /**
@@ -1128,12 +1110,14 @@ public class Page {
             throw new UnsupportedOperationException("can't insert into leaf node.");
         }
 
-        for(int i = 0; i < entries.size(); i++) {
-            if(entries.get(i).compare(key) > 0) {
-                entries.add(i,key);
-                break;
+        for (int i = 0; i < entries.size(); i++) {
+            if (entries.get(i).compare(key) > 0) {
+                entries.add(i, key);
+                return;
             }
         }
+        entries.add(key); // 插入到末尾
+
     }
 
 
