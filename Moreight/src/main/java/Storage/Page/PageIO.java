@@ -60,9 +60,13 @@ public class PageIO {
         }
 
         byte[] data;
-        if(page.isLeaf) {
+        if(page.isLeaf && !page.tuples.isEmpty()) {
             data = page.leafToBytes();
-        } else data = page.InnerToBytes();
+        } else if(!page.isLeaf && !page.entries.isEmpty()){
+            data = page.InnerToBytes();
+        } else {
+            data = new byte[Page.PAGE_SIZE];
+        }
 
         file.seek((long) page.getPageId() * Page.PAGE_SIZE);
         file.write(data);
@@ -88,10 +92,6 @@ public class PageIO {
         return isLeafByte != 0;
     }
 
-
-
-
-
     public void setRootPageId(int rootId) throws IOException {
         file.seek(0);
         file.writeInt(rootId);
@@ -102,6 +102,7 @@ public class PageIO {
      * 更新最高页码
      */
 
+
     public int allocateNewPage() throws IOException {
         meta.setHighestPageId(meta.getHighestPageId()+1);  // 增加最高页码
         meta.updateHighestPageId(file);  // 将新的 highestPageId 写入文件
@@ -110,6 +111,4 @@ public class PageIO {
         file.setLength(length + Page.PAGE_SIZE);
         return newPageId;
     }
-
-
 }

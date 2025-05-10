@@ -6,6 +6,7 @@ public class Field {
     private String name;
     private String type;
     private boolean primaryKey;
+    ForeignKey fk;
     private boolean unique;
     private boolean notNull;
     private Value Default;
@@ -14,9 +15,14 @@ public class Field {
         this.name = name;
         this.type = type;
         primaryKey = false;
+        fk = new ForeignKey();
+        fk.isforeignkey=false;
+        fk.referField=null;
+        fk.referTable=null;
         unique = false;
         notNull = false;
         Default=null;
+
     }
 
 
@@ -54,6 +60,15 @@ public class Field {
     }
 
 
+    public boolean isForeignKey(){
+        return fk.isforeignkey;
+    }
+    public String getReferenceTable(){
+        return fk.referTable;
+    }
+    public String getReferenceColumn(){
+        return fk.referField;
+    }
     public boolean isNotNull() {
         return notNull;
     }

@@ -10,7 +10,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
-import Storage.Page.*;
 
 /**
  * Table类用于管理数据库表的操作。
@@ -32,16 +31,16 @@ public class Table {
      * 可用，如果不可用，找page的insert的问题
      */
 
-    public void insert(Tuple key) throws IOException {
-        tree.insert(key);
-    }
+//    public void insert(Tuple key) throws IOException {
+//        tree.insert(key);
+//    }
 
     /**
      * 可用，如果不可用，找page的remove的问题
      */
-    public void delete(Tuple tuple){
-        tree.remove(tuple);
-    }
+//    public void delete(Tuple tuple){
+//        tree.remove(tuple);
+//    }
 
     /**
      * 返回一个文件，可用
@@ -74,6 +73,10 @@ public class Table {
 
         return result;
     }
+    public static boolean isReferencedByOtherTables(){
+        //TODO:table是否被引用F
+        return false;
+    }
 
     /**
      * 可用
@@ -96,13 +99,12 @@ public class Table {
 
         Page current = tree.getHead();
         while(current != null) {
-            ArrayList<Tuple> temp = current.get(condition,index);
+            ArrayList<Tuple> temp = current.getTuples(condition,index);
             if(!temp.isEmpty()) {
                 tuples.addAll(temp);
             }
             current = current.getNext();
         }
-
         return tuples;
     }
 
@@ -127,6 +129,30 @@ public class Table {
             return tuples;
         } else return tuples;
     }
+    public boolean hasForeignKeyConstraints(){
+        return false;
+        // TODO: 遍历schema检查是否有外键
+
+    }
+
+    public boolean containsValue(String keyName, Value keyValue){
+        return false;
+        // TODO: 遍历主键值检查是否有外键
+    }
+    public boolean isColumnReferenced(String column){
+        return false;
+        // TODO: 遍历column值检查是否有被引用外键
+
+
+    }
+    public boolean isColumnForeignKey(String column){
+        return false;
+        // TODO: 遍历column值检查是否有引用其他外键
+
+    }
+
+
+
 
 
     // TODO: 等待黄爱雷提供单个tuple的完整筛查

@@ -28,10 +28,10 @@ public class TableManager {
     // (1) type (2) PRIMARY KEY (3) UNIQUE (4) NOT NULL (5) DEFAULT
     public static void CreateTable(String tableName, ArrayList<Field> args) {
         try {
-            File dir = new File(DIRECTORY);
+            File dir = new File(DIRECTORY+"/"+tableName);
             if (!dir.exists()) dir.mkdirs();
 
-            File file = new File(DIRECTORY + "/" + tableName + ".idb");
+            File file = new File(DIRECTORY + "/" + tableName + "/"+tableName+".idb");
             if (file.exists()) {
                 System.out.println("表已存在：" + tableName);
                 return;
@@ -151,6 +151,9 @@ public class TableManager {
 //            current = current.getNext();
 //        }
     }
+    /*
+     * table是否被引用*/
+
 
     public static void dropColumn(String fieldName,Table table){
 //        Schema schema = table.getSchema();

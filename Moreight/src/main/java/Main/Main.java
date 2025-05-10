@@ -1,13 +1,19 @@
 package Main;
 
 import Controller.Operating;
+import Storage.Page.Meta;
 import Table.Field;
 import Table.TableManager;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Random;
+import java.util.RandomAccess;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         TableManager tm = new TableManager();
         ArrayList<Field> fields = new ArrayList<>();
@@ -17,6 +23,45 @@ public class Main {
         fields.add(new Field("age", "INT"));
 
         TableManager.CreateTable("student", fields);
+        Meta m = new Meta(fields);
+        System.out.println("rootPageId : " + m.getRootPageId());
+        System.out.println("highestPageId : " + m.getHighestPageId());
+        System.out.println("MaxKeys : " + m.getMaxKeys());
+        System.out.println("ColumnsCount : " + m.getColumnCount());
+        for(int i = 0; i < m.getColumnCount(); i++) {
+            System.out.println(m.getColumnNames()[i]);
+            System.out.println(m.get);
+        }
+
+        RandomAccessFile raf = new RandomAccessFile("../TestData/DatabaseManager/student/student.idb","rw");
+
+        Meta meta = Meta.readMetaFromDisk(raf);
+        System.out.println("rootPageId : " + meta.getRootPageId());
+        System.out.println("highestPageId : " + meta.getHighestPageId());
+        System.out.println("MaxKeys : " +meta.getMaxKeys());
+
+//        raf.seek(0);
+//        for(int i = 0; i < 4; i++) {
+//            System.out.println(raf.readInt());
+//        }
+//
+//        int offset = 1024;
+//
+//
+//        for(int i = 0; i < 3; i++) {
+//            raf.seek(offset);
+//            int size = raf.readInt();
+//            System.out.println(size);
+//            byte[] bytes = new byte[size];
+//            raf.readFully(bytes);
+//            System.out.println(new String(bytes));
+//            System.out.println(raf.readInt());
+//            int size1 = raf.readInt();
+//            byte[] bytes1 = new byte[size1];
+//            raf.readFully(bytes1);
+//            System.out.println(new String(bytes1));
+//            offset+=128;
+//        }
 
         // 登录注册的测试
 //       Operating operating = new Operating();

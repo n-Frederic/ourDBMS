@@ -4,260 +4,196 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
-public class UI extends JFrame { // 定义UI类，继承自JFrame，用于创建窗口
-    private final JTextArea outputArea; // 定义输出区域，用于显示控制台输出和用户输入
-    private String prompt = "mysql> "; // 定义命令提示符
-    private boolean isRedirecting = false; // 标志位，用于判断是否正在重定向输出
+// 定义UI类，继承自JFrame用于创建图形用户界面窗口
+public class UI extends JFrame {
 
-    private boolean isRightCode=false;
+    // 界面组件变量
+    private JTextArea outputArea; // 输出区域文本框
+    private String prompt = "mysql> "; // 命令提示符
+    private boolean isRedirecting = false; // 标识是否正在重定向输出
 
-    private String usename="DBMS";
+    public String rightCode="11111111";
 
-    private String useCode="11111111";
+    // 定义业务逻辑接口，用于处理用户命令
+    public interface CommandHandler {
+        void handleCommand(String cmd); // 处理命令的方法
+    }
 
+    private final CommandHandler commandHandler; // 外部传入的命令处理器
 
+    // 构造函数，接收命令处理器并初始化界面和输出重定向
+    public UI(CommandHandler handler) {
+        this.commandHandler = handler;
+        initializeUI(); // 初始化用户界面
+        redirectSystemStreams(); // 重定向系统输出流
+    }
 
-    public UI() { // 构造函数，用于初始化UI界面
-        // 初始化界面设置
-        setTitle("控制台"); // 设置窗口标题
+    public void setrightCode(String rightCode){
+        this.rightCode=rightCode;
+    }
+
+    public String getrightCode(){
+        return rightCode;
+    }
+
+    // 初始化用户界面的方法
+    private void initializeUI() {
+        setTitle("DBMS Console"); // 设置窗口标题
         setSize(800, 600); // 设置窗口大小
-        setLocationRelativeTo(null); // 设置窗口居中显示
-        setDefaultCloseOperation(EXIT_ON_CLOSE); // 设置窗口关闭操作
+        setLocationRelativeTo(null); // 窗口居中显示
+        setDefaultCloseOperation(EXIT_ON_CLOSE); // 设置关闭操作为退出程序
 
-        Container contentPane = getContentPane(); // 获取窗口内容面板
-        contentPane.setLayout(new BorderLayout()); // 设置内容面板布局为边框布局
+        // 配置输出区域文本框
+        outputArea = new JTextArea();
+        outputArea.setEditable(false); // 设置为只读
+        outputArea.setBackground(Color.BLACK); // 设置背景色为黑色
+        outputArea.setForeground(Color.WHITE); // 设置前景色（文本色）为白色
+        outputArea.setFont(new Font("Consolas", Font.PLAIN, 14)); // 设置字体
 
-        // 初始化输出区域
-        outputArea = new JTextArea(); // 创建文本区域，用于显示输出
-        outputArea.setEditable(false); // 设置文本区域不可编辑
-        outputArea.setBackground(Color.BLACK); // 设置文本区域背景色为黑色
-        outputArea.setForeground(Color.WHITE); // 设置文本区域前景色为白色
-        outputArea.setFont(new Font("Monospaced", Font.PLAIN, 14)); // 设置文本区域字体
-        JScrollPane scrollPane = new JScrollPane(outputArea); // 创建滚动面板，包含文本区域
-        contentPane.add(scrollPane, BorderLayout.CENTER); // 将滚动面板添加到内容面板中心
+        // 将文本框封装在滚动面板中
+        JScrollPane scrollPane = new JScrollPane(outputArea);
+        getContentPane().add(scrollPane, BorderLayout.CENTER); // 添加到窗口中央
 
-        outputArea.append("Enter password:");
-        outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
-        boolean[] isRightCode = {false}; // 用于标记密码是否正确
-        boolean[] hasShownError = {false}; // 用于标记是否已经显示过错误提示
+        // 设置初始密码验证
+        setupPasswordAuthentication();
+        setVisible(true); // 显示窗口
+    }
 
-// 定义密码验证的监听器
-        KeyListener passwordListener = new KeyAdapter() { // 添加键盘事件监听器
+    // 设置初始密码验证逻辑
+    private void setupPasswordAuthentication() {
+        outputArea.append("Enter password: "); // 显示密码提示
+        outputArea.setEditable(true); // 设置文本框可编辑
+
+        // 为文本框添加键盘事件监听器
+        outputArea.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) { // 重写按键事件方法
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
-                    e.consume(); // 消耗事件，防止默认行为
-                    int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
-                    String input = outputArea.getText().substring(promptIndex + "Enter password:".length()).trim(); // 获取用户输入并去除首尾空格
-                    if (input.equals(useCode)) {
-                        outputArea.append("\n");
-                        outputArea.append("Welcome to the Moreight DBMS.Your Moreight DBMS connection id is ");
-                        outputArea.append(usename + ".");
-                        outputArea.append("\n");
-
-                        isRightCode[0] = true;
-
-                        // 移除密码验证的监听器
-                        outputArea.removeKeyListener(this);
-
-                        // 添加新的命令行输入监听器
-                        outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
-                        outputArea.append(prompt); // 在文本区域添加命令提示符
-
-                        KeyListener commandListener = new KeyAdapter() { // 添加键盘事件监听器
-                            @Override
-                            public void keyPressed(KeyEvent e) { // 重写按键事件方法
-                                if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
-                                    e.consume(); // 消耗事件，防止默认行为
-                                    int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
-                                    String input = outputArea.getText().substring(promptIndex + prompt.length()); // 获取用户输入
-                                    handleInput(input); // 处理用户输入
-                                    outputArea.setCaretPosition(outputArea.getDocument().getLength()); // 将光标移动到提示符后
-                                    outputArea.append("\n");
-                                    //outputArea.append(prompt); // 在文本区域添加新的提示符
-
-                                } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
-                                    int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
-                                    if (outputArea.getCaretPosition() <= promptIndex + prompt.length()) { // 如果光标在提示符后
-                                        e.consume(); // 消耗事件，防止默认行为
-                                    }
-                                } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf(prompt) + prompt.length()) { // 如果光标在提示符前
-                                    e.consume(); // 消耗事件，防止默认行为
-                                }
-                            }
-                        };
-
-                        outputArea.addKeyListener(commandListener);
-                    } else {
-                        if (!hasShownError[0]) {
-                            outputArea.append("\n");
-                            outputArea.append("Incorrect password. Please try again.");
-                            hasShownError[0] = true; // 标记已经显示过错误提示
-                        }
-                        outputArea.append("\nEnter password:");
-                        outputArea.setCaretPosition(outputArea.getText().length()); // 将光标移动到文本末尾
-                    }
-                } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
-                    int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
-                    if (outputArea.getCaretPosition() <= promptIndex + "Enter password:".length()) { // 如果光标在提示符后
-                        e.consume(); // 消耗事件，防止默认行为
-                    }
-                } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf("Enter password:") + "Enter password:".length()) { // 如果光标在提示符前
-                    e.consume(); // 消耗事件，防止默认行为
+            public void keyPressed(KeyEvent e) {
+                // 如果按下回车键，处理密码输入
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    handlePasswordInput();
+                    e.consume(); // 标记事件为已处理
                 }
-            }
-        };
-
-        outputArea.addKeyListener(passwordListener);
-
-//        outputArea.append("Enter password:");
-//        outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
-//        final boolean[] isRightCode = {false}; // 用于标记密码是否正确
-//        final boolean[] hasShownError = {false}; // 用于标记是否已经显示过错误提示
-//
-//        outputArea.addKeyListener(new KeyAdapter() { // 添加键盘事件监听器
-//            @Override
-//            public void keyPressed(KeyEvent e) { // 重写按键事件方法
-//                if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
-//                    e.consume(); // 消耗事件，防止默认行为
-//                    int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
-//                    String input = outputArea.getText().substring(promptIndex + "Enter password:".length()).trim(); // 获取用户输入并去除首尾空格
-//                    if (input.equals(useCode)) {
-//                        outputArea.append("\n");
-//                        outputArea.append("Welcome to the Moreight DBMS.Your Moreight DBMS connection id is ");
-//                        outputArea.append(usename + ".");
-//                        outputArea.append("\n");
-//                        isRightCode[0] = true;
-//                    } else {
-//                        if (!hasShownError[0]) {
-//                            outputArea.append("\n");
-//                            outputArea.append("Incorrect password. Please try again.");
-//                            hasShownError[0] = true; // 标记已经显示过错误提示
-//                        }
-//                        outputArea.append("\nEnter password:");
-//                        outputArea.setCaretPosition(outputArea.getText().length()); // 将光标移动到文本末尾
-//                    }
-//                } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
-//                    int promptIndex = outputArea.getText().lastIndexOf("Enter password:"); // 获取提示符在文本中的索引
-//                    if (outputArea.getCaretPosition() <= promptIndex + "Enter password:".length()) { // 如果光标在提示符后
-//                        e.consume(); // 消耗事件，防止默认行为
-//                    }
-//                } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf("Enter password:") + "Enter password:".length()) { // 如果光标在提示符前
-//                    e.consume(); // 消耗事件，防止默认行为
-//                }
-//            }
-//        });
-//
-//
-//
-//
-//        if(isRightCode[0]) {
-//            System.out.println(isRightCode[0]);
-//            // 模拟命令行输入
-//            outputArea.setEditable(true); // 设置文本区域可编辑，以便用户输入
-//            outputArea.append(prompt); // 在文本区域添加命令提示符
-//            outputArea.addKeyListener(new KeyAdapter() { // 添加键盘事件监听器
-//                @Override
-//                public void keyPressed(KeyEvent e) { // 重写按键事件方法
-//                    if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 如果按下回车键
-//                        e.consume(); // 消耗事件，防止默认行为
-//                        int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
-//                        String input = outputArea.getText().substring(promptIndex + prompt.length()); // 获取用户输入
-//                        handleInput(input); // 处理用户输入
-//                        outputArea.setCaretPosition(outputArea.getDocument().getLength()); // 将光标移动到提示符后
-//                        outputArea.append("\n");
-//                        //outputArea.append(prompt); // 在文本区域添加新的提示符
-//                    } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) { // 如果按下退格键
-//                        int promptIndex = outputArea.getText().lastIndexOf(prompt); // 获取提示符在文本中的索引
-//                        if (outputArea.getCaretPosition() <= promptIndex + prompt.length()) { // 如果光标在提示符后
-//                            e.consume(); // 消耗事件，防止默认行为
-//                        }
-//                    } else if (outputArea.getCaretPosition() < outputArea.getText().lastIndexOf(prompt) + prompt.length()) { // 如果光标在提示符前
-//                        e.consume(); // 消耗事件，防止默认行为
-//                    }
-//                }
-//            });
-//        }
-
-        contentPane.revalidate(); // 重新验证内容面板
-        contentPane.repaint(); // 重新绘制内容面板
-
-        // 重定向标准输出到文本区域
-        redirectSystemOut(); // 调用方法重定向输出
-    }
-
-    // 处理用户输入
-    private void handleInput(String input) { // 定义处理用户输入的方法
-        if (input.trim().isEmpty()) { // 如果输入为空
-            return; // 返回，不执行任何操作
-        }
-        //printToConsole(input); // 显示用户输入
-        String output = processInput(input); // 处理输入并获取输出
-        printToConsole(output); // 显示处理结果
-    }
-
-    // 模拟业务逻辑处理（替换为你的实际逻辑）
-    private String processInput(String input) { // 定义模拟业务逻辑处理的方法
-        System.out.println("test");
-        return prompt; // 返回处理结果
-    }
-
-    // 向控制台输出内容（自动换行）
-    private void printToConsole(String message) { // 定义向控制台输出内容的方法
-        SwingUtilities.invokeLater(() -> { // 在事件调度线程中执行
-            if (outputArea != null && outputArea.isDisplayable()) { // 如果文本区域可用
-                try {
-                    outputArea.append(message); // 将消息追加到文本区域
-                } catch (Exception e) { // 捕获并处理异常
-                    System.err.println("Exception occurred while appending message: " + e.getMessage());
-                    e.printStackTrace();
-                }
+                // 处理输入限制，防止修改提示符内容
+                handleInputRestrictions(e, "Enter password: ");
             }
         });
     }
 
-    // 重定向 System.out 到文本区域
-    private void redirectSystemOut() { // 定义重定向标准输出的方法
-        try {
-            PrintStream printStream = new PrintStream(new OutputStream() { // 创建新的打印流
-                @Override
-                public void write(int b) throws IOException { // 重写写入方法
-                    if (!isRedirecting) { // 如果不在重定向输出
-                        isRedirecting = true; // 设置正在重定向输出
-                        printToConsole(String.valueOf((char) b)); // 将字符追加到文本区域
-                        isRedirecting = false; // 重置正在重定向输出
-                    }
-                }
+    // 处理密码输入逻辑
+    private void handlePasswordInput() {
+        String content = outputArea.getText(); // 获取文本框全部内容
+        int promptIndex = content.lastIndexOf("Enter password: "); // 找到密码提示位置
+        String input = content.substring(promptIndex + 16).trim(); // 提取用户输入的密码
 
-                @Override
-                public void write(byte[] b, int off, int len) throws IOException { // 重写写入方法
-                    if (!isRedirecting) { // 如果不在重定向输出
-                        isRedirecting = true; // 设置正在重定向输出
-                        printToConsole(new String(b, off, len)); // 将字符串追加到文本区域
-                        isRedirecting = false; // 重置正在重定向输出
-                    }
-                }
-            });
-            System.setOut(printStream); // 设置新的标准输出
-            System.setErr(printStream); // 设置新的标准错误输出
-        } catch (SecurityException se) { // 捕获并处理安全异常
-            System.err.println("设置标准输出重定向时出现安全异常: " + se.getMessage());
-            se.printStackTrace();
-        } catch (Exception e) { // 捕获并处理其他异常
-            System.out.println("Exception occurred during redirection: " + e.getMessage());
-            e.printStackTrace();
+        // 验证密码是否正确
+        if (rightCode.equals(input)) {
+            outputArea.removeKeyListener(outputArea.getKeyListeners()[0]); // 移除密码验证监听器
+            showWelcomeMessage(); // 显示欢迎信息
+            setupCommandInput(); // 设置命令输入逻辑
+        } else {
+            showPasswordError(); // 显示密码错误信息
         }
     }
 
-    public static void main(String[] args) { // 主方法，程序入口点
-        SwingUtilities.invokeLater(() -> { // 在事件调度线程中执行
-            UI ui = new UI(); // 创建UI实例
-            ui.setVisible(true); // 显示窗口
+    // 显示欢迎信息
+    private void showWelcomeMessage() {
+        appendToConsole("\n\nWelcome to Moreight DBMS\n"); // 欢迎信息
+        appendToConsole("Version 1.0\n"); // 版本信息
+        appendToConsole("Type 'help' for commands\n"); // 帮助提示
+        appendPrompt(); // 显示命令提示符
+    }
+
+    // 设置命令输入逻辑
+    private void setupCommandInput() {
+        // 为文本框添加键盘事件监听器，处理命令输入
+        outputArea.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) { // 检测回车键
+                    handleCommandInput(); // 处理命令输入
+                    e.consume(); // 标记事件为已处理
+                }
+                handleInputRestrictions(e, prompt); // 处理输入限制
+            }
         });
+    }
+
+    // 处理命令输入逻辑
+    private void handleCommandInput() {
+        String content = outputArea.getText(); // 获取文本框全部内容
+        int promptIndex = content.lastIndexOf(prompt); // 找到命令提示符位置
+        String cmd = content.substring(promptIndex + prompt.length()).trim(); // 提取用户输入的命令
+
+        commandHandler.handleCommand(cmd); // 调用外部命令处理器处理命令
+        appendPrompt(); // 显示新的命令提示符
+    }
+
+    // 处理输入限制，防止修改提示符内容
+    private void handleInputRestrictions(KeyEvent e, String targetPrompt) {
+        String content = outputArea.getText(); // 获取文本框全部内容
+        int promptIndex = content.lastIndexOf(targetPrompt); // 找到目标提示符位置
+
+        // 如果按下退格键且光标在提示符区域内，禁止删除
+        if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE &&
+                outputArea.getCaretPosition() <= promptIndex + targetPrompt.length()) {
+            e.consume();
+        }
+
+        // 如果光标在提示符前面，禁止输入
+        if (outputArea.getCaretPosition() < promptIndex + targetPrompt.length()) {
+            e.consume();
+        }
+    }
+
+    // 向控制台追加文本的方法
+    public void appendToConsole(String text) {
+        SwingUtilities.invokeLater(() -> { // 确保UI更新在事件调度线程执行
+
+            outputArea.append(text); // 追加文本
+            outputArea.setCaretPosition(outputArea.getDocument().getLength()); // 移动光标到末尾
+        });
+    }
+
+    // 追加命令提示符
+    private void appendPrompt() {
+        appendToConsole("\n" + prompt);
+    }
+
+    // 显示密码错误信息
+    private void showPasswordError() {
+        appendToConsole("\nERROR 1045 (28000): Access denied\n"); // 错误信息
+        appendToConsole("Enter password: "); // 重新显示密码提示
+    }
+
+    // 重定向系统输出流，将输出显示在UI上
+    private void redirectSystemStreams() {
+        PrintStream ps = new PrintStream(new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                // 将单个字节转换为字符并追加到控制台
+                if (!isRedirecting) {
+                    isRedirecting = true;
+                    appendToConsole(String.valueOf((char) b));
+                    isRedirecting = false;
+                }
+            }
+
+            @Override
+            public void write(byte[] b, int off, int len) {
+                // 将字节数组转换为字符串并追加到控制台
+                if (!isRedirecting) {
+                    isRedirecting = true;
+                    appendToConsole(new String(b, off, len));
+                    isRedirecting = false;
+                }
+            }
+        });
+
+        System.setOut(ps); // 设置自定义输出流为系统标准输出
+        System.setErr(ps); // 设置自定义输出流为系统标准错误输出
     }
 }

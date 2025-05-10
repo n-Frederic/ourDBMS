@@ -1,4 +1,6 @@
 package Storage.Value;
+import java.util.ArrayList; // 单独导入ArrayList
+import java.util.*;        // 导入java.util下的所有类（不推荐，可能引起命名冲突）
 
 public abstract class Value {
 
@@ -32,6 +34,20 @@ public abstract class Value {
         } else {
             throw new IllegalArgumentException("Unsupported class type: " + clazz.getName());
         }
+    }
+    public static ArrayList<Value> sortValues(ArrayList<Value> values) {
+        // 创建列表副本以避免修改原列表
+        ArrayList<Value> sorted = new ArrayList<>(values);
+
+        // 使用Value自身的compare方法进行比较
+        Collections.sort(sorted, new Comparator<Value>() {
+            @Override
+            public int compare(Value v1, Value v2) {
+                return v1.compare(v2); // 直接调用Value类的compare方法
+            }
+        });
+
+        return sorted;
     }
 
     public abstract Object getValue();

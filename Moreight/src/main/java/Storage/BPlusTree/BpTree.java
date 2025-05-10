@@ -2,6 +2,7 @@ package Storage.BPlusTree;
 
 import Storage.Page.Page;
 import Storage.Page.PageIO;
+import Storage.Page.PageManager;
 import Storage.Page.Tuple;
 import Table.Schema;
 
@@ -44,7 +45,7 @@ public class BpTree {
         this.root = root;
     }
 
-    public void remove(Tuple tuple) {
-        root.remove(tuple, this);
+    public void remove(PageManager manager, Tuple tuple) {
+        manager.remove(head, tuple, this);
     }
 }

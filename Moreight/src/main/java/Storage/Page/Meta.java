@@ -7,16 +7,7 @@ import java.util.ArrayList;
 
 
 public class Meta {
-    /**
-     * 第零页的结构：
-     * 根页的页码 ( int 4B )
-     * 目前的最高页码 （ int 4B ）
-     * 中间节点允许的最多key数量 （ int 4B ）
-     * 列的当前数量 （int 4B)
-     * 列名 （最多100个字段，每列是 int（列名长度） + n 字节（UTF-8 字节串）)
-     * 列类型 （ int 4B*100 , 最多允许400B)
-     * 每列的检查约束（255B*100，最多允许25500B）
-     */
+
     private int rootPageId;
     private int highestPageId;
     private int maxKeys;
@@ -224,7 +215,7 @@ public class Meta {
             file.write(constraintBytes);
             offset += 4+constraintBytes.length;
 
-            for(int j = offset; j <= 128; j++) {
+            for(int j = offset; j < 128; j++) {
                 file.writeByte(0);
             }
         }
