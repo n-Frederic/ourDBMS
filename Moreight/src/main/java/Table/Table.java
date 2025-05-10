@@ -41,18 +41,21 @@ public class Table {
         PageIO pageIO = pageManager.getPageIO();
         if(meta.getHighestPageId() == 0) {
             Page page = new Page(1,true,true);
-            page.getTuples().addFirst(tuple);
 
             meta.setHighestPageId(1);
             meta.setRootPageId(1);
+
             meta.updateHighestPageId(pageIO.getFile());
 
             pageManager.updatePageToManager(page);
             pageManager.flushModifiedPages();
+
+        } else {
+            Page rootPage = pageManager.getPage(0);
+            pageManager.insert(rootPage, tuple, tree);
         }
 
-        Page rootPage = pageManager.getPage(0);
-        pageManager.insert(rootPage, tuple, tree);
+
     }
 
     /**
@@ -154,6 +157,11 @@ public class Table {
             return tuples;
         } else return tuples;
     }
+
+    public PageManager getPageManager() {
+        return pageManager;
+    }
+
     public boolean hasForeignKeyConstraints(){
         return false;
         // TODO: 遍历schema检查是否有外键

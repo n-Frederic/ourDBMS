@@ -82,10 +82,9 @@ public class Page {
      * 得到行数组
      * @return 行数组
      */
-    public List<Tuple> getTuples() {
+    public ArrayList<Tuple> getTuples() {
         return tuples;
     }
-
     public ArrayList<Tuple> getTuples(Condition condition, int index) {
         ArrayList<Tuple> temp=new ArrayList<>();
         for(Tuple t:tuples){

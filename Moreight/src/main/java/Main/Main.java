@@ -1,14 +1,13 @@
 package Main;
 
 import Controller.Operating;
-import Storage.Page.Meta;
+import Storage.Page.*;
 import Storage.Value.IntValue;
 import Storage.Value.StringValue;
 import Storage.Value.Value;
 import Table.Field;
 import Table.TableManager;
 import Table.Table;
-import Storage.Page.Tuple;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -20,23 +19,49 @@ import java.util.RandomAccess;
 public class Main {
     public static void main(String[] args) throws IOException {
 
-        TableManager tm = new TableManager();
-        ArrayList<Field> fields = new ArrayList<>();
+//        TableManager tm = new TableManager();
+//        ArrayList<Field> fields = new ArrayList<>();
+//
+//        fields.add(new Field("id", "INT"));
+//        fields.add(new Field("name", "STRING"));
+//        fields.add(new Field("age", "INT"));
+//
+//        TableManager.CreateTable("student", fields);
 
-        fields.add(new Field("id", "INT"));
-        fields.add(new Field("name", "STRING"));
-        fields.add(new Field("age", "INT"));
-
-        TableManager.CreateTable("student", fields);
-
-        RandomAccessFile raf = new RandomAccessFile("../TestData/DatabaseManager/student/student.idb","rw");
-
+//        RandomAccessFile raf = new RandomAccessFile("../TestData/DatabaseManager/student/student.idb","rw");
 
         Table table = new Table("student");
+        System.out.println(table.getPageManager().getMeta().getHighestPageId());
+
+//        PageManager pageManager = table.getPageManager();
+//        PageIO pageIO = pageManager.getPageIO();
+//
+//        Page page = pageIO.readPage(1);
+//
+//        for(Tuple tuple : page.getTuples()) {
+//            for(Value value : tuple.getValues()) {
+//                System.out.print(value.toString() + " ");
+//            }
+//            System.out.println();
+//        }
+
+
+
 
         Value[] values = {new IntValue(1),new StringValue("zxc"),new IntValue(20)};
         Tuple t1 = new Tuple(values);
         table.insert(t1);
+
+
+
+
+
+
+
+
+
+
+
 
 
 //        System.out.println("rootPageId : " + meta.getRootPageId());

@@ -190,7 +190,6 @@ public class PageManager {
      */
     public void savePageToDisk(Page page) throws IOException {
         pageIO.writePage(page);
-        modifiedPages.remove(page);  // 保存到磁盘后，移除改动记录
     }
 
 
@@ -198,9 +197,13 @@ public class PageManager {
      * 刷新所有已修改的页面到磁盘
      */
     public void flushModifiedPages() throws IOException {
-        for (Page page : modifiedPages) {
-            savePageToDisk(page);
+        Iterator<Page> iterator = modifiedPages.iterator();
+
+        while(iterator.hasNext()) {
+            savePageToDisk(iterator.next());
+            iterator.remove();
         }
+
         modifiedPages.clear();
     }
     
@@ -375,6 +378,7 @@ public class PageManager {
         }
 
         flushModifiedPages();
+        System.out.println("刷新了");
     }
 
     public boolean remove(Page page, Tuple key, BpTree tree) {
