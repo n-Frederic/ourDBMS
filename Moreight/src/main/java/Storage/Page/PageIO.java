@@ -18,6 +18,10 @@ public class PageIO {
         this.file = new RandomAccessFile(filePath, "rw");
     }
 
+    public void setMeta(Meta meta) {
+        this.meta = meta;
+    }
+
     public RandomAccessFile getFile() {
         return file;
     }

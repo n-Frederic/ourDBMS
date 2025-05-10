@@ -39,10 +39,19 @@ public class PageManager {
         pageIO = new PageIO(diskFileName);
         modifiedPages = new ArrayList<>();
         meta = Meta.readMetaFromDisk(pageIO.getFile());
+        pageIO.setMeta(meta);
     }
 
     public static ArrayList<Page> getPages() {
         return pages;
+    }
+
+    public Meta getMeta() {
+        return meta;
+    }
+
+    public PageIO getPageIO() {
+        return pageIO;
     }
 
     public BpTree buildTreeFromFile() throws IOException {
@@ -85,7 +94,10 @@ public class PageManager {
 
             pages.set(pageId, current);
         }
+
         ArrayList<Page> sortedPage = PageManager.sortPagesByMinValue(leafPages);
+        pages = PageManager.sortPagesByMinValue(pages);
+
 
 
 //        // 1. 读取第0页获取元数据
@@ -248,7 +260,7 @@ public class PageManager {
      * @param tree B+树
      */
 
-    public void insert(Page page, Tuple key, BpTree tree) {
+    public void insert(Page page, Tuple key, BpTree tree) throws IOException {
         if (page.isLeaf) {
             if (!isLeafToSplit(page)) {
 //                System.out.println("直接插入叶节点");
@@ -361,6 +373,8 @@ public class PageManager {
             }
             insert(page.children.get(left),key, tree);
         }
+
+        flushModifiedPages();
     }
 
     public boolean remove(Page page, Tuple key, BpTree tree) {

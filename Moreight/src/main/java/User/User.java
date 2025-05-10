@@ -7,7 +7,7 @@ package User;
 public class User {
     private String userName;
     private String password;
-    private int level;  // 用户的权限等级,1是游客，2是管理员
+    private String level;  // 用户的权限等级,1是游客，2是管理员
 
     /**
      * 构造一个User对象。
@@ -15,10 +15,10 @@ public class User {
      * @param password 密码。
      * @param level 权限等级。
      */
-    public User(String userName,String password,int level){
+    public User(String userName,String password,String level){
         this.userName = userName;
         this.password = password;
-        this.level = 5;
+        this.level = level;
     }
 
     /**
@@ -58,7 +58,7 @@ public class User {
      * 设置用户的权限等级。
      * @param level 新权限等级。
      */
-    public void setLevel(int level) {
+    public void setLevel(String level) {
         this.level = level;
     }
 
@@ -66,7 +66,7 @@ public class User {
      * 获取用户的权限等级。
      * @return 用户的权限等级。
      */
-    public int getLevel() {
+    public String getLevel() {
         return level;
     }
 }

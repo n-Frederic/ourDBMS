@@ -2,10 +2,8 @@ package User;
 
 import java.io.*;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,8 +12,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 
-
-import com.google.gson.JsonParseException;
 
 import com.google.gson.stream.JsonReader;
 
@@ -54,10 +50,11 @@ public class UserManager {
      *         1：用户名已存在，
      *         2：成功。
      */
-    public static int CreateUser(String user, String password) {
+    public static int CreateUser(String user, String password,String level) {
         JsonObject newUser = new JsonObject();
         newUser.addProperty("userName", user);
         newUser.addProperty("password", password);
+        newUser.addProperty("level",level);
         //usersInfo.put(user, new User(user, password, 0));
 
         File file = new File("../TestData/UserManager/UserManager.json");
@@ -66,7 +63,9 @@ public class UserManager {
             try (FileReader reader = new FileReader(file)) {
                 JsonArray userArray = JsonParser.parseReader(reader).getAsJsonArray();
                 int check = checkUserExists(userArray,user,password);
-                if(check == 1) {
+                boolean validLevel=isValidLevel(level);
+
+                if(check == 1&&validLevel) {
                     userArray.add(newUser);
                     FileWriter writer = new FileWriter(file);
                     Gson gson = new Gson();
@@ -76,7 +75,8 @@ public class UserManager {
                     return 2;
                 } else if (check == 2 || check == 3) {
                     return 1;
-                } else return 0;
+                } else if(!validLevel) return 3;
+                else return 0;
             } catch (IOException e) {
                 e.printStackTrace();
                 return 0;
@@ -95,6 +95,17 @@ public class UserManager {
                 e.printStackTrace();
                 return 0;
             }
+        }
+    }
+
+    public static boolean isValidLevel(String level){
+        switch (level){
+            case "admin":
+            case "visitor":
+            case  "user" :
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -131,6 +142,59 @@ public class UserManager {
         }
         return 0;
     }
+    public static String getUserLevel(String userName,String userPassword){
+        File file = new File("../TestData/UserManager/UserManager.json");
+
+        // 检查文件是否存在
+        if (!file.exists()) {
+            return null;
+        }
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+
+            // 读取JSON文件内容
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+
+            // 处理可能的BOM头
+            String jsonString = sb.toString().replace("\uFEFF", "");
+
+            // 解析JSON数组
+            JsonArray userArray = JsonParser.parseString(jsonString).getAsJsonArray();
+
+            // 遍历用户数组查找匹配的用户
+            for (JsonElement userElement : userArray) {
+                JsonObject user = userElement.getAsJsonObject();
+                String storedUsername = user.get("userName").getAsString();
+                String storedPassword = user.get("password").getAsString();
+
+                // 验证用户名和密码
+                if (storedUsername.equals(userName) && storedPassword.equals(userPassword)) {
+                    // 返回用户等级
+                    return user.get("level").getAsString();
+                }
+            }
+
+            // 没有找到匹配的用户
+            return null;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        } catch (JsonParseException e) {
+            e.printStackTrace();
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
 
 
 

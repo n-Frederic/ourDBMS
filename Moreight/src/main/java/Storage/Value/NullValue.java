@@ -28,4 +28,9 @@ public class NullValue extends Value{
         buffer.put((byte)0);
         return buffer.array();
     }
+
+    @Override
+    public String toString() {
+        return "null";
+    }
 }

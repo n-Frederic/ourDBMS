@@ -54,5 +54,5 @@ public abstract class Value {
 
     public abstract byte[] toBytes();
 
-
+    public abstract String toString();
 }

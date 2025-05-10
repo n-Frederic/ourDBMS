@@ -22,7 +22,6 @@ public class Field {
         unique = false;
         notNull = false;
         Default=null;
-
     }
 
 
@@ -108,11 +107,16 @@ public class Field {
         };
     }
 
-
-
-
-
-
+    public static String mapIntToFieldType(int i) {
+        return switch (i) {
+            case 1 -> "STRING";
+            case 2 -> "INT";
+            case 3 -> "LONG";
+            case 4 -> "BOOLEAN";
+            case 5 -> "NULL";
+            default -> "";  // 未知类型
+        };
+    }
 }
 
 

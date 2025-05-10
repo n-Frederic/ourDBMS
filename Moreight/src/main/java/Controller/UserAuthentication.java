@@ -7,12 +7,13 @@ import java.util.Scanner;
 
 public class UserAuthentication {
 
-    protected static boolean login(Scanner sc) {
+    public static boolean login(Scanner sc) {
         System.out.print("用户名：");
         String username = sc.nextLine();
         System.out.print("密码：");
         String password = sc.nextLine();
         int result= UserManager.checkUserExists(username,password);
+        String level=UserManager.getUserLevel(username,password);
         if(result==1){
             System.out.println("user name not exist!");
         }else if(result==2){
@@ -20,7 +21,8 @@ public class UserAuthentication {
         }else if(result==3){
 
             System.out.println("login successful! welcome "+username);
-            UserManager.SetCurrentUser(new User(username,password,3));
+
+            UserManager.SetCurrentUser(new User(username,password,level));
             return true;
         }else{
             System.out.println("error.exiting......");
@@ -30,20 +32,26 @@ public class UserAuthentication {
 
     }
 
-    protected static  boolean register(Scanner sc)  {
+    public static  boolean register(Scanner sc)  {
         System.out.print("设置用户名：");
         String username = sc.nextLine();
         System.out.print("设置密码：");
         String password = sc.nextLine();
-        int result = UserManager.CreateUser(username,password);
+        System.out.println("设置权限：");
+        String level=sc.nextLine();
+        int result = UserManager.CreateUser(username,password,level);
         if(result==2){
 
+
+
             System.out.println("login successful! welcome "+username);
-            UserManager.SetCurrentUser(new User(username,password,3));
-            return true;
+            UserManager.SetCurrentUser(new User(username,password,level));
 
 
-        }else if(result==0){
+        }else if(result==3){
+            System.out.println("valid levels are : admin|user|visitor,please check!");
+        }
+        else if(result==0){
             System.out.println("register failed ,please check !");
 
         }else{

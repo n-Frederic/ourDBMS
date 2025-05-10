@@ -15,7 +15,6 @@ public class Meta {
     private String[] columnNames;
     private int[] columnTypes;
     private String[] columnConstraints;
-    private Schema schema; // 可以作为对整个表结构的引用
 
     public Meta() {}
 
@@ -31,8 +30,8 @@ public class Meta {
     }
 
     public Meta(ArrayList<Field> args) {
-        this.rootPageId = 1;
-        this.highestPageId = 1;
+        this.rootPageId = 0;
+        this.highestPageId = 0;
         this.maxKeys = 5;
         this.columnCount = args.size();
 
@@ -118,13 +117,6 @@ public class Meta {
         this.columnConstraints = columnConstraints;
     }
 
-    public Schema getSchema() {
-        return schema;
-    }
-
-    public void setSchema(Schema schema) {
-        this.schema = schema;
-    }
 
     /**
      * 第零页的结构
@@ -148,7 +140,6 @@ public class Meta {
         int columnCount = file.readInt();
 
         file.seek(1024);
-        int offset = 1024;
 
         String[] columnNames = new String[columnCount];
         int[] columnTypes = new int[columnCount];
@@ -163,13 +154,16 @@ public class Meta {
             columnTypes[i] = file.readInt();
 
             int constraintLength = file.readInt();
-            System.out.println("读到的constraintlength是" + constraintLength);
+
             byte[] constraintBytes = new byte[constraintLength];
             file.readFully(constraintBytes);
             columnConstraints[i] = new String(constraintBytes);
 
-            offset += 128;
-            file.seek(offset);
+            int bytesRead = 4 + nameLength + 4 + 4 + constraintLength;
+            int toSkip = 128 - bytesRead;
+            if (toSkip > 0) {
+                file.skipBytes(toSkip);
+            }
         }
 
         return new Meta(rootPageId, highestPageId, maxKeys, columnCount, columnNames, columnTypes, columnConstraints);

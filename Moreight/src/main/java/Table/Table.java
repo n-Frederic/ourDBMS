@@ -2,10 +2,8 @@ package Table;
 
 import Conditions.Condition;
 import Storage.BPlusTree.*;
-import Storage.Page.Page;
-import Storage.Page.Tuple;
+import Storage.Page.*;
 import Storage.Value.Value;
-import Storage.Page.PageManager;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -20,22 +18,42 @@ public class Table {
     private String tableName;
     private Schema schema ;
     private BpTree tree;
-    private PageManager pm;
+    private PageManager pageManager;
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
-    public Table(Schema s) throws IOException {
-        this.schema = s;
-        this.tree = new BpTree();
+    public Table(String tableName) throws IOException {
+        this.tableName = tableName;
+        this.pageManager = new PageManager(DIRECTORY + "/" + tableName + "/" + tableName + ".idb");
+
+        Meta meta = pageManager.getMeta();
+
+        if(meta.getHighestPageId() == 0) this.tree = new BpTree();
+        else this.tree = pageManager.buildTreeFromFile();
+        
+        this.schema = Schema.loadSchemaFromMeta(meta);
     }
 
-
     /**
-     * 可用，如果不可用，找page的insert的问题
+     * 插入一行
      */
+    public void insert(Tuple tuple) throws IOException {
+        Meta meta = pageManager.getMeta();
+        PageIO pageIO = pageManager.getPageIO();
+        if(meta.getHighestPageId() == 0) {
+            Page page = new Page(1,true,true);
+            page.getTuples().addFirst(tuple);
 
-//    public void insert(Tuple key) throws IOException {
-//        tree.insert(key);
-//    }
+            meta.setHighestPageId(1);
+            meta.setRootPageId(1);
+            meta.updateHighestPageId(pageIO.getFile());
+
+            pageManager.updatePageToManager(page);
+            pageManager.flushModifiedPages();
+        }
+
+        Page rootPage = pageManager.getPage(0);
+        pageManager.insert(rootPage, tuple, tree);
+    }
 
     /**
      * 可用，如果不可用，找page的remove的问题
