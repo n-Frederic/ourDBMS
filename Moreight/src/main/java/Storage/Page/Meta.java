@@ -163,6 +163,7 @@ public class Meta {
             columnTypes[i] = file.readInt();
 
             int constraintLength = file.readInt();
+            System.out.println("读到的constraintlength是" + constraintLength);
             byte[] constraintBytes = new byte[constraintLength];
             file.readFully(constraintBytes);
             columnConstraints[i] = new String(constraintBytes);

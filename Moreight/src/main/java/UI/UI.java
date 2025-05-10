@@ -26,19 +26,12 @@ public class UI extends JFrame {
     private final CommandHandler commandHandler; // 外部传入的命令处理器
 
     // 构造函数，接收命令处理器并初始化界面和输出重定向
-    public UI(CommandHandler handler) {
-        this.commandHandler = handler;
+    public UI(CommandHandler handlerring) {
+        this.commandHandler = handlerring;
         initializeUI(); // 初始化用户界面
         redirectSystemStreams(); // 重定向系统输出流
     }
 
-    public void setrightCode(String rightCode){
-        this.rightCode=rightCode;
-    }
-
-    public String getrightCode(){
-        return rightCode;
-    }
 
     // 初始化用户界面的方法
     private void initializeUI() {

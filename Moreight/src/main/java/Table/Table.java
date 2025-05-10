@@ -5,6 +5,7 @@ import Storage.BPlusTree.*;
 import Storage.Page.Page;
 import Storage.Page.Tuple;
 import Storage.Value.Value;
+import Storage.Page.PageManager;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,6 +20,7 @@ public class Table {
     private String tableName;
     private Schema schema ;
     private BpTree tree;
+    private PageManager pm;
     private static final String DIRECTORY = "../TestData/DatabaseManager";
 
     public Table(Schema s) throws IOException {
@@ -41,6 +43,11 @@ public class Table {
 //    public void delete(Tuple tuple){
 //        tree.remove(tuple);
 //    }
+
+    /**
+     *
+     */
+
 
     /**
      * 返回一个文件，可用

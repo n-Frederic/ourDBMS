@@ -30,38 +30,47 @@ public class Main {
         System.out.println("ColumnsCount : " + m.getColumnCount());
         for(int i = 0; i < m.getColumnCount(); i++) {
             System.out.println(m.getColumnNames()[i]);
-            System.out.println(m.get);
+            System.out.println(m.getColumnTypes()[i]);
+            System.out.println(m.getColumnConstraints()[i]);
         }
 
         RandomAccessFile raf = new RandomAccessFile("../TestData/DatabaseManager/student/student.idb","rw");
 
-        Meta meta = Meta.readMetaFromDisk(raf);
-        System.out.println("rootPageId : " + meta.getRootPageId());
-        System.out.println("highestPageId : " + meta.getHighestPageId());
-        System.out.println("MaxKeys : " +meta.getMaxKeys());
+//        Meta meta = Meta.readMetaFromDisk(raf);
+//        System.out.println("rootPageId : " + meta.getRootPageId());
+//        System.out.println("highestPageId : " + meta.getHighestPageId());
+//        System.out.println("MaxKeys : " +meta.getMaxKeys());
 
-//        raf.seek(0);
-//        for(int i = 0; i < 4; i++) {
-//            System.out.println(raf.readInt());
-//        }
-//
-//        int offset = 1024;
-//
-//
-//        for(int i = 0; i < 3; i++) {
-//            raf.seek(offset);
-//            int size = raf.readInt();
-//            System.out.println(size);
-//            byte[] bytes = new byte[size];
-//            raf.readFully(bytes);
-//            System.out.println(new String(bytes));
-//            System.out.println(raf.readInt());
-//            int size1 = raf.readInt();
-//            byte[] bytes1 = new byte[size1];
-//            raf.readFully(bytes1);
-//            System.out.println(new String(bytes1));
-//            offset+=128;
-//        }
+        raf.seek(0);
+        for(int i = 0; i < 4; i++) {
+            System.out.println(raf.readInt());
+        }
+
+        int offset = 1024;
+
+
+        for(int i = 0; i < 3; i++) {
+            raf.seek(offset);
+
+            int size = raf.readInt();
+            System.out.println(size);
+
+            byte[] bytes = new byte[size];
+            raf.readFully(bytes);
+            System.out.println(new String(bytes));
+
+            int type = raf.readInt();
+            System.out.println(type);
+
+            int size1 = raf.readInt();
+            System.out.println(size1);
+
+            byte[] bytes1 = new byte[size1];
+            raf.readFully(bytes1);
+            System.out.println(new String(bytes1));
+
+            offset+=128;
+        }
 
         // 登录注册的测试
 //       Operating operating = new Operating();
