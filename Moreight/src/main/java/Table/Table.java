@@ -50,9 +50,13 @@ public class Table {
             pageManager.updatePageToManager(page);
             pageManager.flushModifiedPages();
 
+            System.out.println("这是第一页的插入");
+
         } else {
             Page rootPage = pageManager.getPage(0);
             pageManager.insert(rootPage, tuple, tree);
+
+            System.out.println("这是第二页的插入");
         }
 
 

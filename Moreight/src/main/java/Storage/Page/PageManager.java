@@ -14,7 +14,7 @@ public class PageManager {
     private final PageIO pageIO;          // 磁盘文件模拟存储
     private ArrayList<Page> modifiedPages;            // 记录需要写回磁盘的页面
 
-    Meta meta;
+
 
     public static ArrayList<Page> sortPagesByMinValue(ArrayList<Page> leafPages) {
         // 创建列表副本以避免修改原列表
@@ -38,8 +38,6 @@ public class PageManager {
         pages = new ArrayList<>(Collections.nCopies(MAX_PAGES, null));
         pageIO = new PageIO(diskFileName);
         modifiedPages = new ArrayList<>();
-        meta = Meta.readMetaFromDisk(pageIO.getFile());
-        pageIO.setMeta(meta);
     }
 
     public static ArrayList<Page> getPages() {
@@ -47,7 +45,7 @@ public class PageManager {
     }
 
     public Meta getMeta() {
-        return meta;
+        return pageIO.meta;
     }
 
     public PageIO getPageIO() {
@@ -145,8 +143,8 @@ public class PageManager {
                 Page newPage = new Page(i, isLeaf);
 
                 updatePageToManager(newPage);
-                if (i > meta.getHighestPageId()) {
-                    meta.setHighestPageId(i);
+                if (i > pageIO.meta.getHighestPageId()) {
+                    pageIO.meta.setHighestPageId(i);
                 }
                 return newPage;
             }
@@ -160,8 +158,8 @@ public class PageManager {
                 Page newPage = new Page(i, isLeaf,isRoot);
 
                 updatePageToManager(newPage);
-                if (i > meta.getHighestPageId()) {
-                    meta.setHighestPageId(i);
+                if (i > pageIO.meta.getHighestPageId()) {
+                    pageIO.meta.setHighestPageId(i);
                 }
                 return newPage;
             }
@@ -190,6 +188,7 @@ public class PageManager {
      */
     public void savePageToDisk(Page page) throws IOException {
         pageIO.writePage(page);
+        System.out.println("writePage调用了");
     }
 
 
@@ -223,7 +222,7 @@ public class PageManager {
         int pageNum = -1; // 初始假设未找到页号
 
         // 从文件中获取第0页，作为根节点
-        Page rootPage = pageIO.readPage(meta.getRootPageId());
+        Page rootPage = pageIO.readPage(pageIO.meta.getRootPageId());
 
         // 递归查找页号
         pageNum = findPageNumHelper(rootPage, value);
@@ -266,7 +265,7 @@ public class PageManager {
     public void insert(Page page, Tuple key, BpTree tree) throws IOException {
         if (page.isLeaf) {
             if (!isLeafToSplit(page)) {
-//                System.out.println("直接插入叶节点");
+                System.out.println("直接插入叶节点");
                 insertInLeaf(page, key);
                 updatePageToManager(page);
             } else {
@@ -378,7 +377,7 @@ public class PageManager {
         }
 
         flushModifiedPages();
-        System.out.println("刷新了");
+        System.out.println("插入完成，并刷新了内存");
     }
 
     public boolean remove(Page page, Tuple key, BpTree tree) {

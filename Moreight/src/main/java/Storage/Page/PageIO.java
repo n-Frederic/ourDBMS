@@ -16,6 +16,7 @@ public class PageIO {
 
     public PageIO(String filePath) throws IOException {
         this.file = new RandomAccessFile(filePath, "rw");
+        meta = Meta.readMetaFromDisk(file);
     }
 
     public void setMeta(Meta meta) {

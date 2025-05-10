@@ -19,14 +19,14 @@ import java.util.RandomAccess;
 public class Main {
     public static void main(String[] args) throws IOException {
 
-//        TableManager tm = new TableManager();
-//        ArrayList<Field> fields = new ArrayList<>();
-//
-//        fields.add(new Field("id", "INT"));
-//        fields.add(new Field("name", "STRING"));
-//        fields.add(new Field("age", "INT"));
-//
-//        TableManager.CreateTable("student", fields);
+        TableManager tm = new TableManager();
+        ArrayList<Field> fields = new ArrayList<>();
+
+        fields.add(new Field("id", "INT"));
+        fields.add(new Field("name", "STRING"));
+        fields.add(new Field("age", "INT"));
+
+        TableManager.CreateTable("student", fields);
 
 //        RandomAccessFile raf = new RandomAccessFile("../TestData/DatabaseManager/student/student.idb","rw");
 
@@ -48,10 +48,16 @@ public class Main {
 
 
 
-        Value[] values = {new IntValue(1),new StringValue("zxc"),new IntValue(20)};
-        Tuple t1 = new Tuple(values);
-        table.insert(t1);
+//        Value[] values1 = {new IntValue(1),new StringValue("zxc"),new IntValue(20)};
 
+//        Tuple t1 = new Tuple(values);
+//        table.insert(t1);
+
+        Value[] values2 = {new IntValue(1), new StringValue("zxc"), new IntValue(20)};
+        Tuple t2 = new Tuple(values2);
+        table.insert(t2);
+
+        System.out.println(table.getPageManager().);
 
 
 
