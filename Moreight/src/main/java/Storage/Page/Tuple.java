@@ -32,6 +32,10 @@ public class Tuple {
 
     public Value getValue(int index) { return values[index];}
 
+    public void setPrimaryV(Value primaryV) {
+        this.primaryV = primaryV;
+    }
+
     public void setValues(Value[] values) {
         this.values = values;
     }

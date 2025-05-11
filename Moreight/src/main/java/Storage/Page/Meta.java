@@ -73,8 +73,17 @@ public class Meta {
      * 更新当前最高页码到文件
      */
     public void updateHighestPageId(RandomAccessFile file) throws IOException {
-        file.seek(8);  // 定位到文件中保存最高页码的位置
+        file.seek(4);  // 定位到文件中保存最高页码的位置
         file.writeInt(highestPageId);  // 写入新的最高页码
+    }
+
+    /**
+     *
+     * @return
+     */
+    public void updateRootPageId(RandomAccessFile file) throws IOException {
+        file.seek(0);  // 定位到文件中保存最高页码的位置
+        file.writeInt(rootPageId);  // 写入新的最高页码
     }
 
     public int getMaxKeys() {
@@ -213,6 +222,26 @@ public class Meta {
             for(int j = offset; j < 128; j++) {
                 file.writeByte(0);
             }
+        }
+    }
+
+
+    /*
+        private int rootPageId;
+    private int highestPageId;
+    private int maxKeys;
+    private int columnCount;
+    private String[] columnNames;
+    private int[] columnTypes;
+    private String[] columnConstraints;
+     */
+    public void showInfo() {
+        System.out.println("rootPageId : " + rootPageId);
+        System.out.println("highestPageId : " + highestPageId);
+        System.out.println("maxKeys : " + maxKeys);
+        System.out.println("columnCount : " + columnCount);
+        for(int i = 0; i < columnCount; i++) {
+            System.out.println(columnNames[i] + " " + Field.mapIntToFieldType(columnTypes[i]) + " " +columnConstraints[i]);
         }
     }
 }

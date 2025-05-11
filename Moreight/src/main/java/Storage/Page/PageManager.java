@@ -24,8 +24,9 @@ public class PageManager {
         Collections.sort(sorted, new Comparator<Page>() {
             @Override
             public int compare(Page p1, Page p2) {
-                // 调用 Value 的 compare 方法比较 minValue
-                return p1.minValue.compare(p2.minValue);
+               if(p1 == null) return -1;
+               else if(p2 == null) return 1;
+               else return p1.minValue.compare(p2.minValue);
             }
         });
 
@@ -59,6 +60,7 @@ public class PageManager {
         Stack<Page> temp = new Stack<>();
 
         Page rootPage = pageIO.readPage(pageIO.getRootPageId());
+//        System.out.println("ididid"+pageIO.getRootPageId());
         temp.push(rootPage);
         tree.setRoot(rootPage);
 
@@ -342,6 +344,8 @@ public class PageManager {
                     System.out.println("生成新的根节点");
                     page.isRoot = false;
                     Page rootPage = this.createPage(false, true);
+
+
                     tree.setRoot(rootPage);
                     left.parent = rootPage;
                     right.parent = rootPage;

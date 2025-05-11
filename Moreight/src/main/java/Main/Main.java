@@ -28,36 +28,60 @@ public class Main {
 
         TableManager.CreateTable("student", fields);
 
-//        RandomAccessFile raf = new RandomAccessFile("../TestData/DatabaseManager/student/student.idb","rw");
-
         Table table = new Table("student");
-        System.out.println(table.getPageManager().getMeta().getHighestPageId());
 
-//        PageManager pageManager = table.getPageManager();
-//        PageIO pageIO = pageManager.getPageIO();
-//
-//        Page page = pageIO.readPage(1);
-//
-//        for(Tuple tuple : page.getTuples()) {
-//            for(Value value : tuple.getValues()) {
-//                System.out.print(value.toString() + " ");
-//            }
-//            System.out.println();
-//        }
+        table.getPageManager().getMeta().showInfo();
+        System.out.println();
 
-
-
-
-//        Value[] values1 = {new IntValue(1),new StringValue("zxc"),new IntValue(20)};
-
-//        Tuple t1 = new Tuple(values);
+//        Value[] values1 = {new IntValue(3),new StringValue("jjj"),new IntValue(20)};
+//        Tuple t1 = new Tuple(values1);
+//        t1.setPrimaryV(new IntValue(3));
 //        table.insert(t1);
 
-        Value[] values2 = {new IntValue(1), new StringValue("zxc"), new IntValue(20)};
-        Tuple t2 = new Tuple(values2);
-        table.insert(t2);
+//        Value[] values1 = {new IntValue(4),new StringValue("zxc"),new IntValue(20)};
+//        Tuple t1 = new Tuple(values1);
+//        t1.setPrimaryV(new IntValue(4));
+//        table.insert(t1);
 
-        System.out.println(table.getPageManager().);
+        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
+        raf.seek(8*1024);
+        System.out.println(raf.readInt());
+        System.out.println(raf.readByte());
+        System.out.println(raf.readByte());
+
+        Page page = table.getPageManager().getPageIO().readPage(1);
+        if(page.getTuples().isEmpty()) {
+            System.out.println("页里没信息");
+        } else System.out.println("页里有信息");
+        for(Tuple tuple : page.getTuples()) {
+            for(Value value : tuple.getValues()) {
+                System.out.print(value.toString() + " ");
+            }
+            System.out.println();
+        }
+
+//        table.getPageManager().getMeta().showInfo();
+
+
+//        System.out.println();
+//        System.out.println(table.getPageManager().getPageIO().loadPageFromDisk(1)[4]);
+
+
+
+
+//        raf.seek(8*1024);
+//        System.out.println(raf.readInt());
+//        System.out.println(raf.readInt());
+
+
+
+
+
+//        Value[] values2 = {new IntValue(2), new StringValue("zxc"), new IntValue(20)};
+//        Tuple t2 = new Tuple(values2);
+//        table.insert(t2);
+//
+//        System.out.println(table.getPageManager().getMeta().getHighestPageId());
 
 
 

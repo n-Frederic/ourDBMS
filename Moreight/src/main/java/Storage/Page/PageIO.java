@@ -31,10 +31,10 @@ public class PageIO {
     /**
      * 通过id读取page字节数组
      */
-    protected byte[] loadPageFromDisk(int pageId) throws IOException {
+    public byte[] loadPageFromDisk(int pageId) throws IOException {
         file.seek((long) pageId * Page.PAGE_SIZE);
         byte[] pageData = new byte[Page.PAGE_SIZE];
-        file.read(pageData);
+        file.readFully(pageData);
         return pageData;
     }
 
@@ -46,8 +46,10 @@ public class PageIO {
 
         boolean isLeaf = readIsLeafFlag(data);
         if(isLeaf) {
+            System.out.println("是叶子！");
             return Page.leafFromBytes(data);
         } else {
+            System.out.println("不是叶子！");
             return Page.InnerFromBytes(data);
         }
     }

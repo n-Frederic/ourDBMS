@@ -271,7 +271,7 @@ public class Page {
             currentOffset += 4;
         }
 
-        for(int i = currentOffset; i <= 1024; i++) {
+        for(int i = currentOffset; i < 1024; i++) {
             dataOut.writeByte(0);
         }
 
@@ -280,7 +280,7 @@ public class Page {
         // 写入实际数据
         for (byte[] b : info) {
             dataOut.write(b);
-            for(int i = b.length; i <= 512; i++) {
+            for(int i = b.length; i < 512; i++) {
                 dataOut.writeByte(0);
             }
             currentOffset += 512;
@@ -326,7 +326,7 @@ public class Page {
         }
 
         Page page = new Page(pageId);
-        for (int i = 0; i < rowCount - 1; i++) {
+        for (int i = 0; i <= rowCount - 1; i++) {
             int rowStart = offsets.get(i);
             int rowEnd = (i + 1 < rowCount) ? offsets.get(i + 1) : 1024+rowCount*512;
             byte[] rowData = Arrays.copyOfRange(bytes, rowStart, rowEnd);
@@ -508,4 +508,10 @@ public class Page {
         return page;
     }
 
+    public void updatePageInfo(RandomAccessFile raf) throws IOException {
+        if(isLeaf) {
+            raf.seek((long)pageId*PAGE_SIZE);
+
+        }
+    }
 }
