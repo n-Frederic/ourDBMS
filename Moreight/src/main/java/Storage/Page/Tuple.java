@@ -23,6 +23,11 @@ public class Tuple {
         this.values = values;
     }
 
+    public Tuple(Value[] values, Value primaryV) {
+        this(values);
+        this.primaryV = primaryV;
+    }
+
     public Value[] getValues() {
         return values;
     }
@@ -175,6 +180,13 @@ public class Tuple {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         DataOutputStream dataOut = new DataOutputStream(out);
 
+        int primaryType = primaryV.getType();
+        int primaryLen = primaryV.toBytes().length;
+        byte[] primaryBytes = primaryV.toBytes();
+        dataOut.writeInt(primaryType);
+        dataOut.writeInt(primaryLen);
+        dataOut.write(primaryBytes);
+
         for (Value value : values) {
             int type = value.getType();
             byte[] valueBytes = value.toBytes();
@@ -198,6 +210,14 @@ public class Tuple {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
         ArrayList<Value> values = new ArrayList<>();
 
+        int primaryType = in.readInt();
+        int primaryLen = in.readInt();
+
+        byte[] primaryBytes = new byte[primaryLen];
+        in.readFully(primaryBytes);
+        Value priamryValue = decodeTypedValue(primaryType,primaryBytes);
+
+
         while(in.available() > 0) {
             int type = in.readInt();
             int len = in.readInt();
@@ -211,7 +231,7 @@ public class Tuple {
             Value value = decodeTypedValue(type,valueBytes);
             values.add(value);
         }
-        return new Tuple(values.toArray(new Value[0]));
+        return new Tuple(values.toArray(new Value[0]),priamryValue);
     }
 
 

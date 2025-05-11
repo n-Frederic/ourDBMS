@@ -36,13 +36,14 @@ public class Main {
 
         // TODO:头部叶子节点没更新
 
-//        Value[] values1 = {new IntValue(5),new StringValue("jjj"),new IntValue(20)};
-//        Tuple t1 = new Tuple(values1);
-//        t1.setPrimaryV(new IntValue(5));
-//        table.insert(t1);
+        Value[] values1 = {new IntValue(5),new StringValue("jjj"),new IntValue(20)};
+        Tuple t1 = new Tuple(values1);
+        t1.setPrimaryV(new IntValue(5));
+        table.insert(t1);
 
 
-
+        table.getPageManager().getMeta().showInfo();
+        System.out.println();
 
 
         System.out.println("根页：" + table.getTree().getRoot().getPageId());
