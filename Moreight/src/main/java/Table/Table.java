@@ -41,10 +41,12 @@ public class Table {
         PageIO pageIO = pageManager.getPageIO();
         if(meta.getHighestPageId() == 0) {
             Page page = new Page(1,true,true);
-            page.getTuples().add(tuple);
+            pageManager.insert(page,tuple,tree);
 
             meta.setHighestPageId(1);                 // 程序内部meta更新值
             meta.setRootPageId(1);
+
+            //TODO:根页是否有在设置新根页的时候更新
 
             meta.updateHighestPageId(pageIO.getFile());       // 将值更新到文件里
             meta.updateRootPageId(pageIO.getFile());

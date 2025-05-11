@@ -832,7 +832,7 @@ public class PageManager {
      * 非叶节点插入关键字后,检查是否需要分裂
      * CHECK MAYBE
      */
-    private void updateNode(Page page, BpTree tree) {
+    private void updateNode(Page page, BpTree tree) throws IOException {
         // 需要分裂
         if (isNodeToSplit(page)) {
             System.out.println("非叶节点插入关键字后,需要分裂");
@@ -891,7 +891,12 @@ public class PageManager {
                 System.out.println("parent null:" + (page.parent == null));
                 page.isRoot = false;
                 Page rootPage = this.createPage(false, true);
+
                 tree.setRoot(rootPage);
+                getMeta().setRootPageId(rootPage.getPageId());
+                getMeta().updateRootPageId(pageIO.getFile());
+
+
                 left.parent = rootPage;
                 right.parent = rootPage;
                 rootPage.children.add(left);

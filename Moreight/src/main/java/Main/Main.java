@@ -19,19 +19,39 @@ import java.util.RandomAccess;
 public class Main {
     public static void main(String[] args) throws IOException {
 
-        TableManager tm = new TableManager();
-        ArrayList<Field> fields = new ArrayList<>();
-
-        fields.add(new Field("id", "INT"));
-        fields.add(new Field("name", "STRING"));
-        fields.add(new Field("age", "INT"));
-
-        TableManager.CreateTable("student", fields);
+//        TableManager tm = new TableManager();
+//        ArrayList<Field> fields = new ArrayList<>();
+//
+//        fields.add(new Field("id", "INT"));
+//        fields.add(new Field("name", "STRING"));
+//        fields.add(new Field("age", "INT"));
+//
+//        TableManager.CreateTable("student", fields);
 
         Table table = new Table("student");
 
         table.getPageManager().getMeta().showInfo();
         System.out.println();
+
+        System.out.println("根页：" + table.getTree().getRoot().getPageId());
+        // TODO:头部叶子节点没更新
+//        System.out.println("头叶子：" + table.getTree().getHead().getPageId());
+
+        Page page = table.getPageManager().getPage(1);
+
+//        Page page = table.getPageManager().getPageIO().readPage(1);
+
+        if(page.getTuples().isEmpty()) {
+            System.out.println("页里没信息");
+        } else System.out.println("页里有信息");
+
+        for(Tuple tuple : page.getTuples()) {
+            System.out.println(tuple.getPrimaryV());
+            for(Value value : tuple.getValues()) {
+                System.out.print(value.toString() + " ");
+            }
+            System.out.println();
+        }
 
 //        Value[] values1 = {new IntValue(3),new StringValue("jjj"),new IntValue(20)};
 //        Tuple t1 = new Tuple(values1);
@@ -43,22 +63,25 @@ public class Main {
 //        t1.setPrimaryV(new IntValue(4));
 //        table.insert(t1);
 
-        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
-        raf.seek(8*1024);
-        System.out.println(raf.readInt());
-        System.out.println(raf.readByte());
-        System.out.println(raf.readByte());
+//        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
+//        raf.seek(8*1024);
+//        System.out.println(raf.readInt());
+//        System.out.println(raf.readByte());
+//        System.out.println(raf.readByte());
 
-        Page page = table.getPageManager().getPageIO().readPage(1);
-        if(page.getTuples().isEmpty()) {
-            System.out.println("页里没信息");
-        } else System.out.println("页里有信息");
-        for(Tuple tuple : page.getTuples()) {
-            for(Value value : tuple.getValues()) {
-                System.out.print(value.toString() + " ");
-            }
-            System.out.println();
-        }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //        table.getPageManager().getMeta().showInfo();
 
