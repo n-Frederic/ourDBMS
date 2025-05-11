@@ -125,12 +125,12 @@ public class PageManager {
      */
     // 获取页
     public Page getPage(int pageId) throws IOException {
-        Page page = pages.get(pageId);
-        if (page != null) {
-            return page;
-        }
+//        Page page = pages.get(pageId);
+//        if (page != null) {
+//            return page;
+//        }
 
-        page = pageIO.readPage(pageId);
+        Page page = pageIO.readPage(pageId);
 
         pages.set(pageId, page);
         return page;
@@ -139,7 +139,7 @@ public class PageManager {
     /**
      * 从内存中获取一个为空的页码创建page
      */
-    public Page createPage(boolean isLeaf) {
+    public Page createPage(boolean isLeaf) throws IOException {
         for (int i = 1; i < MAX_PAGES; i++) {
             if (pages.get(i) == null) {
                 Page newPage = new Page(i, isLeaf);
@@ -147,6 +147,7 @@ public class PageManager {
                 updatePageToManager(newPage);
                 if (i > pageIO.meta.getHighestPageId()) {
                     pageIO.meta.setHighestPageId(i);
+                    getMeta().updateHighestPageId(pageIO.getFile());
                 }
                 return newPage;
             }

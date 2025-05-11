@@ -102,6 +102,11 @@ public class Page {
         return isLeaf;
     }
 
+    public boolean isRoot() {
+        return isRoot;
+    }
+
+
 
     // 获取子节点的页号
     public int getChildPageId(Page currentPage, int index) {

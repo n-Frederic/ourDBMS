@@ -19,27 +19,48 @@ import java.util.RandomAccess;
 public class Main {
     public static void main(String[] args) throws IOException {
 
-//        TableManager tm = new TableManager();
-//        ArrayList<Field> fields = new ArrayList<>();
-//
-//        fields.add(new Field("id", "INT"));
-//        fields.add(new Field("name", "STRING"));
-//        fields.add(new Field("age", "INT"));
-//
-//        TableManager.CreateTable("student", fields);
+        TableManager tm = new TableManager();
+        ArrayList<Field> fields = new ArrayList<>();
+
+        fields.add(new Field("id", "INT"));
+        fields.add(new Field("name", "STRING"));
+        fields.add(new Field("age", "INT"));
+
+        TableManager.CreateTable("student", fields);
 
         Table table = new Table("student");
 
         table.getPageManager().getMeta().showInfo();
         System.out.println();
 
-        System.out.println("根页：" + table.getTree().getRoot().getPageId());
+
         // TODO:头部叶子节点没更新
 //        System.out.println("头叶子：" + table.getTree().getHead().getPageId());
 
+//        Value[] values1 = {new IntValue(5),new StringValue("jjj"),new IntValue(20)};
+//        Tuple t1 = new Tuple(values1);
+//        t1.setPrimaryV(new IntValue(5));
+//        table.insert(t1);
+
+        System.out.println("根页：" + table.getTree().getRoot().getPageId());
         Page page = table.getPageManager().getPage(1);
 
 //        Page page = table.getPageManager().getPageIO().readPage(1);
+
+
+
+
+        System.out.println("叶子的页id" + page.getPageId());
+        System.out.println("页是叶子吗" + page.isLeaf());
+        System.out.println("页是根吗" + page.isRoot());
+        System.out.println("前一个页的id" + page.getPrevious());
+        System.out.println("后一个页的id" + page.getNext());
+        System.out.println("页的行数"+page.getTuples().size());
+
+
+
+
+
 
         if(page.getTuples().isEmpty()) {
             System.out.println("页里没信息");

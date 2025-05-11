@@ -7,6 +7,7 @@ import Table.Schema;
 import Conditions.*;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -220,7 +221,12 @@ public class Tuple {
             case 5:
                 return new NullValue();
             case 1:
-                return new StringValue(dataIn.readUTF());
+                ByteArrayOutputStream stringBuffer = new ByteArrayOutputStream();
+                int b;
+                while ((b = dataIn.read()) != 0 && b != -1) {
+                    stringBuffer.write(b);
+                }
+                return new StringValue(stringBuffer.toString(StandardCharsets.UTF_8));
             case 2:
                 return new IntValue(dataIn.readInt());
             case 3:

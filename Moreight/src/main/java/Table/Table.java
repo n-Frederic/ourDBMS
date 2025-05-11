@@ -43,6 +43,7 @@ public class Table {
             Page page = new Page(1,true,true);
             pageManager.insert(page,tuple,tree);
 
+            tree.setRoot(page);
             meta.setHighestPageId(1);                 // 程序内部meta更新值
             meta.setRootPageId(1);
 

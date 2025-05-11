@@ -82,8 +82,8 @@ public class Meta {
      * @return
      */
     public void updateRootPageId(RandomAccessFile file) throws IOException {
-        file.seek(0);  // 定位到文件中保存最高页码的位置
-        file.writeInt(rootPageId);  // 写入新的最高页码
+        file.seek(0);  // 定位到文件中保存根页页码的位置
+        file.writeInt(rootPageId);  // 写入新的根页码
     }
 
     public int getMaxKeys() {
