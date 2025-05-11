@@ -179,10 +179,7 @@ public class PageManager {
     }
 
     public void updatePageToManager(Page page) {
-        if((page.isLeaf && !page.tuples.isEmpty()) || (!page.isLeaf && !page.entries.isEmpty())) {
-            pages.set(page.getPageId(),page);
-        } else pages.set(page.getPageId(),null);
-
+        pages.set(page.getPageId(),page);
         modifiedPages.add(page);
     }
 
@@ -336,7 +333,7 @@ public class PageManager {
                     updatePageToManager(right.next);
                     updatePageToManager(page);
 
-                    System.out.println("父节点插入key");
+//                    System.out.println("父节点插入key");
                     updateNode(page.parent,tree);
                     // for GC
                     page.parent = null;

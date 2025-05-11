@@ -55,13 +55,12 @@ public class Table {
             pageManager.updatePageToManager(page);              // 将第一页存到pages[1]，并放到待更新页集合里
             pageManager.flushModifiedPages();                   // 将待更新页全部写入文件
 
-            System.out.println("这是第一页的插入");
+
 
         } else {
             Page rootPage = pageManager.getPage(1);
             pageManager.insert(rootPage, tuple, tree);
 
-            System.out.println("这是第二页的插入");
         }
 
 

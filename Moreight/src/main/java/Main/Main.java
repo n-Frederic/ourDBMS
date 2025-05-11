@@ -36,18 +36,30 @@ public class Main {
 
         // TODO:头部叶子节点没更新
 
-        Value[] values1 = {new IntValue(5),new StringValue("jjj"),new IntValue(20)};
-        Tuple t1 = new Tuple(values1);
-        t1.setPrimaryV(new IntValue(5));
-        table.insert(t1);
+//        for (int i = 0; i < 12; i++) {
+//            Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
+//            Tuple t1 = new Tuple(values1);
+//            t1.setPrimaryV(new IntValue(i)); // 主键不变
+//            table.insert(t1);
+//        }
 
+//        Value[] values1 = {new IntValue(12), new StringValue("jjj" + 12), new IntValue(20)};
+//        Tuple t1 = new Tuple(values1);
+//        t1.setPrimaryV(new IntValue(12)); // 主键不变
+//        table.insert(t1);
 
         table.getPageManager().getMeta().showInfo();
         System.out.println();
 
 
+//        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
+//        raf.seek(3*8*1024+4);
+//        System.out.println(raf.readBoolean());
+
+
+
         System.out.println("根页：" + table.getTree().getRoot().getPageId());
-        Page page = table.getPageManager().getPage(1);
+        Page page = table.getPageManager().getPage(3);
 
         System.out.println("叶子的页id" + page.getPageId());
         System.out.println("页是叶子吗" + page.isLeaf());
@@ -55,6 +67,7 @@ public class Main {
         System.out.println("前一个页的id" + page.getPrevious());
         System.out.println("后一个页的id" + page.getNext());
         System.out.println("页的行数"+page.getTuples().size());
+        System.out.println();
 
         for(Tuple tuple : page.getTuples()) {
             System.out.println(tuple.getPrimaryV());
@@ -63,6 +76,7 @@ public class Main {
             }
             System.out.println();
         }
+
 
 
 

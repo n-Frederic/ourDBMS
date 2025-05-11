@@ -45,11 +45,10 @@ public class PageIO {
         byte[] data = loadPageFromDisk(pageId);
 
         boolean isLeaf = readIsLeafFlag(data);
+        System.out.println(isLeaf);
         if(isLeaf) {
-            System.out.println("是叶子！");
             return Page.leafFromBytes(data);
         } else {
-            System.out.println("不是叶子！");
             return Page.InnerFromBytes(data);
         }
     }
