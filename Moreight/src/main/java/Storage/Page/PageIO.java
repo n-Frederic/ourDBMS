@@ -1,4 +1,5 @@
 package Storage.Page;
+import Database.DatabaseManager;
 import Storage.Value.*;
 import java.util.List;
 import java.util.ArrayList;
@@ -10,12 +11,13 @@ import java.io.RandomAccessFile;
 
 public class PageIO {
     private final RandomAccessFile file;
-    private static final String DIRECTORY = "../TestData/DatabaseManager";
+    private static final String DIRECTORY = "../TestData/DatabaseManager/"+ DatabaseManager.getCurrentDatabase();
     Meta meta;
 
 
     public PageIO(String filePath) throws IOException {
         this.file = new RandomAccessFile(filePath, "rw");
+
         meta = Meta.readMetaFromDisk(file);
     }
 
@@ -59,10 +61,10 @@ public class PageIO {
      * 旧页直接按照id写回
      */
     public void writePage(Page page) throws IOException {
-        if(page.getPageId() > meta.getHighestPageId()) {
-            int id = allocateNewPage();
-            page.setPageId(id);
-        }
+//        if(page.getPageId() > meta.getHighestPageId()) {
+//            int id = allocateNewPage();
+//            page.setPageId(id);
+//        }
 
         byte[] data;
         if(page.isLeaf && !page.tuples.isEmpty()) {

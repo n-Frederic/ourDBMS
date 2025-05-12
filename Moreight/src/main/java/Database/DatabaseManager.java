@@ -23,6 +23,10 @@ public class DatabaseManager {
         return currentDatabase;
     }
 
+    public static String getBaseDir() {
+        return BASE_DIR;
+    }
+
     public static void createDataBase(String dbName) {
         currentDatabase = dbName;
         File folder =  new File("../TestData/DatabaseManager/" + dbName);

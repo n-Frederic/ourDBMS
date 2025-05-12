@@ -9,24 +9,22 @@ import java.util.*;
 
 public class PageManager {
     private static final int MAX_PAGES = 1000;  // 最大页数
-    private static ArrayList<Page> pages;       // 页的集合
+    private ArrayList<Page> pages;       // 页的集合
 
     private final PageIO pageIO;          // 磁盘文件模拟存储
     private ArrayList<Page> modifiedPages;            // 记录需要写回磁盘的页面
-
 
 
     public static ArrayList<Page> sortPagesByMinValue(ArrayList<Page> leafPages) {
         // 创建列表副本以避免修改原列表
         ArrayList<Page> sorted = new ArrayList<>(leafPages);
 
-        // 使用自定义比较器按 minValue 排序
         Collections.sort(sorted, new Comparator<Page>() {
             @Override
             public int compare(Page p1, Page p2) {
-               if(p1 == null) return -1;
-               else if(p2 == null) return 1;
-               else return p1.minValue.compare(p2.minValue);
+                if (p1 == null) return -1;
+                else if (p2 == null) return 1;
+                else return p1.minValue.compare(p2.minValue);
             }
         });
 
@@ -41,7 +39,7 @@ public class PageManager {
         modifiedPages = new ArrayList<>();
     }
 
-    public static ArrayList<Page> getPages() {
+    public ArrayList<Page> getPages() {
         return pages;
     }
 
@@ -52,6 +50,22 @@ public class PageManager {
     public PageIO getPageIO() {
         return pageIO;
     }
+
+    /**
+     * 只以文件内部为准
+     */
+    // 获取页
+    public Page getPage(int pageId) throws IOException {
+        Page page = pageIO.readPage(pageId);
+
+        pages.set(pageId, page);
+        return page;
+    }
+
+
+
+
+
 
     public BpTree buildTreeFromFile() throws IOException {
         BpTree tree = new BpTree();
@@ -98,43 +112,11 @@ public class PageManager {
         ArrayList<Page> sortedPage = PageManager.sortPagesByMinValue(leafPages);
         pages = PageManager.sortPagesByMinValue(pages);
 
-
-
-//        // 1. 读取第0页获取元数据
-//        byte[] zeroPageData = pageIO.readPage(0);
-        // DataInputStream zeroIn = new DataInputStream(new ByteArrayInputStream(zeroPageData));
-//
-//        int rootPageId = zeroIn.readInt(); // 根页ID
-//        int maxPageId = zeroIn.readInt();  // 最大页ID
-//        int maxKeys = zeroIn.readInt();    // 最大键数
-
-
-//        // 3. 递归构建树结构
-//        buildTreeRecursively(tree, tree.root);
-//
-//        // 4. 设置叶子节点链表
-//        buildLeafLinkedList(tree);
-
         return tree;
     }
 
 
-    /**
-     * 先试图从内存中获取页，如果没有，则从磁盘中加载对应页
-     * 不包括第0页
-     */
-    // 获取页
-    public Page getPage(int pageId) throws IOException {
-//        Page page = pages.get(pageId);
-//        if (page != null) {
-//            return page;
-//        }
 
-        Page page = pageIO.readPage(pageId);
-
-        pages.set(pageId, page);
-        return page;
-    }
 
     /**
      * 从内存中获取一个为空的页码创建page
@@ -144,7 +126,7 @@ public class PageManager {
             if (pages.get(i) == null) {
                 Page newPage = new Page(i, isLeaf);
 
-                updatePageToManager(newPage,true);
+                updatePageToManager(newPage, true);
                 if (i > pageIO.meta.getHighestPageId()) {
                     pageIO.meta.setHighestPageId(i);
                     getMeta().updateHighestPageId(pageIO.getFile());
@@ -158,9 +140,9 @@ public class PageManager {
     public Page createPage(boolean isLeaf, boolean isRoot) throws IOException {
         for (int i = 1; i < MAX_PAGES; i++) {
             if (pages.get(i) == null) {
-                Page newPage = new Page(i, isLeaf,isRoot);
+                Page newPage = new Page(i, isLeaf, isRoot);
 
-                updatePageToManager(newPage,true);
+                updatePageToManager(newPage, true);
                 if (i > pageIO.meta.getHighestPageId()) {
                     pageIO.meta.setHighestPageId(i);
                 }
@@ -171,23 +153,36 @@ public class PageManager {
     }
 
 
+
+
     // 更新指定页面的 minValue
     public void updateMinValue(Page page) {
         if (page.isLeaf && !page.tuples.isEmpty()) {
             page.minValue = page.tuples.get(0).getPrimaryV();
+//            int pageOffset = page.getPageId() * 8 * 1024;
+//            RandomAccessFile file = pageIO.getFile();
+//            file.seek(pageOffset + 22);
+//
+//            byte[] minValueBytes = page.minValue.toBytes();
+//            // 写入长度，类型，实际值
+//            file.writeInt(minValueBytes.length);
+//            file.writeInt(page.minValue.getType());
+//            file.write(minValueBytes);
+
+            // 不超过30B，不然就寄掉
         }
     }
 
     public void updatePageToManager(Page page, boolean mode) throws IOException {
-        if(mode) {
-            pages.set(page.getPageId(),page);
+        if (mode) {
+            pages.set(page.getPageId(), page);
             modifiedPages.add(page);
         } else {
             clearPage(page.getPageId());
         }
-
-
     }
+
+
 
     /**
      * 将页数据保存到磁盘
@@ -203,14 +198,17 @@ public class PageManager {
     public void flushModifiedPages() throws IOException {
         Iterator<Page> iterator = modifiedPages.iterator();
 
-        while(iterator.hasNext()) {
-            savePageToDisk(iterator.next());
+        while (iterator.hasNext()) {
+            Page page = iterator.next();
+            System.out.print(page.getPageId() + " ");
+            savePageToDisk(page);
             iterator.remove();
         }
 
+        System.out.println();
         modifiedPages.clear();
     }
-    
+
 
     /**
      * 关闭磁盘文件
@@ -263,19 +261,19 @@ public class PageManager {
 
     public void clearPage(int pageId) throws IOException {
         RandomAccessFile raf = pageIO.getFile();
-        raf.seek((long) pageId *8*1024);
+        raf.seek((long) pageId * 8 * 1024);
 
         byte[] bytes = new byte[Page.PAGE_SIZE];
         raf.write(bytes);
 
-        pages.set(pageId,null);
+        pages.set(pageId, null);
     }
-
 
 
     /**
      * 在树中插入一个节点
-     * @param key 待插入的行
+     *
+     * @param key  待插入的行
      * @param tree B+树
      */
 
@@ -284,7 +282,7 @@ public class PageManager {
             if (!isLeafToSplit(page)) {
                 System.out.println("直接插入叶节点");
                 insertInLeaf(page, key);
-                updatePageToManager(page,true);
+                updatePageToManager(page, true);
             } else {
                 //需要分裂为左右两个节点
                 Page left = this.createPage(true);
@@ -295,6 +293,8 @@ public class PageManager {
                     page.previous.next = left;
                 } else {
                     tree.setHead(left);
+                    getMeta().setHeadPageId(left.getPageId());
+                    getMeta().updateHeadPageId(pageIO.getFile());
                 }
                 if (page.next != null) {
                     right.next = page.next;
@@ -307,7 +307,7 @@ public class PageManager {
                 page.next = null;
 
                 // 插入后再分裂
-                insertInLeaf(page,key);
+                insertInLeaf(page, key);
 
 
                 int leftSize = getUpper(page.tuples.size(), 2);
@@ -320,6 +320,9 @@ public class PageManager {
                 for (int i = 0; i < rightSize; i++) {
                     right.tuples.add(page.tuples.get(leftSize + i));
                 }
+                updateMinValue(left);
+                updateMinValue(right);
+
                 // 不是根节点
                 if (!page.isRoot) {
                     // 调整父子节点关系
@@ -342,16 +345,16 @@ public class PageManager {
                     page.children = null;
 
                     // 父节点[非叶子节点]中插入关键字，是右边的第一位
-                    insertInParent(page.parent,right.tuples.getFirst().getPrimaryV());
+                    insertInParent(page.parent, right.tuples.getFirst().getPrimaryV());
 
-                    updatePageToManager(left,true);
-                    updatePageToManager(right,true);
-                    updatePageToManager(left.previous,true);
-                    updatePageToManager(right.next,true);
-                    updatePageToManager(page,false);
+                    updatePageToManager(left, true);
+                    updatePageToManager(right, true);
+                    updatePageToManager(left.previous, true);
+                    updatePageToManager(right.next, true);
+                    updatePageToManager(page, false);  // 分成left和right之后，这个page就不需要了
 
 //                    System.out.println("父节点插入key");
-                    updateNode(page.parent,tree);
+                    updateNode(page.parent, tree);
                     // for GC
                     page.parent = null;
 
@@ -361,17 +364,15 @@ public class PageManager {
                     page.isRoot = false;
                     Page rootPage = this.createPage(false, true);
 
-
                     tree.setRoot(rootPage);
                     getMeta().setRootPageId(rootPage.getPageId());
                     getMeta().updateRootPageId(pageIO.getFile());
 
-
                     left.parent = rootPage;
                     right.parent = rootPage;
 
-                    updatePageToManager(left,true);
-                    updatePageToManager(right,true);
+                    updatePageToManager(left, true);
+                    updatePageToManager(right, true);
 
                     rootPage.children.add(left);
                     rootPage.children.add(right);
@@ -379,11 +380,11 @@ public class PageManager {
                     page.tuples = null;
                     page.children = null;
                     // 根节点插入关键字
-                    insertInParent(rootPage,left.tuples.getFirst().getPrimaryV());
-                    insertInParent(rootPage,right.tuples.getFirst().getPrimaryV());
+                    insertInParent(rootPage, left.tuples.getFirst().getPrimaryV());
+                    insertInParent(rootPage, right.tuples.getFirst().getPrimaryV());
 
-                    updatePageToManager(rootPage,true);
-                    updatePageToManager(page,false);
+                    updatePageToManager(rootPage, true);
+                    updatePageToManager(page, false);  // 原因同上
 
                 }
             }
@@ -399,7 +400,7 @@ public class PageManager {
                     left = mid + 1;
                 }
             }
-            insert(page.children.get(left),key, tree);
+            insert(page.children.get(left), key, tree);
         }
 
         flushModifiedPages();
@@ -407,125 +408,46 @@ public class PageManager {
     }
 
     public boolean remove(Page page, Tuple key, BpTree tree) throws IOException {
-        boolean isFound = false;
-        if (page.isLeaf) {
-            // 如果是叶子节点
-            if (!contains(page,key)) {
-                // 不包含关键字
-                return false;
-            }
-            // 是叶子节点且是根节点,直接删除
-            if (page.isRoot) {
-                if (removeInLeaf(page,key)) {
-                    isFound = true;
-                    updateMinValue(page);
-                    updatePageToManager(page,true);
-                }
-            } else {
-                if (canRemoveDirectInLeaf(page)) {
-                    // 可以在叶节点中直接删除
-                    if (removeInLeaf(page,key)) {
-                        isFound = true;
-                        updateMinValue(page);
-                        updatePageToManager(page,true);
-                    }
-                } else {
-                    // 如果当前关键字不够,并且前节点有足够的关键字,从前节点借
-                    if (leafCanBorrow(page,page.previous)) {
-                        if (removeInLeaf(page,key)) {
-                            borrowLeafPrevious(page);
-                            isFound = true;
-                            updateMinValue(page);
-                            updatePageToManager(page);
-                            updatePageToManager(page.previous);
-                        }
-                    } else if (leafCanBorrow(page,page.next)) {
-                        if (removeInLeaf(page,key)) {
-                            borrowLeafNext(page);
-                            isFound = true;
-                            updateMinValue(page);
-                            updatePageToManager(page);
-                            updatePageToManager(page.next);
-                        }
-                        // 从后兄弟节点借
-                    } else {
-                        // 合并叶子节点, 先合并后删除
-                        Page tmpParent = page.parent;
-                        // 和前叶子节点合并
-                        if (leafCanMerge(page,page.previous)) {
-                            mergeToPreLeaf(page.previous, page);
-                            if (removeInLeaf(page.previous,key)) {
-                                isFound = true;
-                            }
-                            // 删除在父节点中的key
-                            int parentKeyIdx = getMiddleKeyIdxInParent(page,page);
-                            page.parent.entries.remove(parentKeyIdx);
-                            // 删除在父节点中的指针
-                            page.parent.children.remove(page);
-                            // for GC
-                            page.parent = null;
-                            page.entries = null;
-                            // 更新 叶节点链表
-                            if (page.next != null) {
-                                Page tmp = page;
-                                tmp.previous.next = tmp.next;
-                                tmp.next.previous = tmp.previous;
-                                tmp.previous = null;
-                                tmp.next = null;
-                            } else {
-                                page.previous.next = null;
-                                page.previous = null;
-                            }
-                            // 更新前叶子节点的minValue
-                            updateMinValue(page);
-                            // 更新前叶子节点和当前节点
-                            updatePageToManager(page);
 
-                            // 和后叶子节点合并
-                        } else if (leafCanMerge(page,page.next)) {
-                            mergeToPreLeaf(page, page.next);
-                            if (removeInLeaf(page,key)) {
-                                isFound = true;
-                            }
-                            // 删除在父节点中的key
-                            int parentKeyIdx = getMiddleKeyIdxInParent(page,page.next);
-                            page.parent.entries.remove(parentKeyIdx);
-                            // 删除在父节点中的指针
-                            page.parent.children.remove(page.next);
-                            // for GC
-                            page.next.parent = null;
-                            page.next.entries = null;
-                            // 更新 叶节点链表
-                            if (page.next.next != null) {
-                                Page tmp = page.next;
-                                page.next = tmp.next;
-                                tmp.next.previous = page;
-                                tmp.previous = null;
-                                tmp.next = null;
-                            } else {
-                                page.next.previous = null;
-                                page.next = null;
-                            }
-                            // 更新当前叶子结点的minValue
-                            updateMinValue(page);
-                            // 更新当前节点
-                            updatePageToManager(page);
-                        }
-                        updateRemove(tmpParent,tree);
+        boolean isFound = false;
+
+        if (page.isLeaf) {
+            if (page.getTuples().size() > 1) {
+                removeInLeaf(page,key);
+            } else {
+                if (!page.isRoot) {
+                    Page parent = this.getPage(page.parent.getPageId());
+                    parent.children.remove(page);
+                    Page previous = page.previous != null ? this.getPage(page.previous.getPageId()) : null;
+                    Page next = page.next != null ? this.getPage(page.next.getPageId()) : null;
+                    if(previous != null && next != null) {
+                        previous.setNext(next);
+                        next.setPrevious(previous);
+                        updatePageToManager(previous,true);
+                        updatePageToManager(next,true);
+                    } else if(previous != null) {
+                        previous.setNext(null);
+                        updatePageToManager(previous,true);
+                    } else if(next != null){
+                        next.setPrevious(null);
+                        tree.setHead(next);
+                        getMeta().setHeadPageId(next.getPageId());
+                        getMeta().updateHeadPageId(getPageIO().getFile());
                     }
+
+                    updatePageToManager(parent, true);
+                    updatePageToManager(page, false);
+                } else {
+                    updatePageToManager(page,false);
+                    getMeta().setRootPageId(0);
+                    getMeta().updateRootPageId(pageIO.getFile());
                 }
+
             }
         } else {
-            // 非叶子节点,继续向下搜索
-            if (key.getPrimaryV().compare(page.entries.getFirst()) < 0) {
-                if (remove(page.children.getFirst(), key, tree)) {
-                    isFound = true;
-                }
-            } else if (key.getPrimaryV().compare(page.entries.getLast()) >= 0) {
-                if (remove(page.children.getLast(), key, tree)) {
-                    isFound = true;
-                }
-            } else {
+            // 非叶子节点，继续向下递归查找
+            if (key.getPrimaryV().compare(page.entries.getFirst()) >= 0) {
+                // 中间节点递归查找
                 for (int i = 0; i < (page.entries.size() - 1); i++) {
                     if (key.getPrimaryV().compare(page.entries.get(i)) >= 0 && key.getPrimaryV().compare(page.entries.get(i + 1)) < 0) {
                         if (remove(page.children.get(i + 1), key, tree)) {
@@ -536,7 +458,141 @@ public class PageManager {
                 }
             }
         }
+
         return isFound;
+
+
+//
+//        boolean isFound = false;
+//        if (page.isLeaf) {
+//            // 如果是叶子节点
+//            if (!contains(page,key)) {
+//                // 不包含关键字
+//                return false;
+//            }
+//            // 是叶子节点且是根节点,直接删除
+//            if (page.isRoot) {
+//                if (removeInLeaf(page,key)) {
+//                    isFound = true;
+//                    updateMinValue(page);
+//                    updatePageToManager(page,true);
+//                }
+//            } else {
+//                if (canRemoveDirectInLeaf(page)) {
+//                    // 可以在叶节点中直接删除
+//                    if (removeInLeaf(page,key)) {
+//                        isFound = true;
+//                        updateMinValue(page);
+//                        updatePageToManager(page,true);
+//                    }
+//                } else {
+//                    // 如果当前关键字不够,并且前节点有足够的关键字,从前节点借
+//                    if (leafCanBorrow(page,page.previous)) {
+//                        if (removeInLeaf(page,key)) {
+//                            borrowLeafPrevious(page);
+//                            isFound = true;
+//                            updateMinValue(page);
+//                            updatePageToManager(page);
+//                            updatePageToManager(page.previous);
+//                        }
+//                    } else if (leafCanBorrow(page,page.next)) {
+//                        if (removeInLeaf(page,key)) {
+//                            borrowLeafNext(page);
+//                            isFound = true;
+//                            updateMinValue(page);
+//                            updatePageToManager(page);
+//                            updatePageToManager(page.next);
+//                        }
+//                        // 从后兄弟节点借
+//                    } else {
+//                        // 合并叶子节点, 先合并后删除
+//                        Page tmpParent = page.parent;
+//                        // 和前叶子节点合并
+//                        if (leafCanMerge(page,page.previous)) {
+//                            mergeToPreLeaf(page.previous, page);
+//                            if (removeInLeaf(page.previous,key)) {
+//                                isFound = true;
+//                            }
+//                            // 删除在父节点中的key
+//                            int parentKeyIdx = getMiddleKeyIdxInParent(page,page);
+//                            page.parent.entries.remove(parentKeyIdx);
+//                            // 删除在父节点中的指针
+//                            page.parent.children.remove(page);
+//                            // for GC
+//                            page.parent = null;
+//                            page.entries = null;
+//                            // 更新 叶节点链表
+//                            if (page.next != null) {
+//                                Page tmp = page;
+//                                tmp.previous.next = tmp.next;
+//                                tmp.next.previous = tmp.previous;
+//                                tmp.previous = null;
+//                                tmp.next = null;
+//                            } else {
+//                                page.previous.next = null;
+//                                page.previous = null;
+//                            }
+//                            // 更新前叶子节点的minValue
+//                            updateMinValue(page);
+//                            // 更新前叶子节点和当前节点
+//                            updatePageToManager(page);
+//
+//                            // 和后叶子节点合并
+//                        } else if (leafCanMerge(page,page.next)) {
+//                            mergeToPreLeaf(page, page.next);
+//                            if (removeInLeaf(page,key)) {
+//                                isFound = true;
+//                            }
+//                            // 删除在父节点中的key
+//                            int parentKeyIdx = getMiddleKeyIdxInParent(page,page.next);
+//                            page.parent.entries.remove(parentKeyIdx);
+//                            // 删除在父节点中的指针
+//                            page.parent.children.remove(page.next);
+//                            // for GC
+//                            page.next.parent = null;
+//                            page.next.entries = null;
+//                            // 更新 叶节点链表
+//                            if (page.next.next != null) {
+//                                Page tmp = page.next;
+//                                page.next = tmp.next;
+//                                tmp.next.previous = page;
+//                                tmp.previous = null;
+//                                tmp.next = null;
+//                            } else {
+//                                page.next.previous = null;
+//                                page.next = null;
+//                            }
+//                            // 更新当前叶子结点的minValue
+//                            updateMinValue(page);
+//                            // 更新当前节点
+//                            updatePageToManager(page);
+//                        }
+//                        updateRemove(tmpParent,tree);
+//                    }
+//                }
+//            }
+//        } else {
+//            // 非叶子节点,继续向下搜索
+//            if (key.getPrimaryV().compare(page.entries.getFirst()) < 0) {
+//                if (remove(page.children.getFirst(), key, tree)) {
+//                    isFound = true;
+//                }
+//            } else if (key.getPrimaryV().compare(page.entries.getLast()) >= 0) {
+//                if (remove(page.children.getLast(), key, tree)) {
+//                    isFound = true;
+//                }
+//            } else {
+//                for (int i = 0; i < (page.entries.size() - 1); i++) {
+//                    if (key.getPrimaryV().compare(page.entries.get(i)) >= 0 && key.getPrimaryV().compare(page.entries.get(i + 1)) < 0) {
+//                        if (remove(page.children.get(i + 1), key, tree)) {
+//                            isFound = true;
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        return isFound;
     }
 
     /**
@@ -571,28 +627,28 @@ public class PageManager {
                 if (nextIdx < page.parent.children.size()) {
                     nextNode = page.parent.children.get(nextIdx);
                 }
-                if (middleNodeCanBorrow(page,preNode)) {
+                if (middleNodeCanBorrow(page, preNode)) {
                     // 从前节点借
-                    borrowMiddleNodePrevious(page,preNode);
-                } else if (middleNodeCanBorrow(page,nextNode)) {
+                    borrowMiddleNodePrevious(page, preNode);
+                } else if (middleNodeCanBorrow(page, nextNode)) {
                     // 从后继节点借
-                    borrowMiddleNodeNext(page,nextNode);
+                    borrowMiddleNodeNext(page, nextNode);
                 } else {
                     // 和兄弟节点合并
                     Page tmpParent = page.parent;
-                    if (middleNodeCanMerge(page,preNode)) {
+                    if (middleNodeCanMerge(page, preNode)) {
                         // 与前节点合并
                         mergeToPreMiddleNode(preNode, page);
-                        int parentKeyIdx = getMiddleKeyIdxInParent(page,nextNode);
+                        int parentKeyIdx = getMiddleKeyIdxInParent(page, nextNode);
                         page.parent.entries.remove(parentKeyIdx);
                         page.parent.children.remove(parentKeyIdx + 1);
                         // for GC
                         page.parent = null;
                         page.entries = null;
                         page.children = null;
-                    } else if (middleNodeCanMerge(page,nextNode)) {
+                    } else if (middleNodeCanMerge(page, nextNode)) {
                         mergeToPreMiddleNode(page, nextNode);
-                        int parentKeyIdx = getMiddleKeyIdxInParent(page,nextNode);
+                        int parentKeyIdx = getMiddleKeyIdxInParent(page, nextNode);
                         page.parent.entries.remove(parentKeyIdx);
                         page.parent.children.remove(parentKeyIdx + 1);
                         // for GC
@@ -600,7 +656,7 @@ public class PageManager {
                         nextNode.entries = null;
                         nextNode.children = null;
                     }
-                    updateRemove(tmpParent,tree);
+                    updateRemove(tmpParent, tree);
                 }
             }
         }
@@ -617,7 +673,7 @@ public class PageManager {
          *        7
          *    3        20   30
          */
-        int parentKeyIdx = getMiddleKeyIdxInParent(preNode,page);
+        int parentKeyIdx = getMiddleKeyIdxInParent(preNode, page);
         // 父节点中下沉的 key
         Value downKey = page.parent.entries.get(parentKeyIdx);
         page.entries.add(0, downKey);
@@ -633,7 +689,7 @@ public class PageManager {
         // 前节点的最后一个指针后移到当前节点
         int preChildSize = preNode.children.size();
         Page borrowPoint = preNode.children.get(preChildSize - 1);
-        page.children.add(0 , borrowPoint);
+        page.children.add(0, borrowPoint);
         preNode.children.remove(preChildSize - 1);
         borrowPoint.parent = page;
     }
@@ -649,7 +705,7 @@ public class PageManager {
          *            30
          *   7   20        40
          */
-        int parentKeyIdx = getMiddleKeyIdxInParent(page,nextPage);
+        int parentKeyIdx = getMiddleKeyIdxInParent(page, nextPage);
         Value downKey = page.parent.entries.get(parentKeyIdx);
         page.entries.add(downKey);
         page.parent.entries.remove(parentKeyIdx);
@@ -674,7 +730,7 @@ public class PageManager {
      * 将后一个中间节点的关键字和指针复制到 前一个中间节点中
      */
     private void mergeToPreMiddleNode(Page first, Page sec) {
-        int parentKeyIdx = getMiddleKeyIdxInParent(first,sec);
+        int parentKeyIdx = getMiddleKeyIdxInParent(first, sec);
         // 将父节点关键字下沉
         first.entries.add(first.parent.entries.get(parentKeyIdx));
 
@@ -699,7 +755,7 @@ public class PageManager {
         page.previous.tuples.remove(size - 1);
         page.tuples.add(0, borrowedTuple);
         // 更新父节点中间关键字（next 的最小值上移）
-        int parentEntryIdx = getMiddleKeyIdxInParent(page,page);
+        int parentEntryIdx = getMiddleKeyIdxInParent(page, page);
         Value newSeparator = page.tuples.get(0).getPrimaryV();
         page.parent.entries.set(parentEntryIdx, newSeparator);
     }
@@ -796,7 +852,7 @@ public class PageManager {
     }
 
     /**
-     *checked maybe
+     * checked maybe
      * 关键字是否可以直接在叶节点中删除
      */
     private boolean canRemoveDirectInLeaf(Page page) {
@@ -827,7 +883,7 @@ public class PageManager {
         int index = -1;
         for (int i = 0; i < page.tuples.size(); i++) {
             if (key.compare(page.tuples.get(i)) == 0) {
-                index  = i;
+                index = i;
                 break;
             }
         }
@@ -895,8 +951,8 @@ public class PageManager {
 //                parent.insertInParent(keyToParent);
                 page.parent.entries.add(index, keyToParent);
 
-                updatePageToManager(left);
-                updatePageToManager(right);
+                updatePageToManager(left,true);
+                updatePageToManager(right,true);
 
                 updateNode(page.parent, tree);
 
@@ -906,7 +962,7 @@ public class PageManager {
                 page.children = null;
                 page.parent = null;
 
-                updatePageToManager(page);
+                updatePageToManager(page,false);
             } else {
                 // 是根节点
                 System.out.println("current is root:" + true);
@@ -932,10 +988,10 @@ public class PageManager {
                 rootPage.entries.add(left.entries.getFirst());
                 rootPage.entries.add(keyToParent);
 
-                updatePageToManager(left);
-                updatePageToManager(right);
-                updatePageToManager(page);
-                updatePageToManager(rootPage);
+                updatePageToManager(left,true);
+                updatePageToManager(right,true);
+                updatePageToManager(page,false);
+                updatePageToManager(rootPage,true);
             }
 
 
@@ -988,13 +1044,15 @@ public class PageManager {
         }
 
         page.tuples.add(tuple); // 插入到末尾
+
+        updateMinValue(page);
     }
 
     /**
      * 插入到非叶子节点中,不分裂
      * CHECK
      */
-    private void insertInParent(Page page, Value key){
+    private void insertInParent(Page page, Value key) {
         if (page.isLeaf) {
             throw new UnsupportedOperationException("can't insert into leaf node.");
         }

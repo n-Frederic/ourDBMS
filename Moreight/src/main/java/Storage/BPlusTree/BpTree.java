@@ -45,7 +45,7 @@ public class BpTree {
         this.root = root;
     }
 
-    public void remove(PageManager manager, Tuple tuple) {
+    public void remove(PageManager manager, Tuple tuple) throws IOException {
         manager.remove(head, tuple, this);
     }
 }

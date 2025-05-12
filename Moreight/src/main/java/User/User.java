@@ -58,6 +58,7 @@ public class User {
      * 设置用户的权限等级。
      * @param level 新权限等级。
      */
+
     public void setLevel(String level) {
         this.level = level;
     }
@@ -77,6 +78,14 @@ public class User {
 
 
     }
+    public boolean dmlOK(){
+        return UserManager.isHigherPermission(this.level,"visitor");
+    }
+    public boolean ddlOK(){
+        return UserManager.isHigherPermission(this.level,"user");
+    }
+
+
 }
 
 

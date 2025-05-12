@@ -9,6 +9,7 @@ import java.util.ArrayList;
 public class Meta {
 
     private int rootPageId;
+    private int headPageId;
     private int highestPageId;
     private int maxKeys;
     private int columnCount;
@@ -18,9 +19,10 @@ public class Meta {
 
     public Meta() {}
 
-    public Meta(int rootPageId, int highestPageId, int maxKeys, int columnCount,
+    public Meta(int rootPageId, int headPageId, int highestPageId, int maxKeys, int columnCount,
                 String[] columnNames, int[] columnTypes, String[] columnConstraints) {
         this.rootPageId = rootPageId;
+        this.headPageId = headPageId;
         this.highestPageId = highestPageId;
         this.maxKeys = maxKeys;
         this.columnCount = columnCount;
@@ -73,13 +75,17 @@ public class Meta {
      * 更新当前最高页码到文件
      */
     public void updateHighestPageId(RandomAccessFile file) throws IOException {
-        file.seek(4);  // 定位到文件中保存最高页码的位置
+        file.seek(8);  // 定位到文件中保存最高页码的位置
         file.writeInt(highestPageId);  // 写入新的最高页码
     }
 
+    public void updateHeadPageId (RandomAccessFile file) throws IOException {
+        file.seek(4);
+        file.writeInt(headPageId);
+    }
+
     /**
-     *
-     * @return
+     * 更新根页的页码到文件
      */
     public void updateRootPageId(RandomAccessFile file) throws IOException {
         file.seek(0);  // 定位到文件中保存根页页码的位置
@@ -126,11 +132,19 @@ public class Meta {
         this.columnConstraints = columnConstraints;
     }
 
+    public void setHeadPageId(int headPageId) {
+        this.headPageId = headPageId;
+    }
+
+    public int getHeadPageId() {
+        return headPageId;
+    }
 
     /**
      * 第零页的结构
      * 根页的页码 ( int 4B )
-     * 目前的最高页码 （ int 4B ）
+     * 头节点的页码（int 4B）
+     * 目前的最高页码 （ int 4B )
      * 中间节点允许的最多key数量 （ int 4B ）
      * 列的当前数量 （int 4B)
      * ...（前面共1024B）
@@ -144,6 +158,7 @@ public class Meta {
         file.seek(0);
 
         int rootPageId = file.readInt();
+        int headPageId = file.readInt();
         int highestPageId = file.readInt();
         int maxKeys = file.readInt();
         int columnCount = file.readInt();
@@ -175,7 +190,7 @@ public class Meta {
             }
         }
 
-        return new Meta(rootPageId, highestPageId, maxKeys, columnCount, columnNames, columnTypes, columnConstraints);
+        return new Meta(rootPageId, headPageId, highestPageId, maxKeys, columnCount, columnNames, columnTypes, columnConstraints);
     }
 
     /**
@@ -196,11 +211,15 @@ public class Meta {
         file.seek(0);
 
         file.writeInt(rootPageId);
+        file.writeInt(headPageId);
         file.writeInt(highestPageId);
         file.writeInt(maxKeys);
         file.writeInt(columnCount);
 
-        file.seek(1024);
+        byte[] zero = new byte[1004];      // 20 + 1004 = 1024
+        file.write(zero);
+
+//        file.seek(1024);
 
         // 列名长度 + 列名 + 列类型 + 约束长度 + 约束
         for (int i = 0; i < columnCount; i++) {
@@ -223,6 +242,12 @@ public class Meta {
                 file.writeByte(0);
             }
         }
+
+        long written = file.getFilePointer();
+        long remain = 8192 - written;
+        for (long i = 0; i < remain; i++) {
+            file.writeByte(0);
+        }
     }
 
 
@@ -237,6 +262,7 @@ public class Meta {
      */
     public void showInfo() {
         System.out.println("rootPageId : " + rootPageId);
+        System.out.println("headPageId : " + headPageId);
         System.out.println("highestPageId : " + highestPageId);
         System.out.println("maxKeys : " + maxKeys);
         System.out.println("columnCount : " + columnCount);

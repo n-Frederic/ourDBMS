@@ -66,6 +66,8 @@ public class Page {
         this.setPageId(pageId);
     }
 
+
+
     public Page getParent() {
         return parent;
     }
@@ -77,6 +79,30 @@ public class Page {
     public Page getNext() {
         return next;
     }
+
+    public void setNext(Page next) {
+        this.next = next;
+    }
+
+    public Page getPrevious() {
+        return previous;
+    }
+
+    public void setPrevious(Page previous) {
+        this.previous = previous;
+    }
+
+    // 判断当前页是否是叶子页
+    public boolean isLeaf() {
+        return isLeaf;
+    }
+
+    public boolean isRoot() {
+        return isRoot;
+    }
+
+
+
 
     /**
      * 得到行数组
@@ -93,33 +119,6 @@ public class Page {
             }
         }
         return temp;
-    }
-
-
-
-    // 判断当前页是否是叶子页
-    public boolean isLeaf() {
-        return isLeaf;
-    }
-
-    public boolean isRoot() {
-        return isRoot;
-    }
-
-
-
-    // 获取子节点的页号
-    public int getChildPageId(Page currentPage, int index) {
-        // 如果当前页是叶子节点，没有子节点
-        if (currentPage.isLeaf()) {
-            throw new UnsupportedOperationException("叶子节点没有子节点");
-        }
-
-        // 如果当前是非叶子节点，从当前页的子节点列表中获取对应的子节点页号
-        Page childPage = currentPage.getChildren().get(index);
-
-        // 返回该子节点的页号
-        return childPage.getPageId();
     }
 
     // 获取当前页的页号
@@ -149,9 +148,8 @@ public class Page {
     public Value getMinValue() {
         return minValue;
     }
-
-    public Page getPrevious() {
-        return previous;
+    public void setMinValue(Value minValue){
+        this.minValue = minValue;
     }
 
     public void setRoot(boolean root) {
@@ -167,62 +165,6 @@ public class Page {
     }
 
 
-//    /**
-//     * 将某一行插入page
-//     * @param tuple 待插入的行
-//     * @return 插入是否成功
-//     */
-//    public boolean insertTuple(Tuple tuple) throws IOException {
-//        if (isFull(tuple)) return false;
-//        for(int i = 0; i < tuples.size(); i++) {
-//            if(tuples.get(i).compare(tuple) > 0) {
-//                tuples.add(i,tuple);
-//                return true;
-//            }
-//        }
-//        tuples.add(tuple);
-//        return true;
-//    }
-
-//    /**
-//     * 在page的tuples里获取tuple
-//     * @param tuple tuple
-//     * @return 一行信息
-//     */
-//    public Tuple getTuple(Tuple tuple) {
-//        for (Tuple t : tuples) {
-//            if (t.compare(tuple) == 0) {
-//                return tuple;
-//            }
-//        }
-//        return null;
-//    }
-
-
-
-    /**
-     * 通过调用预估大小函数，判断page是否还能插入行数组
-     * @param candidate 待插入的行
-     * @return 是否能插入
-     */
-    public boolean isFull(Tuple candidate) throws IOException {
-        int used = estimateCurrentSize();
-        int added = candidate.toBytes().length;
-        return used + added + 100 > PAGE_SIZE; // +100 留点空余防溢出
-    }
-
-    /**
-     * 估计当前页的大小
-     * @return 总的字节数
-     */
-    private int estimateCurrentSize() throws IOException {
-        int total = 16;
-        for (Tuple t : tuples) {
-            total += t.toBytes().length;
-        }
-        return total;
-    }
-
     /**
      * 叶子页的结构如下:
      * 页id（int 4b）
@@ -231,7 +173,8 @@ public class Page {
      * 父亲的页id （int, 4B)
      * 前一个叶子页的id （int, 4B)
      * 后一个叶子页的id (int, 4B)
-     * 页的行数 （int 4b）
+     * 页的行数 （int 4B）
+     * 一页中所有行的主键的最小值（长度int,4B + 类型int,4B + 实际值）
      * 每行规定好的长度（512B）（int 4B)
      * 每一行的开始的偏移量 (4b * size)
      * ...（前面共1024B）
@@ -259,10 +202,19 @@ public class Page {
         } else dataOut.writeInt(-1);
 
         dataOut.writeInt(tuples.size());     // 行数
+        byte[] minValueBytes = minValue.toBytes();
+
+        dataOut.writeInt(minValueBytes.length);
+        dataOut.writeInt(minValue.getType());
+        dataOut.write(minValueBytes);
+        for(int i = minValueBytes.length; i < 30; i++) {
+            dataOut.writeByte(0);
+        }
+
         dataOut.writeInt(512);     // 每行最多允许512B的数据
 
         // 实时维护偏移量
-        int currentOffset = 26;
+        int currentOffset = 64;
         int dataPointer = 1024;
 
         ArrayList<byte[]> info = new ArrayList<>();
@@ -307,6 +259,7 @@ public class Page {
      * 前一个叶子页的id （int, 4B)
      * 后一个叶子页的id (int, 4B)
      * 页的行数 （int 4b）
+     * 一页中所有行的主键的最小值（长度int,4B + 类型int,4B + 实际值）
      * 每行规定好的长度（512B）（int 4B)
      * 每一行的开始的偏移量 (4b)
      * ... (前面共1024B）
@@ -323,6 +276,14 @@ public class Page {
         int previousId = in.readInt();
         int nextId = in.readInt();
         int rowCount = in.readInt();
+
+        int minValueLen = in.readInt();
+        int minValueType = in.readInt();
+        byte[] minValueBytes = new byte[minValueLen];
+        in.readFully(minValueBytes);
+        Value minValue = Tuple.decodeTypedValue(minValueType,minValueBytes);
+
+        in.skipBytes(30-minValueBytes.length);
         int len = in.readInt();
 
         ArrayList<Integer> offsets = new ArrayList<>(rowCount);
@@ -344,6 +305,8 @@ public class Page {
         page.parent = parentId == -1 ? null : new Page(parentId);
         page.previous = previousId == -1 ? null : new Page(previousId);
         page.next = nextId == -1 ? null : new Page(nextId);
+        page.setMinValue(minValue);
+
 
         return page;
     }
@@ -513,10 +476,5 @@ public class Page {
         return page;
     }
 
-    public void updatePageInfo(RandomAccessFile raf) throws IOException {
-        if(isLeaf) {
-            raf.seek((long)pageId*PAGE_SIZE);
 
-        }
-    }
 }

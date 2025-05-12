@@ -1,6 +1,7 @@
 package Table;
 
 import Conditions.Condition;
+import Database.DatabaseManager;
 import Storage.BPlusTree.*;
 import Storage.Page.*;
 import Storage.Value.Value;
@@ -19,11 +20,10 @@ public class Table {
     private Schema schema ;
     private BpTree tree;
     private PageManager pageManager;
-    private static final String DIRECTORY = "../TestData/DatabaseManager";
 
     public Table(String tableName) throws IOException {
         this.tableName = tableName;
-        this.pageManager = new PageManager(DIRECTORY + "/" + tableName + "/" + tableName + ".idb");
+        this.pageManager = new PageManager(DatabaseManager.getBaseDir() + "/" + DatabaseManager.getCurrentDatabase()+"/"+tableName + "/" + tableName + ".idb");
 
         Meta meta = pageManager.getMeta();
 
@@ -46,13 +46,15 @@ public class Table {
             tree.setRoot(page);
             meta.setHighestPageId(1);                 // 程序内部meta更新值
             meta.setRootPageId(1);
+            meta.setHeadPageId(1);
 
             //TODO:根页是否有在设置新根页的时候更新
 
             meta.updateHighestPageId(pageIO.getFile());       // 将值更新到文件里
             meta.updateRootPageId(pageIO.getFile());
+            meta.updateHeadPageId(pageIO.getFile());
 
-            pageManager.updatePageToManager(page);              // 将第一页存到pages[1]，并放到待更新页集合里
+            pageManager.updatePageToManager(page,true);              // 将第一页存到pages[1]，并放到待更新页集合里
             pageManager.flushModifiedPages();                   // 将待更新页全部写入文件
 
 
@@ -63,26 +65,22 @@ public class Table {
 
         }
 
-
     }
 
-    /**
-     * 可用，如果不可用，找page的remove的问题
-     */
-//    public void delete(Tuple tuple){
-//        tree.remove(tuple);
-//    }
 
-    /**
-     *
-     */
+    public void delete(Tuple tuple) throws IOException{
+        Value primaryV = tuple.getPrimaryV();
+        int pageId = pageManager.findPageNum(primaryV);
+        Page dirPage = pageManager.getPage(pageId);
+        pageManager.remove(dirPage, tuple, tree);
+    }
 
 
     /**
      * 返回一个文件，可用
      */
     public RandomAccessFile From(String table) throws FileNotFoundException {
-        String path = DIRECTORY + "/" + table + "/" + table + ".ibd";
+        String path = DatabaseManager.getBaseDir() + "/" + DatabaseManager.getCurrentDatabase()+"/"+tableName + "/" + tableName + ".idb";
         RandomAccessFile raf = new RandomAccessFile(path, "rw");
         return raf;
     }

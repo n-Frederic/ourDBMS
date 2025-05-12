@@ -143,6 +143,28 @@ public class UserManager {
         }
         return 0;
     }
+    public static boolean checkUserExists(String userName) {
+        File file = new File("../TestData/UserManager/UserManager.json");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+
+            // 处理可能的 BOM
+            String jsonString = sb.toString().replace("\uFEFF", "");
+            System.out.println("读取到的 JSON：" + jsonString);
+
+            JsonReader jsonReader = new JsonReader(new StringReader(jsonString));
+            JsonArray userArray = JsonParser.parseReader(jsonReader).getAsJsonArray();
+
+            return checkUserExists(userArray, userName);
+        } catch (IOException | JsonParseException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     public static String getUserLevel(String userName,String userPassword){
         File file = new File("../TestData/UserManager/UserManager.json");
 
@@ -252,6 +274,18 @@ public class UserManager {
         }
         return 1;
     }
+    private static boolean checkUserExists(JsonArray userArray, String userName) {
+        for (int i = 0; i < userArray.size(); i++) {
+            JsonObject user = userArray.get(i).getAsJsonObject();
+            String storedUsername = user.get("userName").getAsString();
+
+
+            if (storedUsername.equals(userName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 
     public static List<User> getAllUsers() {
@@ -310,6 +344,12 @@ public class UserManager {
 
     // 授予用户权限
     public static boolean grantPermission(String targetUsername, String newLevel) {
+
+        if (users.isEmpty()) {
+            users=UserManager.getAllUsers();
+            System.out.println(users);
+        }
+        String ordinaryLevel=UserManager.getUser(targetUsername).getLevel();
         // 检查当前用户是否有权限执行此操作
         if (currentUser == null || !currentUser.hasPermission("admin")) {
             System.out.println("权限不足，只有管理员可以授予权限");
@@ -322,10 +362,12 @@ public class UserManager {
         }
         System.out.println(users);
 
-        if (users.isEmpty()) {
-            users=UserManager.getAllUsers();
-            System.out.println(users);
+
+        if(UserManager.isHigherPermission(ordinaryLevel,newLevel)){
+            System.out.println("新权限不能低于原来权限");
+            return false;
         }
+
 
 
         User targetUser =UserManager.getUser(targetUsername);
@@ -346,12 +388,53 @@ public class UserManager {
         return true;
     }
 
+    public static boolean dropUser(String username){
+
+        if (currentUser == null || !currentUser.hasPermission("admin")) {
+            System.out.println("权限不足，只有管理员可以授予权限");
+            return false;
+        }
+        if (users.isEmpty()) {
+            users=UserManager.getAllUsers();
+            System.out.println(users);
+        }
+        // 不能删除自己
+        if (username.equals(currentUser.getUserName())) {
+            System.out.println("不能删除当前登录的用户");
+            return false;
+        }
+
+        if(!UserManager.checkUserExists(username)){
+            System.out.println("用户不存在");
+            return false;
+        }
+        boolean removed = users.removeIf(user -> user.getUserName().equals(username));
+        if (!removed) {
+            System.out.println("删除用户失败");
+            return false;
+        }
+
+
+        return true;
+
+
+
+
+    }
+
+
 
     // 收回用户权限（降级）
     public static boolean revokePermission(String targetUsername, String newLevel) {
+        if (users.isEmpty()) {
+            users=UserManager.getAllUsers();
+            System.out.println(users);
+        }
+        String ordinaryLevel=UserManager.getUser(targetUsername).getLevel();
+
         // 检查当前用户是否有权限执行此操作
         if (currentUser == null || !currentUser.hasPermission("admin")) {
-            System.out.println("权限不足，只有管理员可以授予权限");
+            System.out.println("权限不足，只有管理员可以撤回权限");
             return false;
         }
         // 不能修改自己的权限
@@ -359,7 +442,11 @@ public class UserManager {
             System.out.println("不能修改自己的权限级别");
             return false;
         }
-        System.out.println(users);
+        if(!UserManager.isHigherPermission(ordinaryLevel,newLevel)){
+            System.out.println("新权限不能高于原来权限");
+            return false;
+        }
+
 
         if (users.isEmpty()) {
             users=UserManager.getAllUsers();
@@ -373,6 +460,7 @@ public class UserManager {
             System.out.println("用户不存在");
             return false;
         }
+
 
         // 验证新权限级别是否有效
         if (!isValidLevel(newLevel)) {
@@ -391,11 +479,7 @@ public class UserManager {
         UserManager.getUser(targetUsername).setLevel(newLevel);
         System.out.println("已成功将用户 " + targetUsername + " 的权限级别更改为 " + newLevel);
 
-        for (User user : users) {
-            System.out.printf("%-15s %-10s\n",
-                    user.getUserName(),
-                    user.getLevel());
-        }
+
         return true;
     }
 
@@ -403,6 +487,22 @@ public class UserManager {
     private static boolean isValidLevel(String level) {
         return level.equals("admin") || level.equals("user") || level.equals("visitor");
     }
+    // 检查level1是否比level2权限高
+    public static boolean isHigherPermission(String level1, String level2) {
+        if (!isValidLevel(level1) || !isValidLevel(level2)) {
+            return false;
+        }
+
+        // admin > user > visitor
+        if (level1.equals("admin")) {
+            return !level2.equals("admin");
+        }
+        if (level1.equals("user")) {
+            return level2.equals("visitor");
+        }
+        return false; // visitor是最低权限
+    }
+
 
 }
 

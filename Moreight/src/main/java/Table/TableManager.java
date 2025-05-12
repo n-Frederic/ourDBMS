@@ -20,6 +20,7 @@ import java.util.List;
  */
 public class TableManager {
     private static final String DIRECTORY = "../TestData/DatabaseManager";
+    private static final String database = DatabaseManager.getCurrentDatabase();
 
     /**
      * 创建新表。
@@ -28,10 +29,10 @@ public class TableManager {
     // (1) type (2) PRIMARY KEY (3) UNIQUE (4) NOT NULL (5) DEFAULT
     public static void CreateTable(String tableName, ArrayList<Field> args) {
         try {
-            File dir = new File(DIRECTORY+"/"+tableName);
+            File dir = new File(DIRECTORY+"/"+database+"/"+tableName);
             if (!dir.exists()) dir.mkdirs();
 
-            File file = new File(DIRECTORY + "/" + tableName + "/"+tableName+".idb");
+            File file = new File(DIRECTORY + "/" +database + "/" + tableName + "/"+tableName+".idb");
             if (file.exists()) {
                 System.out.println("表已存在：" + tableName);
                 return;
