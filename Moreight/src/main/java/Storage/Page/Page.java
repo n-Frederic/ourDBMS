@@ -35,6 +35,7 @@ public class Page {
         this.pageId = pageId;
         this.tuples = new ArrayList<>();
         this.entries = new ArrayList<>();
+        this.children = new ArrayList<>();
     }
 
     public Page() {
@@ -406,6 +407,10 @@ public class Page {
             dataOut.writeInt(page.getPageId());
         }
 
+        int currentSize = out.size();
+        byte[] zero = new byte[PAGE_SIZE-currentSize];
+        out.write(zero);
+
         return out.toByteArray();
     }
 
@@ -415,6 +420,7 @@ public class Page {
      * 是否是叶子节点 （boolean 1B)
      * 是否是根节点 （boolean 1B)
      * 父亲的页id （int, 4B)
+     * 目前孩子有几个 （int, 4B)
      * 记录的索引的类型 （目前为主键）（int, 4B)
      * 孩子页的行中主键的最小值序列 （ Value * 5, 最多允许512B）
      * 孩子页的页码 （int 4B*5 ）

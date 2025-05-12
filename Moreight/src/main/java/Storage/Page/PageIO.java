@@ -47,6 +47,7 @@ public class PageIO {
         byte[] data = loadPageFromDisk(pageId);
 
         boolean isLeaf = readIsLeafFlag(data);
+        System.out.println(isLeaf);
         if(isLeaf) {
             return Page.leafFromBytes(data);
         } else {
@@ -66,7 +67,7 @@ public class PageIO {
 //            page.setPageId(id);
 //        }
 
-        byte[] data;
+        byte[] data = new byte[0];
         if(page.isLeaf && !page.tuples.isEmpty()) {
             data = page.leafToBytes();
         } else if(!page.isLeaf && !page.entries.isEmpty()){
@@ -96,7 +97,7 @@ public class PageIO {
         byte isLeafByte = pageData[4];
 
         // 布尔值在Java中存储为1(true)或0(false)
-        return isLeafByte != 0;
+        return isLeafByte == 1;
     }
 
     public void setRootPageId(int rootId) throws IOException {
