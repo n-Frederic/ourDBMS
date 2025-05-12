@@ -102,6 +102,33 @@ public class Page {
         return isRoot;
     }
 
+    public void showInfo() {
+        System.out.println("叶子的页id : " + pageId);
+        System.out.println("页是叶子吗 : " + isLeaf);
+        System.out.println("页是根吗 : " + isRoot);
+        System.out.println("前一个页的id : " + (previous != null ? previous.getPageId() : "null"));
+        System.out.println("后一个页的id : " + (next != null ? next.getPageId() : "null"));
+        if(!isLeaf) {
+            for(Value value : entries) {
+                System.out.print(value.toString() + " ");
+            }
+            System.out.println();
+            for(Page child : children) {
+                System.out.print(child.getPageId() + " ");
+            }
+        } else {
+            System.out.println("页的行数 : "+ tuples.size());
+            System.out.println();
+
+            for(Tuple tuple : tuples) {
+                System.out.println(tuple.getPrimaryV());
+                for(Value value : tuple.getValues()) {
+                    System.out.print(value.toString() + " ");
+                }
+                System.out.println();
+            }
+        }
+    }
 
 
 

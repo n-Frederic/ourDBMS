@@ -345,7 +345,7 @@ public class PageManager {
                     page.children = null;
 
                     // 父节点[非叶子节点]中插入关键字，是右边的第一位
-                    insertInParent(page.parent, right.tuples.getFirst().getPrimaryV());
+                    insertInParent(page.parent, right.minValue);
 
                     updatePageToManager(left, true);
                     updatePageToManager(right, true);
@@ -380,8 +380,10 @@ public class PageManager {
                     page.tuples = null;
                     page.children = null;
                     // 根节点插入关键字
-                    insertInParent(rootPage, left.tuples.getFirst().getPrimaryV());
-                    insertInParent(rootPage, right.tuples.getFirst().getPrimaryV());
+                    insertInParent(rootPage, left.minValue);
+                    insertInParent(rootPage, right.minValue);
+
+                    rootPage.showInfo();
 
                     updatePageToManager(rootPage, true);
                     updatePageToManager(page, false);  // 原因同上
@@ -949,7 +951,7 @@ public class PageManager {
                 page.parent.children.add(index + 1, right);
                 // 插入关键字
 //                parent.insertInParent(keyToParent);
-                page.parent.entries.add(index, keyToParent);
+                insertInParent(page.parent,keyToParent);
 
                 updatePageToManager(left,true);
                 updatePageToManager(right,true);
@@ -985,8 +987,9 @@ public class PageManager {
                 page.entries = null;
                 // 插入关键字
 //                rootPage.insertInParent(keyToParent);
-                rootPage.entries.add(left.entries.getFirst());
-                rootPage.entries.add(keyToParent);
+
+                insertInParent(rootPage,left.minValue);
+                insertInParent(rootPage,right.minValue);
 
                 updatePageToManager(left,true);
                 updatePageToManager(right,true);
