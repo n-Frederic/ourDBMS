@@ -2,6 +2,7 @@ package Controller;
 
 import User.User;
 import User.UserManager;
+import java.util.List;
 
 import java.util.Scanner;
 
@@ -23,6 +24,7 @@ public class UserAuthentication {
             System.out.println("login successful! welcome "+username);
 
             UserManager.SetCurrentUser(new User(username,password,level));
+            System.out.println(UserManager.getCurrentUser());
             return true;
         }else{
             System.out.println("error.exiting......");
@@ -62,4 +64,95 @@ public class UserAuthentication {
         return false;
     }
 
+
+    public static void permissionManagement(Scanner sc) {
+        // 检查登录状态
+        if (UserManager.GetCurrentUser() == null) {
+            System.out.println("请先登录");
+            return;
+        }
+
+        // 检查管理员权限
+        if (!UserManager.GetCurrentUser().hasPermission("admin")) {
+            System.out.println("权限不足，只有管理员可以管理权限");
+            return;
+        }
+
+        while (true) {
+            System.out.println("\n=== 权限管理 ===");
+            System.out.println("1. 授予/提升权限");
+            System.out.println("2. 收回/降低权限");
+            System.out.println("3. 查看所有用户");
+            System.out.println("4. 返回主菜单");
+            System.out.print("请选择操作: ");
+
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    handleGrantPermission(sc);
+                    UserManager.updateUserFile();
+                    break;
+                case "2":
+                    handleRevokePermission(sc);
+                    UserManager.updateUserFile();
+                    break;
+                case "3":
+                    displayAllUsers();
+                    break;
+                case "4":
+                    return;
+                default:
+                    System.out.println("无效的选择，请输入1-4");
+            }
+        }
+    }
+
+    private static void handleGrantPermission(Scanner sc) {
+        System.out.println("\n=== 授予/提升权限 ===");
+        System.out.print("输入要修改权限的用户名: ");
+        String username = sc.nextLine().trim();
+
+        System.out.print("输入新的权限级别(admin/user/visitor): ");
+        String level = sc.nextLine().trim().toLowerCase();
+
+        boolean success = UserManager.grantPermission(username, level);
+        System.out.println(success ? "操作成功" : "操作失败");
+    }
+
+    private static void handleRevokePermission(Scanner sc) {
+        System.out.println("\n=== 收回/降低权限 ===");
+        System.out.print("输入要修改权限的用户名: ");
+        String username = sc.nextLine().trim();
+
+        System.out.print("输入新的权限级别(user/visitor): ");
+        String level = sc.nextLine().trim().toLowerCase();
+
+        boolean success = UserManager.revokePermission(username, level);
+        System.out.println(success ? "操作成功" : "操作失败");
+    }
+
+    private static void displayAllUsers() {
+        System.out.println("\n=== 所有用户列表 ===");
+        System.out.printf("%-15s %-10s\n", "用户名", "权限级别");
+
+        List<User> users = UserManager.getUsers();
+        if(users.isEmpty()){
+            System.out.println("loading.....");
+            users=UserManager.getAllUsers();
+
+        }
+        if (users.isEmpty()) {
+            System.out.println("没有用户数据");
+            return;
+        }
+
+        for (User user : users) {
+            System.out.printf("%-15s %-10s\n",
+                    user.getUserName(),
+                    user.getLevel());
+        }
+    }
 }
+
+

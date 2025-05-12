@@ -69,6 +69,14 @@ public class User {
     public String getLevel() {
         return level;
     }
+
+    public  boolean hasPermission(String level) {
+        System.out.println(this.level +level);
+        System.out.println(this.level==level);
+        return this.level.equals(level);
+
+
+    }
 }
 
 

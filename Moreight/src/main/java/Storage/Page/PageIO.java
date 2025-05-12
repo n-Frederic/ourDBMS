@@ -45,7 +45,6 @@ public class PageIO {
         byte[] data = loadPageFromDisk(pageId);
 
         boolean isLeaf = readIsLeafFlag(data);
-        System.out.println(isLeaf);
         if(isLeaf) {
             return Page.leafFromBytes(data);
         } else {

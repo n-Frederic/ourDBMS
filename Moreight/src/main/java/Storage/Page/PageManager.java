@@ -144,7 +144,7 @@ public class PageManager {
             if (pages.get(i) == null) {
                 Page newPage = new Page(i, isLeaf);
 
-                updatePageToManager(newPage);
+                updatePageToManager(newPage,true);
                 if (i > pageIO.meta.getHighestPageId()) {
                     pageIO.meta.setHighestPageId(i);
                     getMeta().updateHighestPageId(pageIO.getFile());
@@ -155,12 +155,12 @@ public class PageManager {
         return null;
     }
 
-    public Page createPage(boolean isLeaf, boolean isRoot) {
+    public Page createPage(boolean isLeaf, boolean isRoot) throws IOException {
         for (int i = 1; i < MAX_PAGES; i++) {
             if (pages.get(i) == null) {
                 Page newPage = new Page(i, isLeaf,isRoot);
 
-                updatePageToManager(newPage);
+                updatePageToManager(newPage,true);
                 if (i > pageIO.meta.getHighestPageId()) {
                     pageIO.meta.setHighestPageId(i);
                 }
@@ -178,9 +178,15 @@ public class PageManager {
         }
     }
 
-    public void updatePageToManager(Page page) {
-        pages.set(page.getPageId(),page);
-        modifiedPages.add(page);
+    public void updatePageToManager(Page page, boolean mode) throws IOException {
+        if(mode) {
+            pages.set(page.getPageId(),page);
+            modifiedPages.add(page);
+        } else {
+            clearPage(page.getPageId());
+        }
+
+
     }
 
     /**
@@ -188,7 +194,6 @@ public class PageManager {
      */
     public void savePageToDisk(Page page) throws IOException {
         pageIO.writePage(page);
-        System.out.println("writePage调用了");
     }
 
 
@@ -256,6 +261,18 @@ public class PageManager {
         return -1; // 如果没找到
     }
 
+    public void clearPage(int pageId) throws IOException {
+        RandomAccessFile raf = pageIO.getFile();
+        raf.seek((long) pageId *8*1024);
+
+        byte[] bytes = new byte[Page.PAGE_SIZE];
+        raf.write(bytes);
+
+        pages.set(pageId,null);
+    }
+
+
+
     /**
      * 在树中插入一个节点
      * @param key 待插入的行
@@ -267,7 +284,7 @@ public class PageManager {
             if (!isLeafToSplit(page)) {
                 System.out.println("直接插入叶节点");
                 insertInLeaf(page, key);
-                updatePageToManager(page);
+                updatePageToManager(page,true);
             } else {
                 //需要分裂为左右两个节点
                 Page left = this.createPage(true);
@@ -327,16 +344,17 @@ public class PageManager {
                     // 父节点[非叶子节点]中插入关键字，是右边的第一位
                     insertInParent(page.parent,right.tuples.getFirst().getPrimaryV());
 
-                    updatePageToManager(left);
-                    updatePageToManager(right);
-                    updatePageToManager(left.previous);
-                    updatePageToManager(right.next);
-                    updatePageToManager(page);
+                    updatePageToManager(left,true);
+                    updatePageToManager(right,true);
+                    updatePageToManager(left.previous,true);
+                    updatePageToManager(right.next,true);
+                    updatePageToManager(page,false);
 
 //                    System.out.println("父节点插入key");
                     updateNode(page.parent,tree);
                     // for GC
                     page.parent = null;
+
                 } else {
                     // 是根节点
                     System.out.println("生成新的根节点");
@@ -345,11 +363,15 @@ public class PageManager {
 
 
                     tree.setRoot(rootPage);
+                    getMeta().setRootPageId(rootPage.getPageId());
+                    getMeta().updateRootPageId(pageIO.getFile());
+
+
                     left.parent = rootPage;
                     right.parent = rootPage;
 
-                    updatePageToManager(left);
-                    updatePageToManager(right);
+                    updatePageToManager(left,true);
+                    updatePageToManager(right,true);
 
                     rootPage.children.add(left);
                     rootPage.children.add(right);
@@ -360,7 +382,9 @@ public class PageManager {
                     insertInParent(rootPage,left.tuples.getFirst().getPrimaryV());
                     insertInParent(rootPage,right.tuples.getFirst().getPrimaryV());
 
-                    updatePageToManager(rootPage);
+                    updatePageToManager(rootPage,true);
+                    updatePageToManager(page,false);
+
                 }
             }
         } else {
@@ -382,7 +406,7 @@ public class PageManager {
         System.out.println("插入完成，并刷新了内存");
     }
 
-    public boolean remove(Page page, Tuple key, BpTree tree) {
+    public boolean remove(Page page, Tuple key, BpTree tree) throws IOException {
         boolean isFound = false;
         if (page.isLeaf) {
             // 如果是叶子节点
@@ -395,7 +419,7 @@ public class PageManager {
                 if (removeInLeaf(page,key)) {
                     isFound = true;
                     updateMinValue(page);
-                    updatePageToManager(page);
+                    updatePageToManager(page,true);
                 }
             } else {
                 if (canRemoveDirectInLeaf(page)) {
@@ -403,7 +427,7 @@ public class PageManager {
                     if (removeInLeaf(page,key)) {
                         isFound = true;
                         updateMinValue(page);
-                        updatePageToManager(page);
+                        updatePageToManager(page,true);
                     }
                 } else {
                     // 如果当前关键字不够,并且前节点有足够的关键字,从前节点借

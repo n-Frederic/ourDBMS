@@ -3,7 +3,10 @@ package User;
 import java.io.*;
 
 import com.google.gson.*;
-
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,12 +26,7 @@ public class UserManager {
 
 
     protected static User currentUser;
-    // 存放用户信息。后期可以每次运行时把json文件的数据先缓存到哈希表里，
-    // checkUserExists从哈希表里读写效率更高，
-    // 每次只有创建新用户的时候才进行json读写。
-    //private static Map<String, User> usersInfo = new HashMap<>();
-
-    // 0是失败 1是重名 2是成功
+    protected static List<User> users=new ArrayList<>();
 
     /**
      * 获取当前登录的用户。
@@ -43,13 +41,26 @@ public class UserManager {
     }
     /**
      * 创建新用户。
-     * @param user 用户名。
-     * @param password 密码。
+
      * @return 返回创建结果：
      *         0：失败，
      *         1：用户名已存在，
      *         2：成功。
      */
+
+    public static User getUser(String username) {
+        if(users.equals(null)) {
+            System.out.println("getting users no user");
+            users=getAllUsers();
+        }
+
+        for (User user : users) {
+            if (user.getUserName().equals(username)) {
+                return user;
+            }
+        }
+        return null;
+    }
     public static int CreateUser(String user, String password,String level) {
         JsonObject newUser = new JsonObject();
         newUser.addProperty("userName", user);
@@ -98,16 +109,6 @@ public class UserManager {
         }
     }
 
-    public static boolean isValidLevel(String level){
-        switch (level){
-            case "admin":
-            case "visitor":
-            case  "user" :
-                return true;
-            default:
-                return false;
-        }
-    }
 
 
     /**
@@ -195,6 +196,35 @@ public class UserManager {
 
     }
 
+    /**
+     * 将当前用户列表更新到文件
+     * @return 操作是否成功
+     */
+    public static boolean updateUserFile() {
+        File file = new File("../TestData/UserManager/UserManager.json");
+        JsonArray userArray = new JsonArray();
+
+        if(users.isEmpty()||users.equals(null))return false;
+        // 转换用户列表为JSON数组
+        for (User user : users) {
+            JsonObject userObj = new JsonObject();
+            userObj.addProperty("userName", user.getUserName());
+            userObj.addProperty("password", user.getPassword());
+            userObj.addProperty("level", user.getLevel());
+            userArray.add(userObj);
+        }
+
+        // 写入文件
+        try (FileWriter writer = new FileWriter(file)) {
+            Gson gson = new Gson();
+            writer.write(gson.toJson(userArray));
+            writer.flush();
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 
 
@@ -223,4 +253,157 @@ public class UserManager {
         return 1;
     }
 
+
+    public static List<User> getAllUsers() {
+        List<User> userList = new ArrayList<>();
+        File file = new File("../TestData/UserManager/UserManager.json");
+
+        if (!file.exists()) {
+            System.out.println("file not exist!");
+            return userList;
+        }
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+
+            // 读取JSON文件内容
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+
+            // 处理可能的BOM头
+            String jsonString = sb.toString().replace("\uFEFF", "");
+
+            // 解析JSON数组
+            JsonArray userArray = JsonParser.parseString(jsonString).getAsJsonArray();
+
+            // 转换为User对象列表
+            for (JsonElement userElement : userArray) {
+                JsonObject userObj = userElement.getAsJsonObject();
+                System.out.println( userObj.get("userName").getAsString());
+                User user = new User(
+                        userObj.get("userName").getAsString(),
+                        userObj.get("password").getAsString(),
+                        userObj.get("level").getAsString()
+                );
+                userList.add(user);
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JsonParseException e) {
+            e.printStackTrace();
+        }
+
+        return userList;
+    }
+
+    public static User getCurrentUser(){
+        return currentUser;
+    }
+    public static List<User> getUsers(){
+        return users;
+    }
+
+    // 授予用户权限
+    public static boolean grantPermission(String targetUsername, String newLevel) {
+        // 检查当前用户是否有权限执行此操作
+        if (currentUser == null || !currentUser.hasPermission("admin")) {
+            System.out.println("权限不足，只有管理员可以授予权限");
+            return false;
+        }
+        // 不能修改自己的权限
+        if (targetUsername.equals(currentUser.getUserName())) {
+            System.out.println("不能修改自己的权限级别");
+            return false;
+        }
+        System.out.println(users);
+
+        if (users.isEmpty()) {
+            users=UserManager.getAllUsers();
+            System.out.println(users);
+        }
+
+
+        User targetUser =UserManager.getUser(targetUsername);
+        if (targetUser == null) {
+            System.out.println(users);
+            System.out.println("用户不存在");
+            return false;
+        }
+
+        // 验证新权限级别是否有效
+        if (!isValidLevel(newLevel)) {
+            System.out.println("无效的权限级别");
+            return false;
+        }
+
+        targetUser.setLevel(newLevel);
+        System.out.println("已成功将用户 " + targetUsername + " 的权限级别更改为 " + newLevel);
+        return true;
+    }
+
+
+    // 收回用户权限（降级）
+    public static boolean revokePermission(String targetUsername, String newLevel) {
+        // 检查当前用户是否有权限执行此操作
+        if (currentUser == null || !currentUser.hasPermission("admin")) {
+            System.out.println("权限不足，只有管理员可以授予权限");
+            return false;
+        }
+        // 不能修改自己的权限
+        if (targetUsername.equals(currentUser.getUserName())) {
+            System.out.println("不能修改自己的权限级别");
+            return false;
+        }
+        System.out.println(users);
+
+        if (users.isEmpty()) {
+            users=UserManager.getAllUsers();
+            System.out.println(users);
+        }
+
+
+        User targetUser =UserManager.getUser(targetUsername);
+        if (targetUser == null) {
+            System.out.println(users);
+            System.out.println("用户不存在");
+            return false;
+        }
+
+        // 验证新权限级别是否有效
+        if (!isValidLevel(newLevel)) {
+            System.out.println("无效的权限级别");
+            return false;
+        }
+
+
+        // 不能修改自己的权限
+        if (targetUsername.equals(currentUser.getUserName())) {
+            System.out.println("不能修改自己的权限级别");
+            return false;
+        }
+
+        targetUser.setLevel(newLevel);
+        UserManager.getUser(targetUsername).setLevel(newLevel);
+        System.out.println("已成功将用户 " + targetUsername + " 的权限级别更改为 " + newLevel);
+
+        for (User user : users) {
+            System.out.printf("%-15s %-10s\n",
+                    user.getUserName(),
+                    user.getLevel());
+        }
+        return true;
+    }
+
+    // 验证权限级别是否有效
+    private static boolean isValidLevel(String level) {
+        return level.equals("admin") || level.equals("user") || level.equals("visitor");
+    }
+
 }
+
+

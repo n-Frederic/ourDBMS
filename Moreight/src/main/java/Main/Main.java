@@ -43,11 +43,12 @@ public class Main {
 //            table.insert(t1);
 //        }
 
-//        Value[] values1 = {new IntValue(12), new StringValue("jjj" + 12), new IntValue(20)};
-//        Tuple t1 = new Tuple(values1);
-//        t1.setPrimaryV(new IntValue(12)); // 主键不变
-//        table.insert(t1);
+        Value[] values1 = {new IntValue(12), new StringValue("jjj" + 12), new IntValue(20)};
+        Tuple t1 = new Tuple(values1);
+        t1.setPrimaryV(new IntValue(12)); // 主键不变
+        table.insert(t1);
 
+        System.out.println();
         table.getPageManager().getMeta().showInfo();
         System.out.println();
 
@@ -59,7 +60,7 @@ public class Main {
 
 
         System.out.println("根页：" + table.getTree().getRoot().getPageId());
-        Page page = table.getPageManager().getPage(3);
+        Page page = table.getPageManager().getPage(1);
 
         System.out.println("叶子的页id" + page.getPageId());
         System.out.println("页是叶子吗" + page.isLeaf());
