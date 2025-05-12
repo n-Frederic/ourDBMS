@@ -19,54 +19,68 @@ public class Main {
     public static void main(String[] args) throws IOException {
 
         RandomAccessFile raf = new RandomAccessFile("../TestData/DatabaseManager/TEST/student/student.idb","rw");
-        raf.seek(4*8*1024);
+        raf.seek(2*8*1024);
         System.out.println(raf.readInt());
         System.out.println(raf.readBoolean());
         System.out.println(raf.readBoolean());
         System.out.println(raf.readInt());
-        int size = raf.readInt();
-        System.out.println(size);
-        int type = raf.readInt();
-        System.out.println(type);
 
-        int entryBytes = 0;
-        switch(type) {
-            case 1:
-                for(int i = 0; i < size; i++) {
-                    StringBuilder sb = new StringBuilder();
-                    byte b;
-                    while ((b = raf.readByte()) != 0) {
-                        sb.append((char) b);
-                    }
-                    System.out.println(sb);
-                    entryBytes += sb.length();
-                }
-                break;
-            case 2:
-                for(int i = 0; i < size; i++) {
-                    System.out.println(raf.readInt());
-                }
-                entryBytes += 4 * size;
-                break;
-            case 3:
-                for(int i = 0; i < size; i++) {
-                    System.out.println(raf.readLong());
-                }
-                entryBytes += 8 * size;
-                break;
-            case 4:
-                for(int i = 0; i < size; i++) {
-                    raf.readBoolean();
-                }
-                entryBytes += size;
-                break;
-        }
+//        System.out.println(raf.readInt());
+//        System.out.println(raf.readInt());
+//        System.out.println(raf.readInt());
+//        int minValueLen = raf.readInt();
+//        System.out.println(minValueLen);
+//        int minValueType = raf.readInt();
+//        System.out.println(minValueType);
+//
+//        byte[] minValueBytes = new byte[minValueLen];
+//        raf.readFully(minValueBytes);
+//        Value minValue = Tuple.decodeTypedValue(minValueType,minValueBytes);
+//        System.out.println(minValue.toString());
 
-        raf.skipBytes(Math.max(0, 512 - entryBytes));
-
-        for(int i = 0; i < size; i++) {
-            System.out.println(raf.readInt());
-        }
+//        int size = raf.readInt();
+//        System.out.println(size);
+//        int type = raf.readInt();
+//        System.out.println(type);
+//
+//        int entryBytes = 0;
+//        switch(type) {
+//            case 1:
+//                for(int i = 0; i < size; i++) {
+//                    StringBuilder sb = new StringBuilder();
+//                    byte b;
+//                    while ((b = raf.readByte()) != 0) {
+//                        sb.append((char) b);
+//                    }
+//                    System.out.println(sb);
+//                    entryBytes += sb.length();
+//                }
+//                break;
+//            case 2:
+//                for(int i = 0; i < size; i++) {
+//                    System.out.println(raf.readInt());
+//                }
+//                entryBytes += 4 * size;
+//                break;
+//            case 3:
+//                for(int i = 0; i < size; i++) {
+//                    System.out.println(raf.readLong());
+//                }
+//                entryBytes += 8 * size;
+//                break;
+//            case 4:
+//                for(int i = 0; i < size; i++) {
+//                    raf.readBoolean();
+//                }
+//                entryBytes += size;
+//                break;
+//        }
+//
+//        raf.skipBytes(Math.max(0, 512 - entryBytes));
+//
+//        for(int i = 0; i < size; i++) {
+//            System.out.println(raf.readInt());
+//        }
 
 
 

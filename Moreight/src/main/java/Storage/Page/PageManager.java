@@ -339,9 +339,7 @@ public class PageManager {
                     right.setParent(page.parent);
                     // 将分裂后节点的指针添加到父节点
                     page.parent.children.add(index, left);
-                    page.parent.entries.add(index,left.minValue);
                     page.parent.children.add(index + 1, right);
-                    page.parent.entries.add(index+1,right.minValue);
                     // for GC
                     page.tuples = null;
                     page.children = null;
@@ -377,9 +375,7 @@ public class PageManager {
                     updatePageToManager(right, true);
 
                     rootPage.children.add(left);
-                    rootPage.entries.add(left.minValue);
                     rootPage.children.add(right);
-                    rootPage.entries.add(right.minValue);
                     // for GC
                     page.tuples = null;
                     page.children = null;

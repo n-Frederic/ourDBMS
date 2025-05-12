@@ -235,7 +235,7 @@ public class Tuple {
     }
 
 
-    protected static Value decodeTypedValue(int type, byte[] valueBytes) throws IOException {
+    public static Value decodeTypedValue(int type, byte[] valueBytes) throws IOException {
         DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(valueBytes));
         switch (type) {
             case 5:
