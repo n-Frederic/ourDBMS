@@ -199,12 +199,10 @@ public class PageManager {
 
         while (iterator.hasNext()) {
             Page page = iterator.next();
-            System.out.print(page.getPageId() + " ");
             savePageToDisk(page);
             iterator.remove();
         }
 
-        System.out.println();
         modifiedPages.clear();
     }
 
@@ -278,6 +276,8 @@ public class PageManager {
 
     public void insert(Page page, Tuple key, BpTree tree) throws IOException {
         if (page.isLeaf) {
+            System.out.println("Page"+page.getPageId()+"是叶子页");
+
             if (!isLeafToSplit(page)) {
                 System.out.println("直接插入叶节点");
                 insertInLeaf(page, key);
@@ -393,15 +393,16 @@ public class PageManager {
             Value keyValue = key.getPrimaryV();
             int left = 0, right = page.entries.size() - 1;
 
-            while (left <= right) {
-                int mid = left + (right - left) / 2;
-                if (keyValue.compare(page.entries.get(mid)) < 0) {
-                    right = mid - 1;
-                } else {
-                    left = mid + 1;
+            while (left < right) {
+                if (keyValue.compare(page.entries.get(left)) >= 0) {
+                    left++;
                 }
             }
-            insert(page.children.get(left), key, tree);
+            System.out.println("找到了第" + (left+1) +"孩子页");
+            page.children.get(left).showInfo();
+
+            Page child = getPage(page.children.get(left).getPageId());
+            insert(child, key, tree);
         }
 
         flushModifiedPages();
@@ -1041,10 +1042,12 @@ public class PageManager {
         for (int i = 0; i < page.tuples.size(); i++) {
             if (page.tuples.get(i).compare(tuple) > 0) {
                 page.tuples.add(i, tuple);
+                System.out.println("插在了下标为"+i+"的位置");
                 return;
             }
         }
 
+        System.out.println("插在了末尾");
         page.tuples.add(tuple); // 插入到末尾
 
         updateMinValue(page);

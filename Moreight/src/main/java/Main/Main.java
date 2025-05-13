@@ -100,7 +100,13 @@ public class Main {
 
         TableManager.CreateTable("student", fields);
 
+
+
         Table table = new Table("student");
+
+//        Page page = table.getPageManager().getPage(3);
+//
+//        page.showInfo();
 
         table.getPageManager().getMeta().showInfo();
         System.out.println();
@@ -108,17 +114,26 @@ public class Main {
 ////
 ////        // TODO:头部叶子节点没更新  HAS BEEN DONE!
 ////
-//        for (int i = 0; i < 12; i++) {
+//        for (int i = 0; i < 13; i++) {
 //            Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
 //            Tuple t1 = new Tuple(values1);
 //            t1.setPrimaryV(new IntValue(i)); // 主键不变
 //            table.insert(t1);
 //        }
-//
-//        Value[] values1 = {new IntValue(12), new StringValue("jjj" + 12), new IntValue(20)};
+
+        for (int i = 14; i < 20; i++) {
+            Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
+            Tuple t1 = new Tuple(values1);
+            t1.setPrimaryV(new IntValue(i)); // 主键不变
+            table.insert(t1);
+        }
+
+//        int i = 13;
+//        Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
 //        Tuple t1 = new Tuple(values1);
-//        t1.setPrimaryV(new IntValue(12));
+//        t1.setPrimaryV(new IntValue(i)); // 主键不变
 //        table.insert(t1);
+
 
         System.out.println();
         table.getPageManager().getMeta().showInfo();
@@ -133,13 +148,13 @@ public class Main {
 //
         System.out.println("根页：" + table.getTree().getRoot().getPageId());
 
-        if(table.getPageManager().getPages().get(1) == null) {
-            System.out.println("第一页已经成功清空");
-            System.out.println();
-        }
+//        if(table.getPageManager().getPages().get(1) == null) {
+//            System.out.println("第一页已经成功清空");
+//            System.out.println();
+//        }
 
 
-        Page page = table.getPageManager().getPage(4);
+        Page page = table.getPageManager().getPage(3);
 
         page.showInfo();
     }

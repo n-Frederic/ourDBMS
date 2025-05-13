@@ -60,7 +60,7 @@ public class Table {
 
 
         } else {
-            Page rootPage = pageManager.getPage(1);
+            Page rootPage = pageManager.getPage(meta.getRootPageId());
             pageManager.insert(rootPage, tuple, tree);
 
         }
