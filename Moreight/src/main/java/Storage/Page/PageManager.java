@@ -226,11 +226,11 @@ public class PageManager {
         int pageNum = -1; // 初始假设未找到页号
 
         // 从文件中获取第0页，作为根节点
-        Page rootPage = pageIO.readPage(pageIO.meta.getRootPageId());
-
+        Page rootPage = getPage(getMeta().getRootPageId());
+        System.out.println("根页 ID：" + rootPage.getPageId());
         // 递归查找页号
         pageNum = findPageNumHelper(rootPage, value);
-
+        System.out.println("最终找到页号：" + pageNum);
         return pageNum;
     }
 
@@ -238,26 +238,45 @@ public class PageManager {
      * 递归方法，根据给定的值遍历树结构，找到对应的页号
      */
     private int findPageNumHelper(Page currentPage, Value keyValue) throws IOException {
+        // 输出当前页面的信息和要查找的主键
+        System.out.println("当前页ID: " + currentPage.getPageId() + ", 查找主键: " + keyValue);
+
         // 如果当前页是叶子页，直接返回
         if (currentPage.isLeaf()) {
             List<Tuple> tuples = currentPage.getTuples();
+            System.out.println("这是叶子页，页中的元组:");
             for (Tuple tuple : tuples) {
+                System.out.println("主键: " + tuple.getPrimaryV());
                 if (tuple.getPrimaryV().compare(keyValue) == 0) {
+                    System.out.println("找到主键 " + keyValue + " 在页 " + currentPage.getPageId());
                     return currentPage.getPageId();
                 }
             }
         } else {
             ArrayList<Value> entries = currentPage.getEntries();
-            for (int i = 0; i < entries.size(); i++) {              // 要求叶子节点的最小值序列是递增的
+//            System.out.println("这是非叶子页，当前页的条目:");
+            for (int i = 0; i < entries.size() - 1; i++) {
                 Value minKey = entries.get(i);
-                if (keyValue.compare(minKey) > 0) {
+                System.out.println("条目[" + i + "]: " + minKey);
+
+                // 比较 keyValue 和当前条目
+                if (keyValue.compare(minKey) > 0 && keyValue.compare(entries.get(i + 1)) < 0) {
+//                    System.out.println("keyValue (" + keyValue + ") 大于条目 (" + minKey + "), 且小于下一个，递归到子页");
                     int childPageId = currentPage.getChildren().get(i).getPageId();
                     Page childPage = pageIO.readPage(childPageId);
                     return findPageNumHelper(childPage, keyValue);
                 }
             }
+            // 如果 keyValue 大于等于所有条目，递归到最后一个子页
+//            System.out.println("keyValue (" + keyValue + ") 大于等于所有条目，递归到最后一个子页");
+            int lastChildPageId = currentPage.getChildren().get(currentPage.getChildren().size() - 1).getPageId();
+            Page lastChildPage = pageIO.readPage(lastChildPageId);
+            return findPageNumHelper(lastChildPage, keyValue);
         }
-        return -1; // 如果没找到
+
+        // 如果没有找到主键，返回 -1
+        System.out.println("没有找到主键 " + keyValue);
+        return -1;
     }
 
     public void clearPage(int pageId) throws IOException {
