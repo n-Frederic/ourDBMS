@@ -117,10 +117,131 @@ public class Table {
     }
 
 
-    public ArrayList<Tuple> where(Condition condition) {
+    public ArrayList<Tuple> where(Page page, Condition condition) throws IOException {
         ArrayList<Tuple> tuples = new ArrayList<>();
-
         Field field = schema.getField(condition.getColumn());
+        Value keyValue = condition.getValue();
+
+        if(field.isPrimaryKey()) {
+            switch (condition.getOperator()) {
+                case "=":
+                    if(page.isLeaf()) {
+                        for(Tuple tuple : page.getTuples()) {
+                            if(tuple.getPrimaryV().compare(keyValue) == 0) {
+                                tuples.add(tuple);
+                                return tuples;
+                            }
+                        }
+                    } else {
+                        ArrayList<Value> entries = page.getEntries();
+                        if(keyValue.compare(entries.getFirst())<0) {
+                            return tuples;
+                        }
+                        for(int i = 0; i < entries.size() - 1; i++) {
+                            if(keyValue.compare(entries.get(i)) >= 0 && keyValue.compare(entries.get(i+1)) < 0) {
+                                Page child = getPageManager().getPage(page.getChildren().get(i).getPageId());
+                                return where(child,condition);
+                            }
+                        }
+                        Page child = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        return where(child,condition);
+                    }
+                    break;
+                case "!=":
+                    if(page.isLeaf()) {
+                        for(Tuple tuple : page.getTuples()) {
+                            if(tuple.getPrimaryV().compare(keyValue) != 0) {
+                                tuples.add(tuple);
+                            }
+                        }
+                        return tuples;
+                    } else {
+                        ArrayList<Value> entries = page.getEntries();
+                        if(keyValue.compare(entries.getFirst())<0) {
+                            tuples = selectAll();
+                            return tuples;
+                        }
+                        for(int i = 0; i < entries.size() - 1; i++) {
+                            Page child = getPageManager().getPage(page.getChildren().get(i).getPageId());
+                            if(keyValue.compare(entries.get(i)) < 0 || keyValue.compare(entries.get(i+1)) >= 0) {
+                                tuples.addAll(child.getTuples());
+                            } else {
+                                for(Tuple tuple : child.getTuples()) {
+                                    if(tuple.getPrimaryV().compare(keyValue) != 0) {
+                                        tuples.add(tuple);
+                                    }
+                                }
+                            }
+                        }
+                        Page child = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        if(keyValue.compare(entries.getLast()) < 0) {
+                            tuples.addAll(child.getTuples());
+                        } else {
+                            for(Tuple tuple : child.getTuples()) {
+                                if(tuple.getPrimaryV().compare(keyValue) != 0) {
+                                    tuples.add(tuple);
+                                }
+                            }
+                        }
+                        return tuples;
+                    }
+                    break;
+                case "<":
+                    if(page.isLeaf()) {
+                        for(Tuple tuple : page.getTuples()) {
+                            if(tuple.getPrimaryV().compare(keyValue) < 0) {
+                                tuples.add(tuple);
+                            }
+                        }
+                        return tuples;
+                    } else {
+                        ArrayList<Value> entries = page.getEntries();
+                        if(keyValue.compare(entries.getFirst())<0) {
+                            tuples = selectAll();
+                            return tuples;
+                        }
+                        for(int i = 0; i < entries.size() - 1; i++) {
+                            Page child = getPageManager().getPage(page.getChildren().get(i).getPageId());
+                            if(keyValue.compare(entries.get(i)) < 0 || keyValue.compare(entries.get(i+1)) >= 0) {
+                                tuples.addAll(child.getTuples());
+                            } else {
+                                for(Tuple tuple : child.getTuples()) {
+                                    if(tuple.getPrimaryV().compare(keyValue) != 0) {
+                                        tuples.add(tuple);
+                                    }
+                                }
+                            }
+                        }
+                        Page child = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        if(keyValue.compare(entries.getLast()) < 0) {
+                            tuples.addAll(child.getTuples());
+                        } else {
+                            for(Tuple tuple : child.getTuples()) {
+                                if(tuple.getPrimaryV().compare(keyValue) != 0) {
+                                    tuples.add(tuple);
+                                }
+                            }
+                        }
+                        return tuples;
+                    }
+                    break;
+                case ">":
+                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) <= 0) {
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+                    }
+                    break;
+                case "<=":
+                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) > 0) {
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+                    }
+                    break;
+                case ">=":
+                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) < 0) {
+                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
+                    }
+                    break;
+            }
+        }
         int index = schema.getIndex(field);
 
 
@@ -156,6 +277,8 @@ public class Table {
             return tuples;
         } else return tuples;
     }
+
+
 
     public PageManager getPageManager() {
         return pageManager;

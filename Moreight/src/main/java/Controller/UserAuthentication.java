@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 public class UserAuthentication {
     // 授予权限语句: GRANT [权限级别] TO [用户名]
+    public static boolean quit=false;
     private static final Pattern PATTERN_GRANT =
             Pattern.compile("(?i)^\\s*GRANT\\s+" +
                     "(admin|user|visitor)\\s+" +  // 权限级别
@@ -106,7 +107,7 @@ public class UserAuthentication {
 
 
     public static void permissionManagement(Scanner sc) {
-        // 检查登录状态
+        // 检查登录状态d
         if (UserManager.GetCurrentUser() == null) {
             System.out.println("请先登录");
             return;
@@ -171,6 +172,7 @@ public class UserAuthentication {
                     UserManager.updateUserFile();
                     break;
                 case "5":
+                    quit=true;
                     return;
                 default:
                     System.out.println("无效的选择，请输入1-5");

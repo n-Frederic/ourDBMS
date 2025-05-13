@@ -2,8 +2,9 @@ package Util.Filter;
 //import Storage.BPlusTree.Value.*;
 import Storage.Value.Value;
 import Table.*;
-
+import Parser.commandParser;
 import java.util.*;
+import java.util.ArrayList;
 import Database.DatabaseManager;
 import Table.Schema;
 import com.google.gson.Gson;
@@ -135,46 +136,54 @@ public class TypeFilter {
 
 
 
-//    public static List<Value> validateAndConvertValues(
-//            List<String> columns,
-//            List<Object> rawValues,
-//            Schema schema) {
-//
-//        List<Field> fields = schema.getFields();
-//        List<Class<? extends Value>> columnTypes = schema.getColumnTypes();
-//
-//        // 构建“列名 → 下标”映射
-//        Map<String,Integer> colIdxMap = new HashMap<>();
-//        for (int i = 0; i < fields.size(); i++) {
-//            colIdxMap.put(fields.get(i).getName().toLowerCase(), i);
-//        }
-//
-//        // 列和值数量必须一致
-//        if (columns.size() != rawValues.size()) {
-//            throw new IllegalArgumentException(
-//                    "INSERT 列和值数量不匹配：列 " + columns.size() + " vs 值 " + rawValues.size());
-//        }
-//
-//        List<Value> castedValues = new ArrayList<>(columns.size());
-//        for (int i = 0; i < columns.size(); i++) {
-//            String col = columns.get(i).toLowerCase();
-//            Object raw = rawValues.get(i);
-//
-//            Integer idx = colIdxMap.get(col);
-//            if (idx == null) {
-//                throw new IllegalArgumentException(
-//                        "列 `" + col + "` 在表中不存在");
-//            }
-//
-//            Class<? extends Value> expectedType = columnTypes.get(idx);
-//            Value v;
-//            if (raw instanceof Value) {
-//                v = (Value) raw;
-//            } else {
+
+    public static List<Value> validateAndConvertValues(
+            List<String> columns,
+            List<Object> rawValues,
+            Schema schema) {
+
+        List<Field> fields = schema.getFields();
+        List<Value> columnTypes=new ArrayList();
+        for(int i=0;i<fields.size();i++){
+//            Class<? extends Value> value=Value.parse(commandParser.findClass(schema.getField(fields.get(i).getName()).getType()),schema.getField(fields.get(i).getName()).getType());
+
+            columnTypes.add(i,Value.parse(commandParser.findClass(schema.getField(fields.get(i).getName()).getType()),schema.getField(fields.get(i).getName()).getType()));
+
+        }
+
+        // 构建“列名 → 下标”映射
+        Map<String,Integer> colIdxMap = new HashMap<>();
+        for (int i = 0; i < fields.size(); i++) {
+            colIdxMap.put(fields.get(i).getName().toLowerCase(), i);
+        }
+
+        // 列和值数量必须一致
+        if (columns.size() != rawValues.size()) {
+            throw new IllegalArgumentException(
+                    "INSERT 列和值数量不匹配：列 " + columns.size() + " vs 值 " + rawValues.size());
+        }
+
+        List<Value> castedValues = new ArrayList<>(columns.size());
+        for (int i = 0; i < columns.size(); i++) {
+            String col = columns.get(i).toLowerCase();
+            Object raw = rawValues.get(i);
+
+            Integer idx = colIdxMap.get(col);
+            if (idx == null) {
+                throw new IllegalArgumentException(
+                        "列 `" + col + "` 在表中不存在");
+            }
+            //Class<Value> expectedType = columnTypes.get(idx);
+            Value v;
+            if (raw instanceof Value) {
+                v = (Value) raw;
+            } else {
+                System.out.println("");
+                return null;
 //                // 按照预期类型做一次转换
 //                v = ValueParser.parse(raw.toString(), expectedType);
-//            }
-//
+            }
+
 //            if (!expectedType.isInstance(v)) {
 //                throw new IllegalArgumentException(
 //                        String.format("插入值类型不匹配：列 `%s` 期望 %s，实际 %s",
@@ -182,12 +191,12 @@ public class TypeFilter {
 //                                expectedType.getSimpleName(),
 //                                v.getClass().getSimpleName()));
 //            }
-//
-//            castedValues.add(v);
-//        }
-//
-//        return castedValues;
-//    }
+
+            castedValues.add(v);
+        }
+
+        return castedValues;
+    }
     private static boolean isValueUnique(String table, String column, String value) {
         Path filePath = Paths.get("../TestData", "DatabaseManager", DatabaseManager.getCurrentDatabase(), table + ".json");
         if (!Files.exists(filePath)) {

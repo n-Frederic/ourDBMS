@@ -87,9 +87,7 @@ public class DatabaseManager {
         return databases;
     }
 
-    public static void dropDatabase(String dbName,int userLevel){
-        if(userLevel==1){return;}
-        // 原来是
+    public static void dropDatabase(String dbName){
 
         File folder = new File("../TestData/DatabaseManager/" + dbName);
 
