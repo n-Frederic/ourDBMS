@@ -115,4 +115,12 @@ public class Schema {
         }
         return -1;
     }
+
+    public List<String> getColumnNames() {
+        List<String> names = new ArrayList<>();
+        for (Field field : fields) {
+            names.add(field.getName());
+        }
+        return names;
+    }
 }
