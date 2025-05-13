@@ -110,7 +110,6 @@ public class PageManager {
         }
 
         ArrayList<Page> sortedPage = PageManager.sortPagesByMinValue(leafPages);
-        pages = PageManager.sortPagesByMinValue(pages);
 
         return tree;
     }
