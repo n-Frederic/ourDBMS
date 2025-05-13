@@ -312,17 +312,53 @@ public class Table {
 
 
     // TODO: 等待黄爱雷提供单个tuple的完整筛查
-//    public void update(ArrayList<Tuple> tuples, HashMap<String,Value> map){
-//        BpNode head = tree.getHead();
-//        for(Tuple tuple : tuples) {
-//            Tuple t = root.get(tuple);
-//            for (Map.Entry<String, Value> entry : map.entrySet()) {
-//                Field field = schema.getField(entry.getKey());
-//                int index = schema.getIndex(field);
-//                t.set(index,entry.getValue());
-//            }
-//        }
-//    }
+    public void update(ArrayList<Tuple> tuples, Value newValue, String columnName) throws IOException {
+        // 主键的情况遍历所有行，根页读出来，找到所在的页，从文件里读出来应该是用readPage()，
+        // 找到一页getTuples()跟传进来的tuples做比较，一样的话把对应index的列的值改成新的值，
+        // updatePageToManager然后再flushModifiedPages();
+        if (schema.getPrimaryKeyName().equals(columnName)) {
+            List<String> columnNames = schema.getColumnNames();
+            int columnIndex = columnNames.indexOf(columnName);
+            if (columnIndex == -1) {
+                throw new IllegalArgumentException("列不存在: " + columnName);
+            }
+
+            for (Tuple tuple : tuples) {
+                int pageId = pageManager.findPageNum(tuple.getPrimaryV());
+                Page page = pageManager.getPage(pageId);
+                ArrayList<Tuple> pageTuples = page.getTuples();
+
+                for (Tuple t : pageTuples) {
+                    if (t.equals(tuple)) {
+                        t.getValues()[columnIndex] = newValue;
+                        pageManager.updatePageToManager(page, true);
+                        break;
+                    }
+                }
+            }
+            pageManager.flushModifiedPages();
+
+        } else {
+            // 非主键的更新逻辑，可以通过tree.getHead()遍历
+            List<String> columnNames = schema.getColumnNames();
+            int columnIndex = columnNames.indexOf(columnName);
+            Page head = tree.getHead();
+
+            while (head != null) {
+                Page page = pageManager.getPageIO().readPage(head.getPageId());
+                ArrayList<Tuple> pageTuples = page.getTuples();
+
+                for (Tuple t : pageTuples) {
+                    if (t.getValues()[columnIndex].equals(newValue)) {
+                        t.getValues()[columnIndex] = newValue;
+                        pageManager.updatePageToManager(page, true);
+                    }
+                }
+                head = head.getNext();
+            }
+            pageManager.flushModifiedPages();
+        }
+    }
 
     // TODO: 等待一个能直接操作的
 //    public void delete()
