@@ -284,7 +284,6 @@ public class PageManager {
                 insertInLeaf(page, key);
                 updatePageToManager(page, true);
             } else {
-                //需要分裂为左右两个节点
                 Page left = this.createPage(true);
                 Page right = this.createPage(true);
                 // 初次更新left,right到manager
@@ -383,6 +382,7 @@ public class PageManager {
                     insertInParent(rootPage, left.minValue);
                     insertInParent(rootPage, right.minValue);
 
+                    System.out.println("以下是新根页的信息");
                     rootPage.showInfo();
 
                     updatePageToManager(rootPage, true);

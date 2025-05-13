@@ -109,13 +109,23 @@ public class Page {
         System.out.println("前一个页的id : " + (previous != null ? previous.getPageId() : "null"));
         System.out.println("后一个页的id : " + (next != null ? next.getPageId() : "null"));
         if(!isLeaf) {
-            for(Value value : entries) {
-                System.out.print(value.toString() + " ");
+            if(entries.isEmpty()) {
+                System.out.println("entries是空的");
+            } else {
+                for(Value value : entries) {
+                    System.out.print(value.toString() + " ");
+                }
             }
             System.out.println();
-            for(Page child : children) {
-                System.out.print(child.getPageId() + " ");
+            if(children.isEmpty()) {
+                System.out.println("children是空的");
+            } else {
+                for(Page child : children) {
+                    System.out.print(child.getPageId() + " ");
+                }
             }
+            System.out.println();
+            System.out.println();
         } else {
             System.out.println("页的行数 : "+ tuples.size());
             System.out.println();
@@ -401,6 +411,7 @@ public class Page {
      * 父亲的页id （int, 4B)
      * 目前孩子有几个 （int, 4B)
      * 记录的索引的类型 （目前为主键）（int, 4B)
+     * ***
      * 孩子页的行中主键的最小值序列 （ value * 5, 最多允许 512B）
      * 孩子页的页码 （int 4B*5 ）
      */
@@ -416,7 +427,7 @@ public class Page {
             dataOut.writeInt(parent.getPageId());
         } else dataOut.writeInt(-1);
 
-        dataOut.writeInt(children.size());
+        dataOut.writeInt(entries.size());
         dataOut.writeInt(entries.getFirst().getType());
 
         int offset = 0;
@@ -426,7 +437,7 @@ public class Page {
             offset += bytes.length;
         }
 
-        for(int i = offset; i <= 512; i++) {
+        for(int i = offset; i < 512; i++) {
             dataOut.writeByte(0);
         }
 
@@ -499,7 +510,7 @@ public class Page {
         in.skipBytes(Math.max(0, 512 - entryBytes));
 
         for(int i = 0; i < size; i++) {
-            page.children.add(new Page(in.readInt()));
+            page.children.add(new Page(in.readInt(),true));
         }
 
         page.isLeaf = isLeaf;
