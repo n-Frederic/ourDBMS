@@ -154,8 +154,17 @@ public class Main {
 //        }
 
 
-        Page page = table.getPageManager().getPage(2);
+//        Page page = table.getPageManager().getPage(1);
+//
+//        page.showInfo();
 
-        page.showInfo();
+        ArrayList<Tuple> allTuples = table.selectAll();
+        for(Tuple tuple : allTuples) {
+            for(Value value : tuple.getValues()) {
+                System.out.print(value.toString() + " ");
+            }
+            System.out.println();
+        }
+
     }
 }

@@ -48,16 +48,12 @@ public class Table {
             meta.setRootPageId(1);
             meta.setHeadPageId(1);
 
-            //TODO:根页是否有在设置新根页的时候更新
-
             meta.updateHighestPageId(pageIO.getFile());       // 将值更新到文件里
             meta.updateRootPageId(pageIO.getFile());
             meta.updateHeadPageId(pageIO.getFile());
 
             pageManager.updatePageToManager(page,true);              // 将第一页存到pages[1]，并放到待更新页集合里
             pageManager.flushModifiedPages();                   // 将待更新页全部写入文件
-
-
 
         } else {
             Page rootPage = pageManager.getPage(meta.getRootPageId());
@@ -75,15 +71,6 @@ public class Table {
         pageManager.remove(dirPage, tuple, tree);
     }
 
-
-    /**
-     * 返回一个文件，可用
-     */
-    public RandomAccessFile From(String table) throws FileNotFoundException {
-        String path = DatabaseManager.getBaseDir() + "/" + DatabaseManager.getCurrentDatabase()+"/"+tableName + "/" + tableName + ".idb";
-        RandomAccessFile raf = new RandomAccessFile(path, "rw");
-        return raf;
-    }
 
     /**
      * 可用，完全不涉及文件操作
@@ -115,12 +102,16 @@ public class Table {
     /**
      * 可用
      */
-    public ArrayList<Tuple> selectAll() {
+    public ArrayList<Tuple> selectAll() throws IOException {
         ArrayList<Tuple> tuples = new ArrayList<>();
-        Page current = tree.getHead();
+        Page current = getPageManager().getPage(tree.getHead().getPageId());
+
         while(current != null) {
             tuples.addAll(current.getTuples());
-            current = current.getNext();
+
+            if(current.getNext() != null) {
+                current = getPageManager().getPage(current.getNext().getPageId());
+            } else break;
         }
         return tuples;
     }
@@ -128,8 +119,10 @@ public class Table {
 
     public ArrayList<Tuple> where(Condition condition) {
         ArrayList<Tuple> tuples = new ArrayList<>();
+
         Field field = schema.getField(condition.getColumn());
         int index = schema.getIndex(field);
+
 
         Page current = tree.getHead();
         while(current != null) {

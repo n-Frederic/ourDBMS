@@ -78,6 +78,7 @@ public class PageManager {
         temp.push(rootPage);
         tree.setRoot(rootPage);
 
+        ArrayList<Page> leafPages = new ArrayList<>();
 
         while (!temp.isEmpty()) {
             Page current = temp.pop();
@@ -85,16 +86,12 @@ public class PageManager {
             // 一开始放进去的时候，叶子少前后，非叶子少孩子，最小值序列
             // 不少父亲，因为除了根节点，其他在栈中的节点都已经在下面被初始化好父亲了
 
-            System.out.println("这是current的信息");
-            current.showInfo();;
 
             if (!current.isLeaf) {
                 int num = current.getChildren().size();
                 for (int i = 0; i < num; i++) {
                     int childId = current.children.get(i).getPageId();
                     Page child = this.getPage(childId);
-                    System.out.println("这是孩子"+childId+"的信息");
-                    child.showInfo();
 
                     child.setParent(current);
                     current.children.set(i, child);
@@ -103,12 +100,20 @@ public class PageManager {
                     insertInParent(current,id);
                     temp.push(child);
                 }
+            } else {
+                leafPages.add(current);
             }
-
-
             pages.set(pageId, current);
         }
 
+        Page head = leafPages.getFirst();
+        for(Page page : leafPages) {
+            if(page.minValue.compare(head.minValue) < 0) {
+                head = page;
+            }
+        }
+
+        tree.setHead(head);
 
         return tree;
     }
@@ -424,6 +429,7 @@ public class PageManager {
         if (page.isLeaf) {
             if (page.getTuples().size() > 1) {
                 removeInLeaf(page,key);
+                updatePageToManager(page,true);
             } else {
                 if (!page.isRoot) {
                     Page parent = this.getPage(page.parent.getPageId());
@@ -468,6 +474,8 @@ public class PageManager {
                 }
             }
         }
+
+        flushModifiedPages();
 
         return isFound;
 
