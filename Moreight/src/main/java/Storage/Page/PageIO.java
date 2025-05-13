@@ -47,7 +47,7 @@ public class PageIO {
         byte[] data = loadPageFromDisk(pageId);
 
         boolean isLeaf = readIsLeafFlag(data);
-        System.out.println("我是readPage,我判断这个页是" + (isLeaf?"叶子节点":"非叶子节点"));
+        System.out.println("我是readPage,我判断页"+pageId+"是" + (isLeaf?"叶子节点":"非叶子节点"));
         if(isLeaf) {
             return Page.leafFromBytes(data);
         } else {

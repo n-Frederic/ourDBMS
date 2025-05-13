@@ -104,10 +104,10 @@ public class Main {
 
         table.getPageManager().getMeta().showInfo();
         System.out.println();
-
 //
-//        // TODO:头部叶子节点没更新  HAS BEEN DONE!
-//
+////
+////        // TODO:头部叶子节点没更新  HAS BEEN DONE!
+////
         for (int i = 0; i < 12; i++) {
             Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
             Tuple t1 = new Tuple(values1);
@@ -123,14 +123,14 @@ public class Main {
         System.out.println();
         table.getPageManager().getMeta().showInfo();
         System.out.println();
-
-
-//        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
-//        raf.seek(3*8*1024+4);
-//        System.out.println(raf.readBoolean());
-
-
-
+//
+//
+////        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
+////        raf.seek(3*8*1024+4);
+////        System.out.println(raf.readBoolean());
+//
+//
+//
         System.out.println("根页：" + table.getTree().getRoot().getPageId());
 
         if(table.getPageManager().getPages().get(1) == null) {
