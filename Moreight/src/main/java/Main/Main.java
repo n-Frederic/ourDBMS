@@ -86,10 +86,10 @@ public class Main {
 //
 //        PageIO pageIO = new PageIO("../TestData/DatabaseManager/TEST/student/student.idb");
 //
-//        Page page = pageIO.readPage(4);
+//        Page page = pageIO.readPage(5);
 //
 //        page.showInfo();;
-
+////
         DatabaseManager.createDataBase("TEST");
         TableManager tm = new TableManager();
         ArrayList<Field> fields = new ArrayList<>();
@@ -108,8 +108,8 @@ public class Main {
 //
 //        page.showInfo();
 
-        table.getPageManager().getMeta().showInfo();
-        System.out.println();
+//        table.getPageManager().getMeta().showInfo();
+//        System.out.println();
 //
 ////
 ////        // TODO:头部叶子节点没更新  HAS BEEN DONE!
@@ -121,23 +121,23 @@ public class Main {
 //            table.insert(t1);
 //        }
 
-        for (int i = 14; i < 20; i++) {
-            Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
-            Tuple t1 = new Tuple(values1);
-            t1.setPrimaryV(new IntValue(i)); // 主键不变
-            table.insert(t1);
-        }
+//        for (int i = 1; i <= 20; i++) {
+//            Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
+//            Tuple t1 = new Tuple(values1);
+//            t1.setPrimaryV(new IntValue(i)); // 主键不变
+//            table.insert(t1);
+//        }
 
-//        int i = 13;
+//        int i = 20;
 //        Value[] values1 = {new IntValue(i), new StringValue("jjj" + i), new IntValue(20)};
 //        Tuple t1 = new Tuple(values1);
 //        t1.setPrimaryV(new IntValue(i)); // 主键不变
 //        table.insert(t1);
 
 
-        System.out.println();
-        table.getPageManager().getMeta().showInfo();
-        System.out.println();
+//        System.out.println();
+//        table.getPageManager().getMeta().showInfo();
+//        System.out.println();
 //
 //
 ////        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
@@ -146,7 +146,7 @@ public class Main {
 //
 //
 //
-        System.out.println("根页：" + table.getTree().getRoot().getPageId());
+//        System.out.println("根页：" + table.getTree().getRoot().getPageId());
 
 //        if(table.getPageManager().getPages().get(1) == null) {
 //            System.out.println("第一页已经成功清空");
@@ -154,7 +154,7 @@ public class Main {
 //        }
 
 
-        Page page = table.getPageManager().getPage(3);
+        Page page = table.getPageManager().getPage(2);
 
         page.showInfo();
     }

@@ -15,21 +15,21 @@ public class PageManager {
     private ArrayList<Page> modifiedPages;            // 记录需要写回磁盘的页面
 
 
-    public static ArrayList<Page> sortPagesByMinValue(ArrayList<Page> leafPages) {
-        // 创建列表副本以避免修改原列表
-        ArrayList<Page> sorted = new ArrayList<>(leafPages);
-
-        Collections.sort(sorted, new Comparator<Page>() {
-            @Override
-            public int compare(Page p1, Page p2) {
-                if (p1 == null) return -1;
-                else if (p2 == null) return 1;
-                else return p1.minValue.compare(p2.minValue);
-            }
-        });
-
-        return sorted;
-    }
+//    public static ArrayList<Page> sortPagesByMinValue(ArrayList<Page> leafPages) {
+//        // 创建列表副本以避免修改原列表
+//        ArrayList<Page> sorted = new ArrayList<>(leafPages);
+//
+//        Collections.sort(sorted, new Comparator<Page>() {
+//            @Override
+//            public int compare(Page p1, Page p2) {
+//                if (p1 == null) return -1;
+//                else if (p2 == null) return 1;
+//                else return p1.minValue.compare(p2.minValue);
+//            }
+//        });
+//
+//        return sorted;
+//    }
 
 
     public PageManager(String diskFileName) throws IOException {
@@ -73,12 +73,11 @@ public class PageManager {
 
         Stack<Page> temp = new Stack<>();
 
-        Page rootPage = pageIO.readPage(pageIO.getRootPageId());
+        Page rootPage = this.getPage(getMeta().getRootPageId());
 //        System.out.println("ididid"+pageIO.getRootPageId());
         temp.push(rootPage);
         tree.setRoot(rootPage);
 
-        ArrayList<Page> leafPages = new ArrayList<>();
 
         while (!temp.isEmpty()) {
             Page current = temp.pop();
@@ -86,30 +85,30 @@ public class PageManager {
             // 一开始放进去的时候，叶子少前后，非叶子少孩子，最小值序列
             // 不少父亲，因为除了根节点，其他在栈中的节点都已经在下面被初始化好父亲了
 
+            System.out.println("这是current的信息");
+            current.showInfo();;
 
             if (!current.isLeaf) {
                 int num = current.getChildren().size();
                 for (int i = 0; i < num; i++) {
                     int childId = current.children.get(i).getPageId();
-                    Page child = pageIO.readPage(childId);
+                    Page child = this.getPage(childId);
+                    System.out.println("这是孩子"+childId+"的信息");
+                    child.showInfo();
+
                     child.setParent(current);
                     current.children.set(i, child);
 
-                    Value id = current.children.get(i).getMinValue();
-                    current.entries.add(id);
+                    Value id = child.getMinValue();
+                    insertInParent(current,id);
                     temp.push(child);
-                    current.entries = Value.sortValues(current.entries);
-
                 }
-            } else {
-                leafPages.add(current);
             }
 
 
             pages.set(pageId, current);
         }
 
-        ArrayList<Page> sortedPage = PageManager.sortPagesByMinValue(leafPages);
 
         return tree;
     }
@@ -176,7 +175,7 @@ public class PageManager {
         if (page != null && mode) {
             pages.set(page.getPageId(), page);
             modifiedPages.add(page);
-        } else {
+        } else if(page != null){
             clearPage(page.getPageId());
         }
     }
@@ -283,20 +282,24 @@ public class PageManager {
                 insertInLeaf(page, key);
                 updatePageToManager(page, true);
             } else {
+                System.out.println("要分裂了！");
                 Page left = this.createPage(true);
                 Page right = this.createPage(true);
                 // 初次更新left,right到manager
+                Page previous,next;
                 if (page.previous != null) {
-                    left.previous = page.previous;
-                    page.previous.next = left;
+                    previous = this.getPage(page.previous.getPageId());
+                    left.previous = previous;
+                    previous.next = left;
                 } else {
                     tree.setHead(left);
                     getMeta().setHeadPageId(left.getPageId());
                     getMeta().updateHeadPageId(pageIO.getFile());
                 }
                 if (page.next != null) {
-                    right.next = page.next;
-                    page.next.previous = right;
+                    next = this.getPage(page.next.getPageId());
+                    right.next = next;
+                    next.previous = right;
                 }
                 left.next = right;
                 right.previous = left;
@@ -325,34 +328,37 @@ public class PageManager {
                 if (!page.isRoot) {
                     // 调整父子节点关系
                     // 寻找当前节点在父节点的位置
-                    System.out.println("parent children is null:" + (page.parent.children == null));
+                    Page parent = getPage(page.parent.getPageId());
+                    System.out.println("parent children is null:" + (parent.children == null));
 
-                    int index = page.parent.children.indexOf(page);
+
+                    int index = findChildIndex(parent,page.getPageId());
 //                    System.out.println("parent children size:" + parent.children.size());
 //                    System.out.println("index:" + index);
 
                     // 删除当前指针
-                    page.parent.children.remove(page);
-                    left.setParent(page.parent);
-                    right.setParent(page.parent);
+                    parent.children.remove(index);
+                    left.setParent(parent);
+                    right.setParent(parent);
                     // 将分裂后节点的指针添加到父节点
-                    page.parent.children.add(index, left);
-                    page.parent.children.add(index + 1, right);
+                    parent.children.add(index, left);
+                    parent.children.add(index + 1, right);
                     // for GC
                     page.tuples = null;
                     page.children = null;
 
                     // 父节点[非叶子节点]中插入关键字，是右边的第一位
-                    insertInParent(page.parent, right.minValue);
+                    insertInParent(parent, right.minValue);
 
                     updatePageToManager(left, true);
                     updatePageToManager(right, true);
                     updatePageToManager(left.previous, true);
                     updatePageToManager(right.next, true);
                     updatePageToManager(page, false);  // 分成left和right之后，这个page就不需要了
+                    updatePageToManager(parent,true);
 
 //                    System.out.println("父节点插入key");
-                    updateNode(page.parent, tree);
+                    updateNode(parent, tree);
                     // for GC
                     page.parent = null;
 
@@ -399,9 +405,11 @@ public class PageManager {
                 }
             }
             System.out.println("找到了第" + (left+1) +"孩子页");
-            page.children.get(left).showInfo();
 
             Page child = getPage(page.children.get(left).getPageId());
+
+            System.out.println("这是从父亲找到孩子还没插入之前的孩子状态");
+            child.showInfo();
             insert(child, key, tree);
         }
 
@@ -1192,5 +1200,13 @@ public class PageManager {
 //        }
 //    }
 
+    public int findChildIndex(Page page, int childId) {
+        for(int i = 0; i < page.children.size(); i++) {
+            if(page.children.get(i).getPageId() == childId) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }
 
