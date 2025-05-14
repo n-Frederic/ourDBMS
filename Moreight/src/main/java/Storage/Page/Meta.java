@@ -13,14 +13,14 @@ public class Meta {
     private int highestPageId;
     private int maxKeys;
     private int columnCount;
-    private String[] columnNames;
-    private int[] columnTypes;
-    private String[] columnConstraints;
+    private ArrayList<String> columnNames;
+    private ArrayList<Integer> columnTypes;
+    private ArrayList<String> columnConstraints;
 
     public Meta() {}
 
     public Meta(int rootPageId, int headPageId, int highestPageId, int maxKeys, int columnCount,
-                String[] columnNames, int[] columnTypes, String[] columnConstraints) {
+                ArrayList<String> columnNames, ArrayList<Integer> columnTypes, ArrayList<String> columnConstraints) {
         this.rootPageId = rootPageId;
         this.headPageId = headPageId;
         this.highestPageId = highestPageId;
@@ -37,19 +37,14 @@ public class Meta {
         this.maxKeys = 5;
         this.columnCount = args.size();
 
-        columnNames = new String[columnCount];
-        columnConstraints = new String[columnCount];
-        columnTypes = new int[columnCount];
+        columnNames = new ArrayList<>();
+        columnConstraints = new ArrayList<>();
+        columnTypes = new ArrayList<>();
 
-        for(int i = 0; i < args.size(); i++) {
-            columnNames[i] = args.get(i).getName();
-            columnTypes[i] = args.get(i).mapFieldTypeToInt();
-            StringBuilder constraint = new StringBuilder();
-            if(args.get(i).isPrimaryKey()) constraint.append("primaryKey ");
-            if(args.get(i).isNotNull()) constraint.append("notNull ");
-            if(args.get(i).isUnique()) constraint.append("Unique ");
-            if(args.get(i).getDefault() != null) constraint.append("Default:").append(args.get(i).getDefault().toString());
-            columnConstraints[i] = constraint.toString();
+        for (Field arg : args) {
+            columnNames.add(arg.getName());
+            columnTypes.add(arg.mapFieldTypeToInt());
+            columnConstraints.add(arg.constraintToString());
         }
     }
 
@@ -108,27 +103,27 @@ public class Meta {
         this.columnCount = columnCount;
     }
 
-    public String[] getColumnNames() {
+    public ArrayList<String> getColumnNames() {
         return columnNames;
     }
 
-    public void setColumnNames(String[] columnNames) {
+    public void setColumnNames(ArrayList<String> columnNames) {
         this.columnNames = columnNames;
     }
 
-    public int[] getColumnTypes() {
+    public ArrayList<Integer> getColumnTypes() {
         return columnTypes;
     }
 
-    public void setColumnTypes(int[] columnTypes) {
+    public void setColumnTypes(ArrayList<Integer> columnTypes) {
         this.columnTypes = columnTypes;
     }
 
-    public String[] getColumnConstraints() {
+    public ArrayList<String> getColumnConstraints() {
         return columnConstraints;
     }
 
-    public void setColumnConstraints(String[] columnConstraints) {
+    public void setColumnConstraints(ArrayList<String> columnConstraints) {
         this.columnConstraints = columnConstraints;
     }
 
@@ -165,23 +160,23 @@ public class Meta {
 
         file.seek(1024);
 
-        String[] columnNames = new String[columnCount];
-        int[] columnTypes = new int[columnCount];
-        String[] columnConstraints = new String[columnCount];
+        ArrayList<String> columnNames = new ArrayList<>();
+        ArrayList<Integer> columnTypes = new ArrayList<>();
+        ArrayList<String> columnConstraints = new ArrayList<>();
 
         for (int i = 0; i < columnCount; i++) {
             int nameLength = file.readInt();
             byte[] nameBytes = new byte[nameLength];
             file.readFully(nameBytes);
-            columnNames[i] = new String(nameBytes);
+            columnNames.add(new String(nameBytes));
 
-            columnTypes[i] = file.readInt();
+            columnTypes.add(file.readInt());
 
             int constraintLength = file.readInt();
 
             byte[] constraintBytes = new byte[constraintLength];
             file.readFully(constraintBytes);
-            columnConstraints[i] = new String(constraintBytes);
+            columnConstraints.add(new String(constraintBytes));
 
             int bytesRead = 4 + nameLength + 4 + 4 + constraintLength;
             int toSkip = 128 - bytesRead;
@@ -224,16 +219,16 @@ public class Meta {
         // 列名长度 + 列名 + 列类型 + 约束长度 + 约束
         for (int i = 0; i < columnCount; i++) {
             int offset = 0;
-            byte[] nameBytes = columnNames[i].getBytes();
+            byte[] nameBytes = columnNames.get(i).getBytes();
             file.writeInt(nameBytes.length);
             file.write(nameBytes);
 
             offset += 4+nameBytes.length;
 
-            file.writeInt(columnTypes[i]);
+            file.writeInt(columnTypes.get(i));
             offset += 4;
 
-            byte[] constraintBytes = columnConstraints[i].getBytes();
+            byte[] constraintBytes = columnConstraints.get(i).getBytes();
             file.writeInt(constraintBytes.length);
             file.write(constraintBytes);
             offset += 4+constraintBytes.length;
@@ -267,7 +262,7 @@ public class Meta {
         System.out.println("maxKeys : " + maxKeys);
         System.out.println("columnCount : " + columnCount);
         for(int i = 0; i < columnCount; i++) {
-            System.out.println(columnNames[i] + " " + Field.mapIntToFieldType(columnTypes[i]) + " " +columnConstraints[i]);
+            System.out.println(columnNames.get(i) + " " + Field.mapIntToFieldType(columnTypes.get(i)) + " " +columnConstraints.get(i));
         }
     }
 }

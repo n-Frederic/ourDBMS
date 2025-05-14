@@ -3,9 +3,12 @@ package Table;
 import Database.DatabaseManager;
 import Storage.BPlusTree.BpTree;
 import Storage.Page.*;
+import Storage.Value.BooleanValue;
 import Storage.Value.NullValue;
 
 
+import Storage.Value.StringValue;
+import Storage.Value.Value;
 import Util.Func.Render;
 import java.nio.file.*;
 import java.util.ArrayList;
@@ -136,44 +139,81 @@ public class TableManager {
         return tables;
     }
 
-    public static void addColumn(Field newField,Table table){
-//        if(table.getSchema().getIndex(newField)!=-1){
-//            throw new IllegalArgumentException("列已存在：" + newField.getName());
-//        }
-//
-//        table.getSchema().addColumn(newField);
-//
-//        // 更新树里的，新列默认都是nullValue
-//        Page current = table.getTree().getHead();
-//        while (current != null) {
-//            for (Tuple tuple : current.getEntries()) {
-//                tuple.appendValue(new NullValue());
-//            }
-//            current = current.getNext();
-//        }
+    public static void addColumn(Field newField,Table table) throws IOException {
+        if(table.getSchema().getIndex(newField)!=-1){
+            throw new IllegalArgumentException("列已存在：" + newField.getName());
+        }
+
+        PageManager pageManager = table.getPageManager();
+        Meta meta = pageManager.getMeta();
+        meta.setColumnCount(meta.getColumnCount()+1);
+        meta.getColumnNames().add(newField.getName());
+        meta.getColumnTypes().add(newField.mapFieldTypeToInt());
+        meta.getColumnConstraints().add(newField.constraintToString());
+        meta.writeMetaToDisk(pageManager.getPageIO().getFile());
+
+        table.getSchema().addColumn(newField);
+
+        // 更新树里的，新列默认都是nullValue
+        Page current = table.getTree().getHead();
+
+        while (current != null) {
+            for (Tuple tuple : current.getTuples()) {
+                if(newField.getDefault() != null) {
+                    tuple.getValues().add(newField.getDefault());
+                } else {
+                    tuple.getValues().add(new NullValue());
+                }
+            }
+            pageManager.updatePageToManager(current,true);
+            if(current.getNext() != null) {
+                current = current.getNext();
+            } else break;
+        }
+        pageManager.flushModifiedPages();
     }
     /*
      * table是否被引用*/
 
 
-    public static void dropColumn(String fieldName,Table table){
-//        Schema schema = table.getSchema();
-//        BpTree tree = table.getTree();
-//
-//        int index = schema.getIndex(fieldName);
-//        if (index == -1) throw new IllegalArgumentException("列名不存在：" + fieldName);
-//
-//        schema.dropColumn(fieldName);
-//
-//        // 遍历改Tuple
-//        Page current  = tree.getHead();
-//        while(current != null){
-//            for(Tuple tuple:current.getEntries()){
-//                tuple.removeValue(index);
-//            }
-//            current = current.getNext();
-//        }
+    public static void dropColumn(String columnName, Table table) throws IOException {
+        int index = table.getSchema().getIndex(columnName);
+        if (index == -1) {
+            throw new IllegalArgumentException("列不存在：" + columnName);
+        }
+
+        PageManager pageManager = table.getPageManager();
+        Meta meta = pageManager.getMeta();
+
+        // 更新元数据：删除列定义
+        meta.setColumnCount(meta.getColumnCount() - 1);
+        meta.getColumnNames().remove(index);
+        meta.getColumnTypes().remove(index);
+        meta.getColumnConstraints().remove(index);
+        meta.writeMetaToDisk(pageManager.getPageIO().getFile());
+
+        // 更新 schema
+        table.getSchema().dropColumn(index);
+
+        // 更新所有叶子页的元组数据：删除对应列的值
+        Page current = table.getTree().getHead();
+        while (current != null) {
+            for (Tuple tuple : current.getTuples()) {
+                if (tuple.getValues().size() > index) {
+                    tuple.getValues().remove(index);
+                }
+            }
+            pageManager.updatePageToManager(current, true);
+            if (current.getNext() != null) {
+                current = current.getNext();
+            } else {
+                break;
+            }
+        }
+
+        pageManager.flushModifiedPages();
     }
+
 
     public static void  renameColumn(String fieldName, String newFieldName, Table table) {
         Schema schema = table.getSchema();
@@ -184,23 +224,29 @@ public class TableManager {
         schema.getField(fieldName).setName(newFieldName);
     }
 
-    public static void desc(Table table) {
-//        Schema schema = table.getSchema();
-//        ArrayList<Field> fields = schema.getFields();
-//        ArrayList<String> columnNames = new ArrayList<>();
-//
-//        for (Field field : fields) {
-//            columnNames.add(field.getName());
-//        }
-//
-//        // 从B+树里取所有元组
-//        ArrayList<Tuple> tuples = new ArrayList<>();
-//        Page node = table.getTree().getHead();
-//        while (node != null) {
-//            tuples.addAll(node.getEntries());
-//            node = node.getNext();
-//        }
-//
-//        Render.DrawSelectedTable(tuples, columnNames);
+    public static void desc(Table table) throws IOException {
+        ArrayList<String> fieldNames = new ArrayList<>();
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        fieldNames.add("Field");
+        fieldNames.add("Type");
+        fieldNames.add("Null");
+        fieldNames.add("Key");
+        fieldNames.add("Default");
+
+        Meta meta = Meta.readMetaFromDisk(table.getPageManager().getPageIO().getFile());
+        Schema schema = Schema.loadSchemaFromMeta(meta);
+        ArrayList<Field> fields = schema.getFields();
+
+        for(Field field : fields) {
+            ArrayList<Value> info = new ArrayList<>();
+            info.add(new StringValue(field.getName()));
+            info.add(new StringValue(field.getType()));
+            info.add(new BooleanValue(!field.isNotNull()));
+            info.add(field.isPrimaryKey() ? new StringValue("PRI") : new NullValue());
+            info.add(field.getDefault() != null ? field.getDefault() : new NullValue());
+            tuples.add(new Tuple(info));
+        }
+
+        Render.DrawSelectedTable(tuples,fieldNames);
     }
 }

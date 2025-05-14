@@ -149,12 +149,44 @@ public class Page {
     public ArrayList<Tuple> getTuples() {
         return tuples;
     }
+
+
     public ArrayList<Tuple> getTuples(Condition condition, int index) {
         ArrayList<Tuple> temp=new ArrayList<>();
         for(Tuple t:tuples){
-            if(t.getValue(index).equals(condition)){
-                temp.add(t);
+            switch (condition.getOperator()) {
+                case "=":
+                    if(t.getValue(index).compare(condition.getValue()) == 0){
+                        temp.add(t);
+                    }
+                    break;
+                case "!=":
+                    if(t.getValue(index).compare(condition.getValue()) != 0){
+                        temp.add(t);
+                    }
+                    break;
+                case "<":
+                    if(t.getValue(index).compare(condition.getValue()) < 0){
+                        temp.add(t);
+                    }
+                    break;
+                case ">":
+                    if(t.getValue(index).compare(condition.getValue()) > 0){
+                        temp.add(t);
+                    }
+                    break;
+                case "<=":
+                    if(t.getValue(index).compare(condition.getValue()) <= 0){
+                        temp.add(t);
+                    }
+                    break;
+                case ">=":
+                    if(t.getValue(index).compare(condition.getValue()) >= 0){
+                        temp.add(t);
+                    }
+                    break;
             }
+
         }
         return temp;
     }

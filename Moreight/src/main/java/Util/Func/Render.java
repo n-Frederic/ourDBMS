@@ -103,11 +103,6 @@ public class Render {
 
      */
     public static void DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
-
-        DrawSelectedTable( tuples,columns);
-
-        System.out.println(columns);
-
         Map<String, Integer> columnWidths=new HashMap<>();
         for (String column : columns) {
             columnWidths.put(column, column.length());

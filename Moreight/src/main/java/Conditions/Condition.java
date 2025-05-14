@@ -51,16 +51,15 @@ public class Condition extends ConditionNode {
                 "}";
     }
 
-    @Override
+//    @Override
     public  ArrayList<Tuple> evaluate() {
 
-
-
-        ArrayList<Tuple>tuples=table.where(this);
+        ArrayList<Tuple>tuples= new ArrayList<>();
         return tuples;
 
 
     }
+
 //    public  ArrayList<Tuple> evaluate(JsonArray data) {
 //
 //        //JsonArray data=Table.readData(tablepath);

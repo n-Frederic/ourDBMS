@@ -8,18 +8,24 @@ import Conditions.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 
 public class Tuple {
 
-    protected Value[] values;
+    protected ArrayList<Value> values;
 
     protected Value primaryV;
 
     public Tuple() {}
 
     public Tuple(Value[] values) {
+        this.values = new ArrayList<Value>();
+        this.values.addAll(Arrays.asList(values));
+    }
+
+    public Tuple(ArrayList<Value> values) {
         this.values = values;
     }
 
@@ -28,7 +34,7 @@ public class Tuple {
         this.primaryV = primaryV;
     }
 
-    public Value[] getValues() {
+    public ArrayList<Value> getValues() {
         return values;
     }
 
@@ -36,13 +42,13 @@ public class Tuple {
         return primaryV;
     }
 
-    public Value getValue(int index) { return values[index];}
+    public Value getValue(int index) { return values.get(index);}
 
     public void setPrimaryV(Value primaryV) {
         this.primaryV = primaryV;
     }
 
-    public void setValues(Value[] values) {
+    public void setValues(ArrayList<Value> values) {
         this.values = values;
     }
 
@@ -59,14 +65,6 @@ public class Tuple {
      */
     public int compare(Tuple tuple) {
         return primaryV.compare(tuple.getPrimaryV());
-    }
-
-    /**
-     * @param index 修改值下标
-     * @param value 修改值
-     */
-    public void set(int index, Value value) {
-        values[index] = value;
     }
 
 
@@ -115,61 +113,18 @@ public class Tuple {
      */
 
     public boolean check(Condition condition, int index) {
-        switch (condition.getOperator()) {
-            case "=":
-                if (values[index].compare(condition.getValue())==0) {
-                    return true;
-                } else return false;
-            case "!=":
-                if (values[index].compare(condition.getValue())!=0) {
-                    return true;
-                } else return false;
-            case "<":
-                if (values[index].compare(condition.getValue()) == -1) {
-                    return true;
-                } else return false;
-            case ">":
-                if (values[index].compare(condition.getValue()) == 1) {
-                    return true;
-                } else return false;
-            case "<=":
-                if (values[index].compare(condition.getValue()) <= 0) {
-                    return true;
-                } else return false;
-            case ">=":
-                if (values[index].compare(condition.getValue()) >= 0) {
-                    return true;
-                } else return false;
-        }
-        return false;
+        return switch (condition.getOperator()) {
+            case "=" -> values.get(index).compare(condition.getValue()) == 0;
+            case "!=" -> values.get(index).compare(condition.getValue()) != 0;
+            case "<" -> values.get(index).compare(condition.getValue()) == -1;
+            case ">" -> values.get(index).compare(condition.getValue()) == 1;
+            case "<=" -> values.get(index).compare(condition.getValue()) <= 0;
+            case ">=" -> values.get(index).compare(condition.getValue()) >= 0;
+            default -> false;
+        };
     }
 
-    /**
-     * 添加值到末尾
-     * @param value 添加的value
-     */
 
-    public void appendValue(Value value) {
-        Value[] newValues = new Value[values.length + 1];
-        System.arraycopy(values, 0, newValues, 0, values.length);
-        newValues[values.length] = value;
-        this.values = newValues;
-    }
-
-    /**
-     * 删除某个列的元素
-     * @param index 要删除的列的下表
-     */
-    public void removeValue(int index) {
-        if (index < 0 || index >= values.length) return;
-        Value[] newValues = new Value[values.length - 1];
-        for (int i = 0, j = 0; i < values.length; i++) {
-            if (i != index) {
-                newValues[j++] = values[i];
-            }
-        }
-        this.values = newValues;
-    }
 
     /**
      * 将tuple序列化，考量每个value的种类
@@ -204,7 +159,6 @@ public class Tuple {
      * 将字节数组读下来反序列化为tuple对象
      * @param data 字节数组
      * @return 反序列化得到的tuple对象
-     * @throws IOException
      */
     public static Tuple fromBytes(byte[] data) throws IOException {
         DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
@@ -257,4 +211,6 @@ public class Tuple {
                 throw new IOException("未知类型: " + type);
         }
     }
+
+
 }

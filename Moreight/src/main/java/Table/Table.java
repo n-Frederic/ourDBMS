@@ -17,19 +17,19 @@ import java.util.*;
  */
 public class Table {
     private String tableName;
-    private Schema schema ;
+    private Schema schema;
     private BpTree tree;
     private PageManager pageManager;
 
     public Table(String tableName) throws IOException {
         this.tableName = tableName;
-        this.pageManager = new PageManager(DatabaseManager.getBaseDir() + "/" + DatabaseManager.getCurrentDatabase()+"/"+tableName + "/" + tableName + ".idb");
+        this.pageManager = new PageManager(DatabaseManager.getBaseDir() + "/" + DatabaseManager.getCurrentDatabase() + "/" + tableName + "/" + tableName + ".idb");
 
         Meta meta = pageManager.getMeta();
 
-        if(meta.getHighestPageId() == 0) this.tree = new BpTree();
+        if (meta.getHighestPageId() == 0) this.tree = new BpTree();
         else this.tree = pageManager.buildTreeFromFile();
-        
+
         this.schema = Schema.loadSchemaFromMeta(meta);
     }
 
@@ -39,9 +39,9 @@ public class Table {
     public void insert(Tuple tuple) throws IOException {
         Meta meta = pageManager.getMeta();
         PageIO pageIO = pageManager.getPageIO();
-        if(meta.getHighestPageId() == 0) {
-            Page page = new Page(1,true,true);
-            pageManager.insert(page,tuple,tree);
+        if (meta.getHighestPageId() == 0) {
+            Page page = new Page(1, true, true);
+            pageManager.insert(page, tuple, tree);
 
             tree.setRoot(page);
             tree.setHead(page);
@@ -53,7 +53,7 @@ public class Table {
             meta.updateRootPageId(pageIO.getFile());
             meta.updateHeadPageId(pageIO.getFile());
 
-            pageManager.updatePageToManager(page,true);              // 将第一页存到pages[1]，并放到待更新页集合里
+            pageManager.updatePageToManager(page, true);              // 将第一页存到pages[1]，并放到待更新页集合里
             pageManager.flushModifiedPages();                   // 将待更新页全部写入文件
 
         } else {
@@ -65,7 +65,7 @@ public class Table {
     }
 
 
-    public void delete(Tuple tuple) throws IOException{
+    public void delete(Tuple tuple) throws IOException {
         Value primaryV = tuple.getPrimaryV();
         int pageId = pageManager.findPageNum(primaryV);
         Page dirPage = pageManager.getPage(pageId);
@@ -73,19 +73,21 @@ public class Table {
     }
 
 
+
+
     /**
      * 可用，完全不涉及文件操作
      */
     // 最终返回只有fieldName的tuple的数组
-    public ArrayList<Tuple> select(ArrayList<Tuple> tuples, ArrayList<String> fieldNames){
+    public ArrayList<Tuple> select(ArrayList<Tuple> tuples, ArrayList<String> fieldNames) {
         ArrayList<Tuple> result = new ArrayList<>();
 
         ArrayList<Integer> indexes = new ArrayList<>();
-        for(String name : fieldNames){
+        for (String name : fieldNames) {
             indexes.add(schema.getIndex(name));
         }
 
-        for(Tuple t : tuples){
+        for (Tuple t : tuples) {
             Value[] selected = new Value[fieldNames.size()];
             for (int i = 0; i < indexes.size(); i++) {
                 selected[i] = t.getValue(indexes.get(i));
@@ -95,7 +97,8 @@ public class Table {
 
         return result;
     }
-    public static boolean isReferencedByOtherTables(){
+
+    public static boolean isReferencedByOtherTables() {
         //TODO:table是否被引用F
         return false;
     }
@@ -107,10 +110,10 @@ public class Table {
         ArrayList<Tuple> tuples = new ArrayList<>();
         Page current = getPageManager().getPage(tree.getHead().getPageId());
 
-        while(current != null) {
+        while (current != null) {
             tuples.addAll(current.getTuples());
 
-            if(current.getNext() != null) {
+            if (current.getNext() != null) {
                 current = getPageManager().getPage(current.getNext().getPageId());
             } else break;
         }
@@ -121,143 +124,77 @@ public class Table {
     public ArrayList<Tuple> where(Page page, Condition condition) throws IOException {
         ArrayList<Tuple> tuples = new ArrayList<>();
         Field field = schema.getField(condition.getColumn());
+        int index = schema.getIndex(field);
         Value keyValue = condition.getValue();
 
-        if(field.isPrimaryKey()) {
-            switch (condition.getOperator()) {
-                case "=":
-                    if(page.isLeaf()) {
-                        for(Tuple tuple : page.getTuples()) {
-                            if(tuple.getPrimaryV().compare(keyValue) == 0) {
-                                tuples.add(tuple);
-                                return tuples;
-                            }
-                        }
-                    } else {
-                        ArrayList<Value> entries = page.getEntries();
-                        if(keyValue.compare(entries.getFirst())<0) {
-                            return tuples;
-                        }
-                        for(int i = 0; i < entries.size() - 1; i++) {
-                            if(keyValue.compare(entries.get(i)) >= 0 && keyValue.compare(entries.get(i+1)) < 0) {
-                                Page child = getPageManager().getPage(page.getChildren().get(i).getPageId());
-                                return where(child,condition);
-                            }
-                        }
-                        Page child = getPageManager().getPage(page.getChildren().getLast().getPageId());
-                        return where(child,condition);
-                    }
-                    break;
-                case "!=":
-                    if(page.isLeaf()) {
-                        for(Tuple tuple : page.getTuples()) {
-                            if(tuple.getPrimaryV().compare(keyValue) != 0) {
-                                tuples.add(tuple);
-                            }
-                        }
-                        return tuples;
-                    } else {
-                        ArrayList<Value> entries = page.getEntries();
-                        if(keyValue.compare(entries.getFirst())<0) {
-                            tuples = selectAll();
-                            return tuples;
-                        }
-                        for(int i = 0; i < entries.size() - 1; i++) {
-                            Page child = getPageManager().getPage(page.getChildren().get(i).getPageId());
-                            if(keyValue.compare(entries.get(i)) < 0 || keyValue.compare(entries.get(i+1)) >= 0) {
-                                tuples.addAll(child.getTuples());
-                            } else {
-                                for(Tuple tuple : child.getTuples()) {
-                                    if(tuple.getPrimaryV().compare(keyValue) != 0) {
-                                        tuples.add(tuple);
-                                    }
-                                }
-                            }
-                        }
-                        Page child = getPageManager().getPage(page.getChildren().getLast().getPageId());
-                        if(keyValue.compare(entries.getLast()) < 0) {
-                            tuples.addAll(child.getTuples());
-                        } else {
-                            for(Tuple tuple : child.getTuples()) {
-                                if(tuple.getPrimaryV().compare(keyValue) != 0) {
-                                    tuples.add(tuple);
-                                }
-                            }
-                        }
-                        return tuples;
-                    }
-                    break;
-                case "<":
-                    if(page.isLeaf()) {
-                        for(Tuple tuple : page.getTuples()) {
-                            if(tuple.getPrimaryV().compare(keyValue) < 0) {
-                                tuples.add(tuple);
-                            }
-                        }
-                        return tuples;
-                    } else {
-                        ArrayList<Value> entries = page.getEntries();
-                        if(keyValue.compare(entries.getFirst())<0) {
-                            tuples = selectAll();
-                            return tuples;
-                        }
-                        for(int i = 0; i < entries.size() - 1; i++) {
-                            Page child = getPageManager().getPage(page.getChildren().get(i).getPageId());
-                            if(keyValue.compare(entries.get(i)) < 0 || keyValue.compare(entries.get(i+1)) >= 0) {
-                                tuples.addAll(child.getTuples());
-                            } else {
-                                for(Tuple tuple : child.getTuples()) {
-                                    if(tuple.getPrimaryV().compare(keyValue) != 0) {
-                                        tuples.add(tuple);
-                                    }
-                                }
-                            }
-                        }
-                        Page child = getPageManager().getPage(page.getChildren().getLast().getPageId());
-                        if(keyValue.compare(entries.getLast()) < 0) {
-                            tuples.addAll(child.getTuples());
-                        } else {
-                            for(Tuple tuple : child.getTuples()) {
-                                if(tuple.getPrimaryV().compare(keyValue) != 0) {
-                                    tuples.add(tuple);
-                                }
-                            }
-                        }
-                        return tuples;
-                    }
-                    break;
-                case ">":
-                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) <= 0) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-                case "<=":
-                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) > 0) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-                case ">=":
-                    if (object.get(condition.getColumn()).getAsString().compareTo(condition.getValue()) < 0) {
-                        iterator.remove(); // 使用 iterator.remove() 删除当前元素
-                    }
-                    break;
-            }
-        }
-        int index = schema.getIndex(field);
 
-
-        Page current = tree.getHead();
-        while(current != null) {
-            ArrayList<Tuple> temp = current.getTuples(condition,index);
-            if(!temp.isEmpty()) {
-                tuples.addAll(temp);
+        if (field.isPrimaryKey()) {
+            if (page.isLeaf()) {
+                tuples.addAll(page.getTuples(condition, index));
+                return tuples;
+            } else {
+                ArrayList<Value> entries = page.getEntries();
+                switch (condition.getOperator()) {
+                    case "=":
+                        for (int i = 0; i < entries.size() - 1; i++) {
+                            if (keyValue.compare(entries.get(i)) >= 0 && keyValue.compare(entries.get(i + 1)) < 0) {
+                                Page temp1 = getPageManager().getPage(page.getChildren().get(i).getPageId());
+                                tuples.addAll(where(temp1, condition));
+                            }
+                        }
+                        Page temp1 = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        tuples.addAll(where(temp1, condition));
+                    case "!=":
+                        tuples = selectAll();
+                        Condition ec = new Condition(condition.getColumn(), condition.getValue(), "=");
+                        tuples.removeAll(where(page, ec));
+                    case "<":
+                        for (int i = 0; i < entries.size(); i++) {
+                            if (keyValue.compare(entries.get(i)) >= 0) {
+                                Page temp2 = getPageManager().getPage(page.getChildren().get(i).getPageId());
+                                tuples.addAll(where(temp2, condition));
+                            }
+                        }
+                    case ">":
+                        for (int i = 0; i < entries.size() - 1; i++) {
+                            if (keyValue.compare(entries.get(i + 1)) < 0) {
+                                Page temp3 = getPageManager().getPage(page.getChildren().get(i).getPageId());
+                                tuples.addAll(where(temp3, condition));
+                            }
+                        }
+                        Page temp3 = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        tuples.addAll(where(temp3, condition));
+                    case "<=":
+                        Condition sc = new Condition(condition.getColumn(), condition.getValue(), "<");
+                        tuples.addAll(where(page, sc));
+                        Condition ec1 = new Condition(condition.getColumn(), condition.getValue(), "=");
+                        tuples.addAll(where(page, ec1));
+                    case ">=":
+                        Condition bc = new Condition(condition.getColumn(), condition.getValue(), ">");
+                        tuples.addAll(where(page, bc));
+                        Condition ec2 = new Condition(condition.getColumn(), condition.getValue(), "=");
+                        tuples.addAll(where(page, ec2));
+                }
+                return tuples;
             }
-            current = current.getNext();
+        } else {
+            Page current = tree.getHead();
+
+            while(current != null) {
+                tuples.addAll(current.getTuples(condition,index));
+
+                if(current.getNext() == null) {
+                    break;
+                } else {
+                    current = getPageManager().getPage(current.getNext().getPageId());
+                }
+            }
+
+            return tuples;
         }
-        return tuples;
     }
 
-    public ArrayList<Tuple> where (ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
+    public ArrayList<Tuple> where(ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
         ArrayList<Tuple> tuples = new ArrayList<>();
         if (mode.equals("and")) {
             for (Tuple t : t1) {
@@ -270,7 +207,7 @@ public class Table {
             for (Tuple t : t1) {
                 tuples.add(t);
             }
-            for (Tuple t: t2) {
+            for (Tuple t : t2) {
                 if (!t1.contains(t)) {
                     tuples.add(t);
                 }
@@ -280,57 +217,66 @@ public class Table {
     }
 
 
-
     public PageManager getPageManager() {
         return pageManager;
     }
 
-    public boolean hasForeignKeyConstraints(){
+    public boolean hasForeignKeyConstraints() {
         return false;
         // TODO: 遍历schema检查是否有外键
 
     }
 
-    public boolean containsValue(String keyName, Value keyValue){
+    public boolean containsValue(String keyName, Value keyValue) {
         return false;
         // TODO: 遍历主键值检查是否有外键
     }
-    public boolean isColumnReferenced(String column){
+
+    public boolean isColumnReferenced(String column) {
         return false;
         // TODO: 遍历column值检查是否有被引用外键
 
 
     }
-    public boolean isColumnForeignKey(String column){
+
+    public boolean isColumnForeignKey(String column) {
         return false;
         // TODO: 遍历column值检查是否有引用其他外键
 
     }
 
 
-
-
-
+    // 主键的情况遍历所有行，根页读出来，找到所在的页，从文件里读出来应该是用readPage()，
+    // 找到一页getTuples()跟传进来的tuples做比较，一样的话把对应index的列的值改成新的值，
+    // updatePageToManager然后再flushModifiedPages();
     // TODO: 等待黄爱雷提供单个tuple的完整筛查
     public void update(ArrayList<Tuple> tuples, Value newValue, String columnName) throws IOException {
-        // 主键的情况遍历所有行，根页读出来，找到所在的页，从文件里读出来应该是用readPage()，
-        // 找到一页getTuples()跟传进来的tuples做比较，一样的话把对应index的列的值改成新的值，
-        // updatePageToManager然后再flushModifiedPages();
+        System.out.println("update被调了");
+        System.out.println("待更新的 tuples 主键值：");
+        for (Tuple tuple : tuples) {
+            System.out.println(tuple.getPrimaryV());
+        }
+
         if (schema.getPrimaryKeyName().equals(columnName)) {
             List<String> columnNames = schema.getColumnNames();
             int columnIndex = columnNames.indexOf(columnName);
             if (columnIndex == -1) {
                 throw new IllegalArgumentException("列不存在: " + columnName);
             }
-
+            // 主键更新
             for (Tuple tuple : tuples) {
+                System.out.println("目标主键值：" + tuple.getPrimaryV());
                 int pageId = pageManager.findPageNum(tuple.getPrimaryV());
                 Page page = pageManager.getPage(pageId);
                 ArrayList<Tuple> pageTuples = page.getTuples();
 
                 for (Tuple t : pageTuples) {
-                    if (t.equals(tuple)) {
-                        t.getValues()[columnIndex] = newValue;
+                    System.out.println("遍历到tuple，主键：" + t.getPrimaryV());
+                    if (t.getPrimaryV().toString().equals(t.getPrimaryV().toString())) {
+                        System.out.println("匹配成功，准备更新！");
+                        System.out.println("修改前: " + t.getValues().get(columnIndex));
+                        t.getValues().set(columnIndex,newValue);
+                        System.out.println("修改后: " + t.getValues().get(columnIndex));
                         pageManager.updatePageToManager(page, true);
                         break;
                     }
@@ -339,9 +285,12 @@ public class Table {
             pageManager.flushModifiedPages();
 
         } else {
-            // 非主键的更新逻辑，可以通过tree.getHead()遍历
+            // 非主键字段更新
             List<String> columnNames = schema.getColumnNames();
             int columnIndex = columnNames.indexOf(columnName);
+            if (columnIndex == -1) {
+                throw new IllegalArgumentException("列不存在: " + columnName);
+            }
             Page head = tree.getHead();
 
             while (head != null) {
@@ -349,9 +298,15 @@ public class Table {
                 ArrayList<Tuple> pageTuples = page.getTuples();
 
                 for (Tuple t : pageTuples) {
-                    if (t.getValues()[columnIndex].equals(newValue)) {
-                        t.getValues()[columnIndex] = newValue;
-                        pageManager.updatePageToManager(page, true);
+                    System.out.println("遍历非主键更新，当前tuple主键：" + t.getPrimaryV());
+
+                    for (Tuple target : tuples) {
+                        if (t.getPrimaryV().toString().equals(target.getPrimaryV().toString())) {
+                            System.out.println("匹配成功！开始更新 " + columnName + " -> " + newValue);
+                            t.getValues().set(columnIndex,newValue);
+                            pageManager.updatePageToManager(page, true);
+                            break;
+                        }
                     }
                 }
                 head = head.getNext();
@@ -360,17 +315,18 @@ public class Table {
         }
     }
 
-    // TODO: 等待一个能直接操作的
+// TODO: 等待一个能直接操作的
 //    public void delete()
 
 //    public void truncate() {
 //        tree.truncate();
 //    }
 
-    public Schema getSchema(){
+    public Schema getSchema() {
         return schema;
     }
-    public BpTree getTree(){
+
+    public BpTree getTree() {
         return tree;
     }
 
@@ -472,7 +428,7 @@ public class Table {
         }
     }*/
 
-    // set是针对于where筛选后的JsonArray修改列值
+// set是针对于where筛选后的JsonArray修改列值
 //    public static void Set(String tableName, HashMap<String,String> map, ConditionNode logicTree) {
 ////
 //        JsonArray all = Table.From_data(tableName);
@@ -491,7 +447,6 @@ public class Table {
 //// all 已经被改了，后面只要把 all 序列化/写文件就行
 //
 //    }
-
 
 
 //    public static JsonArray Where(JsonArray a, JsonArray b, String mode) {
@@ -607,7 +562,7 @@ public class Table {
 //        }
 //    }
 
-    // 更新内存并保存到磁盘
+// 更新内存并保存到磁盘
 
 
 //    public static void saveData(String tableName, JsonArray data) {
@@ -710,7 +665,7 @@ public class Table {
 //        return schemaPath;
 //    }
 
-    //    public static JsonArray readData(Path dataPath) {
+//    public static JsonArray readData(Path dataPath) {
 //        JsonArray data;
 //        try {
 //            FileReader reader = new FileReader(dataPath.toFile());

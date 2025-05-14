@@ -29,9 +29,9 @@ public class Schema {
         ArrayList<Field> fields = new ArrayList<>();
 
         for (int i = 0; i < meta.getColumnCount(); i++) {
-            String columnName = meta.getColumnNames()[i];
-            int columnType = meta.getColumnTypes()[i];
-            String constraint = meta.getColumnConstraints()[i];
+            String columnName = meta.getColumnNames().get(i);
+            int columnType = meta.getColumnTypes().get(i);
+            String constraint = meta.getColumnConstraints().get(i);
             String[] constraints = constraint.split(" ");     // 按空格拆分
             boolean isPrimaryKey = false;
             boolean isNotNull = false;
@@ -85,6 +85,10 @@ public class Schema {
 
     public void dropColumn(String columnName) {
         int index = getIndex(columnName);
+        dropColumn(index);
+    }
+
+    public void dropColumn(int index) {
         if (index != -1) {
             fields.remove(index);
         }
@@ -122,5 +126,9 @@ public class Schema {
             names.add(field.getName());
         }
         return names;
+    }
+
+    public void setPrimaryKeyName(String primaryKeyName) {
+        this.primaryKeyName = primaryKeyName;
     }
 }

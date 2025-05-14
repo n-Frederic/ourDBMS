@@ -96,6 +96,15 @@ public class Field {
                 '}';
     }
 
+    public String constraintToString() {
+        StringBuilder constraint = new StringBuilder();
+        if(isPrimaryKey()) constraint.append("primaryKey ");
+        if(isNotNull()) constraint.append("notNull ");
+        if(isUnique()) constraint.append("Unique ");
+        if(getDefault() != null) constraint.append("Default:").append(getDefault().toString());
+        return constraint.toString();
+    }
+
     public int mapFieldTypeToInt() {
         return switch (type.toUpperCase()) {
             case "STRING" -> 1;
