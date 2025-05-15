@@ -205,12 +205,20 @@ public class TableManager {
 
 
     public static void  renameColumn(String fieldName, String newFieldName, Table table) {
+        Meta meta = table.getPageManager().getMeta();
         Schema schema = table.getSchema();
         int index = schema.getIndex(fieldName);
         if (index == -1) {
             throw new IllegalArgumentException("列名不存在: " + fieldName);
         }
         schema.getField(fieldName).setName(newFieldName);
+
+        meta.getColumnNames().set(index,newFieldName);
+
+        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
+
+
+
     }
 
     public static void modifyColumn(Table table, String name, Field newField) throws IOException {

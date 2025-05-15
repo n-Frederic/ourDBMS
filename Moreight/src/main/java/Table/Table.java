@@ -184,6 +184,7 @@ public class Table {
                         Condition ec2 = new Condition(condition.getColumn(), condition.getValue(), "=");
                         tuples.addAll(where(page, ec2));
 //                    case "LIKE":
+                        
 
                 }
                 return tuples;

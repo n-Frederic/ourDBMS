@@ -5,6 +5,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 
+import Controller.Operating;
+
 
 public class DBMSMainFrame extends JFrame {
 
@@ -120,7 +122,7 @@ public class DBMSMainFrame extends JFrame {
     // 创建新的查询标签页
     public void createNewQueryTab() {
         // 检查是否已存在相同名称的标签页
-        String tabTitle = generateUniqueTabTitle("查询");
+        String tabTitle = generateUniqueTabTitle("<查询>");
 
         BlankQueryTab queryTab = new BlankQueryTab();
         tabbedPane.addTab(tabTitle, queryTab);
@@ -226,18 +228,19 @@ public class DBMSMainFrame extends JFrame {
                 String result = handleSelectedQuery(selectedText);
                 activeQueryTab.setQueryResult(result);
             } else {
-                JOptionPane.showMessageDialog(this, "请选择要执行的查询内容", "提示", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "请选择要执行的内容", "提示", JOptionPane.INFORMATION_MESSAGE);
             }
         } else {
-            JOptionPane.showMessageDialog(this, "没有活动的查询标签页", "提示", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "没有活动的标签页", "提示", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
     // 处理选中的查询内容
     private String handleSelectedQuery(String query) {
         // 在这里添加处理查询的逻辑
+        String result=Operating.logAndRegister(query);
         // 模拟查询结果
-        return "查询结果：\n" + query + "\n执行成功";
+        return "结果：\n" + result + "\n执行成功";
     }
 
     // 创建内容面板

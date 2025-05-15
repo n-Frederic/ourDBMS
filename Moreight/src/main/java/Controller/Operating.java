@@ -965,6 +965,9 @@ public class Operating { // implements CommandHandler
                     System.out.println("无法修改外键列 " + column + " 的类型");
                     return;
                 }
+                details=matcherAlter.group(4);
+                Field field=new Field(column,details);
+                TableManager.modifyColumn(table,column,field);
                 // ...执行修改...
             }
             // "age int
@@ -1042,8 +1045,14 @@ public class Operating { // implements CommandHandler
         try{
             Tuple t=TypeFilter.createTupleFromInsertValues(schema, columns, rawValues);
             t.showAll();
-            table.insert(t);
-            System.out.println("插入成功");
+            if(table.samePK(t.getPrimaryV())){
+                table.insert(t);
+                System.out.println("插入成功");
+            }else{
+                System.out.println("相同主键");
+            }
+
+
 
         }catch (Exception e){
             System.out.println("fail to create tuple");
@@ -1182,6 +1191,90 @@ public class Operating { // implements CommandHandler
 //            }
 //        }
         return "   ";
+    }
+
+    public static String logAndRegister(String str) {
+        while (!"exit".equals(str) && enter_database == false) {
+            System.out.println("=== 数据库操作 ===");
+
+            boolean matched = false;  // 标记是否匹配成功
+            Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(str);
+            Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(str);
+            Matcher matcherDropDB = PATTERN_DROP_DATABASE.matcher(str);
+            Matcher matcherShowDB=PATTERN_SHOW_DATABASES.matcher();
+
+
+            if (matcherCreateDB.find()) {
+                matched = true;
+                String dbName = matcherCreateDB.group(1);
+
+                if(TypeFilter.databaseExist(dbName)){
+                    System.out.println(dbName+" 已经存在!");
+                    continue;
+                }
+                if(UserManager.getCurrentUser().ddlOK()){
+                    System.out.println("创建数据库: " + dbName);
+                    DatabaseManager.createDataBase(dbName);
+
+                }else{
+                    System.out.println("只有管理员可以创建数据库");
+                }
+                // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
+                continue;
+            } else if (matcherUserDB.find()) {
+
+                matched = true;
+                String dbName = matcherUserDB.group(1);
+                if(!TypeFilter.databaseExist(dbName)){
+                    System.out.println(dbName+" 不存在!");
+                    continue;
+                }
+                //System.out.println("使用数据库: " + dbName);
+                boolean dbexist = false;
+                dbexist = DatabaseManager.useDatabase(dbName);
+                if (dbexist) {
+                    enter_database = true;
+                    System.out.println("使用数据库: " + dbName);
+                    break;
+                } else {
+                    System.out.println("数据库不存在");
+                }
+                // 设置 enter_database = true，表示已进入数据库
+
+                continue;
+            } else if (matcherDropDB.find()) {
+
+                matched = true;
+                String dbName = matcherDropDB.group(1);
+
+                if(!TypeFilter.databaseExist(dbName)){
+                    System.out.println(dbName+" not exist!");
+                    continue;
+                }
+
+                if(UserManager.getCurrentUser().ddlOK()){
+                    System.out.println("删除数据库: " + dbName);
+                    DatabaseManager.dropDatabase(dbName);
+
+                }else{
+                    System.out.println("只有管理员可以删除数据库");
+                }
+                continue;
+
+//                // 执行删除逻辑
+//                continue;
+            }else if(matcherShowDB.find()){
+                System.out.println("show");
+
+                List databases=DatabaseManager.listDatabases();
+                Render.drawDatabaseList(databases);
+                matched=true;
+
+            } else if (!matched) {
+                System.out.println("无效命令，请重新输入。");
+                continue;
+            }
+        }
     }
 }
 
