@@ -113,15 +113,19 @@ public class Table {
      */
     public ArrayList<Tuple> selectAll() throws IOException {
         ArrayList<Tuple> tuples = new ArrayList<>();
-        Page current = getPageManager().getPage(tree.getHead().getPageId());
 
-        while (current != null) {
-            tuples.addAll(current.getTuples());
+        if(tree.getHead() != null) {
+            Page current = getPageManager().getPage(tree.getHead().getPageId());
 
-            if (current.getNext() != null) {
-                current = getPageManager().getPage(current.getNext().getPageId());
-            } else break;
-        }
+            while (current != null) {
+                tuples.addAll(current.getTuples());
+
+                if (current.getNext() != null) {
+                    current = getPageManager().getPage(current.getNext().getPageId());
+                } else break;
+            }
+        } else System.out.println("Empty Set");
+
         return tuples;
     }
 
@@ -179,6 +183,8 @@ public class Table {
                         tuples.addAll(where(page, bc));
                         Condition ec2 = new Condition(condition.getColumn(), condition.getValue(), "=");
                         tuples.addAll(where(page, ec2));
+//                    case "LIKE":
+
                 }
                 return tuples;
             }

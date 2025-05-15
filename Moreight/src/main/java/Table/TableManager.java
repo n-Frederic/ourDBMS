@@ -59,12 +59,12 @@ public class TableManager {
      * @param tableName 表名。
      * @param userLevel 用户权限等级（1为游客，其他为管理员）。
      */
-    public static void DropTable(String tableName, int userLevel) {
+    public static void DropTable(String tableName, int userLevel) throws IOException {
         if (userLevel == 1) {
             System.out.println("权限不足，游客无法删除表。");
             return;
         }
-        File tableFile = new File(DIRECTORY + "/" + tableName + ".idb");
+        File tableFile = new File(DIRECTORY + "/" + DatabaseManager.getCurrentDatabase() + "/" + tableName + "/" + tableName + ".idb");
         if (tableFile.exists()) {
             if (tableFile.delete()) {
                 System.out.println("表 " + tableName + " 已成功删除。");
@@ -74,6 +74,8 @@ public class TableManager {
         } else {
             System.out.println("表 " + tableName + " 不存在。");
         }
+
+        Files.deleteIfExists(Paths.get(DIRECTORY + "/" + DatabaseManager.getCurrentDatabase() + "/" +tableName));
     }
 
 
@@ -112,22 +114,9 @@ public class TableManager {
 
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dbDir)) {
             for (Path file : stream) {
-                String name = file.getFileName().toString();
-                // 调试：打印每个文件名
-               // System.out.println("[DEBUG] found file: " + name);
-                // 调试：判断后缀
-                boolean endsSchemaJson = name.endsWith("_schema.json");
-                boolean endsSchema     = name.endsWith("_schema");
-
-                String tableName = null;
-                if (endsSchemaJson) {
-                    tableName = name.substring(0, name.length() - "_schema.json".length());
-                } else if (endsSchema) {
-                    tableName = name.substring(0, name.length() - "_schema".length());
-                }
-                if (tableName != null) {
-                    //System.out.println("[DEBUG] → 添加表名: " + tableName);
-                    tables.add(tableName);
+                if(Files.isDirectory(file)) {
+                    String name = file.getFileName().toString();
+                    tables.add(name);
                 }
             }
         } catch (IOException e) {

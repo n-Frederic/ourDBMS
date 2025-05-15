@@ -64,9 +64,6 @@ public class PageManager {
 
 
 
-
-
-
     public BpTree buildTreeFromFile() throws IOException {
         BpTree tree = new BpTree();
         // PageIO pageIO = tree.pageIO;
@@ -1136,96 +1133,6 @@ public class PageManager {
         return true;
     }
 
-//    /**
-//     * 验证节点是否符合B+树 定义
-//     */
-//    boolean validate(Page page) {
-//        if (checkKeyPointRelation(page)) {
-//            // 检查关键字是否有序
-//            if (keyIsOrder(page)) {
-//                if (page.isLeaf) {
-//                    if (page.isRoot) {
-//                        // 是页节点 且是 根节点
-//                        return true;
-//                    } else {
-//                        // 是叶子节点 不是 根节点
-//                        if (page.entries.size() < getUpper(page.maxLength - 1, 2) || page.entries.size() > (page.maxLength - 1)) {
-//                            System.out.println("叶节点key数 不合法");
-//                            return false;
-//                        }
-//                        if (page.parent == null) {
-//                            System.out.println("叶子节点的父节点的指针为空");
-//                            return false;
-//                        }
-//                    }
-//                    return true;
-//                } else {
-//                    // 非叶子节点
-//                    // 先检查指针数是否符合
-//                    if (page.isRoot) {
-//                        if (page.children.size() < 2) {
-//                            System.out.printf("根节点指针数 不合法, children:%d\n", page.children.size());
-//                            return false;
-//                        }
-//                    } else {
-//                        if (page.children.size() < getUpper(page.maxLength, 2) || page.children.size() > page.maxLength) {
-//                            System.out.printf("非叶节点指针数 不合法, children:%d\n", page.children.size());
-//                            System.out.printf("entry:%d\n", page.entries.size());
-//                            return false;
-//                        }
-//                        for (Page node : page.children) {
-//                            if (node.parent == null) {
-//                                System.out.println("中间节点的父指针为空");
-//                                return false;
-//                            }
-//                        }
-//                    }
-//                    for (Page node : page.children) {
-//                        if (node.validate()) {
-//                            // 子节点符合B+树定义
-//                            int pIdx = page.children.indexOf(node);
-//                            Value minChildKey = node.entries.getFirst();
-//                            Value maxChildKey = node.entries.getLast();
-//                            if (pIdx == 0) {
-//                                // 第一个指针
-//                                boolean isValid = maxChildKey.compare(page.entries.getFirst()) < 0;
-//                                if (!isValid) {
-//                                    System.out.println("子节点与父节点不满足大小关系");
-//                                    return false;
-//                                }
-//                            } else if (pIdx == (page.children.size() - 1)) {
-//                                // 最后一个指针
-//                                boolean isValid = minChildKey.compare(page.entries.getLast()) >= 0;
-//                                if (!isValid) {
-//                                    System.out.println("子节点与父节点不满足大小关系");
-//                                    return false;
-//                                }
-//                            } else {
-//                                Value preKey = page.entries.get(pIdx - 1);
-//                                Value nextKey = page.entries.get(pIdx);
-//                                boolean isValid = minChildKey.compare(preKey) >= 0
-//                                        && maxChildKey.compare(nextKey) < 0;
-//                                if (!isValid) {
-//                                    System.out.println("子节点与父节点不满足大小关系");
-//                                    return false;
-//                                }
-//                            }
-//                        } else {
-//                            // 子节点违反B+树定义
-//                            System.out.println("子节点违反B+树定义");
-//                            return false;
-//                        }
-//                    }
-//                    return true;
-//                }
-//            } else {
-//                // 关键字不有序
-//                return false;
-//            }
-//        } else {
-//            return false;
-//        }
-//    }
 
     public int findChildIndex(Page page, int childId) {
         for(int i = 0; i < page.children.size(); i++) {

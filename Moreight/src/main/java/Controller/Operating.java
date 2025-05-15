@@ -9,10 +9,10 @@ import Table.*;
 
 import Database.DatabaseManager;
 import Table.TableManager;
-import UI.UI.CommandHandler;
+//import UI.UI.CommandHandler;
 import User.UserManager;
 import Parser.commandParser;
-import UI.UI;
+//import UI.UI;
 
 import java.io.IOException;
 import java.util.*;
@@ -82,7 +82,7 @@ public class Operating { // implements CommandHandler
     private boolean login = false;
     private boolean enter_database = false;
 
-    private UI ui; // 定义 UI 对象
+    //private UI ui; // 定义 UI 对象
 
     //ui实验
     String cmd1;
@@ -216,7 +216,7 @@ public class Operating { // implements CommandHandler
             }else if(matcherShowDB.find()){
                 System.out.println("show");
 
-                List databases=DatabaseManager.listDatabases();
+                List<String> databases=DatabaseManager.listDatabases();
                 Render.drawDatabaseList(databases);
                 matched=true;
 
@@ -406,258 +406,8 @@ public class Operating { // implements CommandHandler
 
 
     }
-//
-//    @Override
-//    public void handleCommand(String cmd) {
-//        System.out.println("\n"); // 打印换行符
-//        // 根据命令类型执行不同操作
-////        Scanner sc = new Scanner(System.in);
-////        String cmd;
-//        //尝试把这里的命令行输入变为ui里传来的字符串
-//
-//        while (!"exit".equals(cmd = sc.nextLine()) && enter_database == false) {
-//
-//            boolean matched = false;  // 标记是否匹配成功
-//            Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(cmd);
-//            Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(cmd);
-//            Matcher matcherDropDB = PATTERN_DROP_DATABASE.matcher(cmd);
-//            Matcher matcherShowDB=PATTERN_SHOW_DATABASES.matcher(cmd);
-//
-//
-//            if (matcherCreateDB.find()) {
-//                matched = true;
-//                String dbName = matcherCreateDB.group(1);
-//                System.out.println("创建数据库: " + dbName);
-//
-//                if(TypeFilter.databaseExist(dbName)){
-//                    System.out.println(dbName+" already exist!");
-//                    continue;
-//                }
-//                DatabaseManager.createDataBase(dbName);
-//                // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
-//                continue;
-//            } else if (matcherUserDB.find()) {
-//
-//                matched = true;
-//                String dbName = matcherUserDB.group(1);
-//                if(!TypeFilter.databaseExist(dbName)){
-//                    System.out.println(dbName+" not exist!");
-//                    continue;
-//                }
-//                //System.out.println("使用数据库: " + dbName);
-//                boolean dbexist = false;
-//                dbexist = DatabaseManager.useDatabase(dbName);
-//                if (dbexist) {
-//                    enter_database = true;
-//                    System.out.println("使用数据库: " + dbName);
-//                    break;
-//                } else {
-//                    System.out.println("数据库不存在");
-//                }
-//                // 设置 enter_database = true，表示已进入数据库
-//
-//                continue;
-//            } else if (matcherDropDB.find()) {
-//
-//                matched = true;
-//                String dbName = matcherDropDB.group(1);
-//
-//                if(!TypeFilter.databaseExist(dbName)){
-//                    System.out.println(dbName+" not exist!");
-//                    continue;
-//                }
-//
-//                System.out.println("删除数据库: " + dbName);
-//                DatabaseManager.dropDatabase(dbName, UserManager.GetCurrentUser().getLevel());
-//                // 执行删除逻辑
-//                continue;
-//            }else if(matcherShowDB.find()){
-//                System.out.println("show");
-//
-//                List databases=DatabaseManager.listDatabases();
-//                Render.drawDatabaseList(databases);
-//                matched=true;
-//
-//            } else if (!matched) {
-//                System.out.println("无效命令，请重新输入。");
-//                continue;
-//            }
-//
-//
-//
-//        }
-//        System.out.println("请输入sql语句");
-//        while (!"exit".equals(cmd = sc.nextLine())) {
-//
-//
-//            boolean matched = false;  // 标记是否匹配成功
-//            Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(cmd);
-//            Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
-//            Matcher matcherSelectTable = PATTERN_SELECT.matcher(cmd);
-//            Matcher matcherInsertTable = PATTERN_INSERT.matcher(cmd);
-//            Matcher matcherAlterTable = PATTERN_ALTER_TABLE.matcher(cmd);
-//            Matcher matcherDelete = PATTERN_DELETE.matcher(cmd);
-//            Matcher matcherUpdate = PATTERN_UPDATE.matcher(cmd);
-//            Matcher matcherShowTB=PATTERN_SHOW_TABLES.matcher(cmd);
-//            Matcher matcherDESC=PATTERN_DESC.matcher(cmd);
-//
-//
-//
-//            if (matcherCreateTable.find()) {
-//                System.out.println("create");
-//                matched = true;
-//
-//                // ✅ 取出表名
-//                String tableName = matcherCreateTable.group(1);
-//                if(TypeFilter.tableExist(tableName)){
-//                    System.out.println("Table already exist!");
-//                    continue;
-//                }
-//
-//
-//
-//
-//                // ✅ 取出字段定义并解析
-//                String fieldsStr = matcherCreateTable.group(2);
-//                ArrayList<Field> fieldList = commandParser.parseCreateTable(fieldsStr);
-//
-//
-//                Set<String> existingColumnNames = new HashSet<>();
-//                for(Field fieldList1 : fieldList) {
-//                    String columnName = fieldList1.getName();
-//                    if(existingColumnNames.contains(columnName)) {
-//                        System.out.println("column exist!");
-//                        continue;
-//                    }else{
-//                        boolean validtype;
-//                        validtype=TypeFilter.typeExist(fieldList);
-//                        if(!validtype){
-//                            System.out.println("type invalid!");
-//                            continue;
-//                        }else{
-//                            if (fieldList == null) {
-//
-//
-//
-//                            } else {
-//                                System.out.println("创建表: " + tableName);
-//                                for (Field f : fieldList) {
-//                                    System.out.println("字段: " + f.getName() + ", 类型: " + f.getType());
-//                                }
-//                                TableManager.CreateTable(tableName, fieldList);
-//                            }
-//                            continue;
-//
-//                        }
-//                    }
-//                }
-//
-//
-//
-//
-//            } else if (matcherDropTable.find()) {
-//                System.out.println("drop");
-//                // matched = true;
-//                String tableName = matcherDropTable.group(1);  //
-//                Table table=TableCache.getTable(tableName);
-//                if(!TypeFilter.tableExist(tableName)){
-//                    System.out.println("Table 不存在!");
-//                    continue;
-//                }
-//                if (table.isReferencedByOtherTables()) {
-//                    System.out.println("无法删除表 " + tableName + ": 被其他表的外键引用");
-//                    continue;
-//                }
-//
-//
-//                System.out.println("删除表: " + tableName);     //
-//                TableManager.DropTable(tableName, 2);
-//                continue;
-//
-//            } else if (matcherSelectTable.find()) {
-//                System.out.println("select");
-//                //matched = true;
-//                select(matcherSelectTable);
-//
-//
-//                continue;
-//            } else if(matcherShowTB.find()){
-//                System.out.println("tables:");
-//                List<String >tables=TableManager.showTables();
-//                Render.drawTablesList(tables);
-//                continue;
-//
-//
-//            } else if (matcherInsertTable.find()) {
-//                System.out.println("insert");
-//                //matched = true;
-//                try {
-//                    insert(matcherInsertTable);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//                continue;
-//
-//            } else if (matcherAlterTable.find()) {
-//
-//                System.out.println("alter");
-//                alter(matcherAlterTable);
-//                // matched = true;
-//                continue;
-//
-//
-//            } else if (matcherDelete.find()) {
-//                String tableName = matcherDelete.group(1);
-//                String conditionstr = matcherDelete.group(2);
-//                ArrayList<Condition> conditions;
-//
-//                Table table=TableCache.getTable(tableName);
-//                ConditionParser parser=new ConditionParser(table);
-//                parser.tokenizeWhere(matcherSelectTable.group(3));
-//                // 在删除前检查是否有其他表的外键引用此记录
-//                if (table.isReferencedByOtherTables()) {
-//                    System.out.println("存在其他表的外键引用，删除列不成功");
-//                    continue;
-//                }
-//
-//
-//            } else if (matcherUpdate.find()) {
-//                String tableName;
-//                String conditionstr;
-//
-//                update(matcherUpdate);
-//
-//                matched = true;
-//                continue;
-//
-//
-//            }else if(matcherDESC.find()){
-//                String tableName=matcherDESC.group(1);
-//                TableManager.desc( TableCache.getTable(tableName));
-//
-//            }
-//
-//            if (!matched) {
-//                System.out.println("错误输入: " + cmd);  // 调试输出，查看具体输入的命令
-//                continue;
-//            }
-//
-//            System.out.println("matched?" + matched);
-//
-//        }
-//
-//
-//    }
-//
-//
 
 
-//        private void createDB(Matcher matcherCreateTable) {
-//                String tableName = matcherCreate.group(1);
-//                String propertys = matcherCreateTable.group(2);
-//                Map<String, Field> fieldMap = StringUtil.parseCreateTable(propertys);
-//                System.out.println(TableManager.CreateTable(tableName, fieldMap));
-//        }
 
     private void dropDB(Matcher matcherDropTable) {
         String tableName = matcherDropTable.group(1);
