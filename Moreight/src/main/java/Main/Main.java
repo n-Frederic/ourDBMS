@@ -98,16 +98,22 @@ public class Main {
 //
 //        page.showInfo();;
 
+//        /**
+//         * 构建数据库
+//         */
+//        DatabaseManager.createDataBase("TEST");
+
         /**
-         * 构建数据库
+         * 使用数据库
          */
-        DatabaseManager.createDataBase("TEST");
-        TableManager tm = new TableManager();
-        ArrayList<Field> fields = new ArrayList<>();
+        DatabaseManager.useDatabase("TEST");
+
+
 
         /**
          * 测试字段
          */
+        ArrayList<Field> fields = new ArrayList<>();
         fields.add(new Field("id", "INT"));
         fields.add(new Field("name", "STRING"));
         fields.add(new Field("age", "INT"));
@@ -157,7 +163,8 @@ public class Main {
          */
 
         System.out.println();
-        table.getPageManager().getMeta().showInfo();
+        Meta meta = table.getPageManager().getMeta();
+        meta.showInfo();
         System.out.println();
 
 
@@ -227,7 +234,17 @@ public class Main {
          * 检查desc
          */
 
-        TableManager.desc(table);
+//        TableManager.desc(table);
+
+        /**
+         * 检查Modify column
+         */
+        Field updatedField = new Field("name", "int");
+        updatedField.setPrimaryKey(false);
+
+        TableManager.modifyColumn(table, "name", updatedField);
+
+        meta.showInfo();
 
 
 

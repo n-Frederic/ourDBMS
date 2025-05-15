@@ -70,6 +70,21 @@ public class Schema {
         // 创建 Schema 对象
         return new Schema(fields);
     }
+    public Field getField(int id){
+        return fields.get(id);
+    }
+
+    public String getPrimaryKey(){
+        return this.primaryKeyName;
+    }
+    public void showAll(){
+        for(Field f:fields){
+            System.out.println(f.getType());
+            System.out.println(f.getName());
+
+        }
+
+    }
 
     public String getPrimaryKeyName() {
         return primaryKeyName;

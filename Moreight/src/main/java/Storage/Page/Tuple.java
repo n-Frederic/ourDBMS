@@ -105,6 +105,12 @@ public class Tuple {
 
         return schema.getIndex(columnName);
     }
+    public void showAll(){
+        for(Value v:values){
+            System.out.println(v);
+        }
+        System.out.println(primaryV);
+    }
 
     /**
      * @param condition 比较条件

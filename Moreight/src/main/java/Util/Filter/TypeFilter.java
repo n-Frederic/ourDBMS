@@ -1,5 +1,8 @@
 package Util.Filter;
 //import Storage.BPlusTree.Value.*;
+import Storage.Value.*;
+import Storage.Page.*;
+import Conditions.ConditionParser;
 import Storage.Value.Value;
 import Table.*;
 import Parser.commandParser;
@@ -13,6 +16,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonElement;
 
+import javax.swing.*;
 import java.util.Map;
 
 import java.io.FileReader;
@@ -80,7 +84,8 @@ public class TypeFilter {
     public static boolean tableExist(String tableName){
         List<String>tables=TableManager.showTables();
         for(String table:tables){
-            if(tableName==table)return true;
+            System.out.println("table exist?"+table);
+            if(tableName.equals(table))return true;
         }
         return false;
     }
@@ -134,69 +139,166 @@ public class TypeFilter {
 //    }
 
 
-
-
-
-    public static List<Value> validateAndConvertValues(
-            List<String> columns,
-            List<Object> rawValues,
-            Schema schema) {
-
-        List<Field> fields = schema.getFields();
-        List<Value> columnTypes=new ArrayList();
-        for(int i=0;i<fields.size();i++){
-//            Class<? extends Value> value=Value.parse(commandParser.findClass(schema.getField(fields.get(i).getName()).getType()),schema.getField(fields.get(i).getName()).getType());
-
-            columnTypes.add(i,Value.parse(commandParser.findClass(schema.getField(fields.get(i).getName()).getType()),schema.getField(fields.get(i).getName()).getType()));
-
-        }
-
-        // 构建“列名 → 下标”映射
-        Map<String,Integer> colIdxMap = new HashMap<>();
-        for (int i = 0; i < fields.size(); i++) {
-            colIdxMap.put(fields.get(i).getName().toLowerCase(), i);
-        }
-
-        // 列和值数量必须一致
+    public static Tuple createTupleFromInsertValues(Schema schema, List<String> columns, List<Object> rawValues) throws Exception {
+        // 确保列名和值的数量匹配
         if (columns.size() != rawValues.size()) {
-            throw new IllegalArgumentException(
-                    "INSERT 列和值数量不匹配：列 " + columns.size() + " vs 值 " + rawValues.size());
+            throw new IllegalArgumentException("列数量与值数量不匹配");
         }
 
-        List<Value> castedValues = new ArrayList<>(columns.size());
+        // 创建与表模式顺序一致的值数组
+        Value[] orderedValues = new Value[schema.getFields().size()];
+
+        // 处理每个列和对应的值
         for (int i = 0; i < columns.size(); i++) {
-            String col = columns.get(i).toLowerCase();
-            Object raw = rawValues.get(i);
+            String columnName = columns.get(i);
+            Object rawValue = rawValues.get(i);
 
-            Integer idx = colIdxMap.get(col);
-            if (idx == null) {
-                throw new IllegalArgumentException(
-                        "列 `" + col + "` 在表中不存在");
-            }
-            //Class<Value> expectedType = columnTypes.get(idx);
-            Value v;
-            if (raw instanceof Value) {
-                v = (Value) raw;
-            } else {
-                System.out.println("");
-                return null;
-//                // 按照预期类型做一次转换
-//                v = ValueParser.parse(raw.toString(), expectedType);
+            // 查找列在模式中的位置
+            int columnIndex = schema.getIndex(columnName);
+            if (columnIndex == -1) {
+                throw new IllegalArgumentException("未知列名: " + columnName);
             }
 
-//            if (!expectedType.isInstance(v)) {
-//                throw new IllegalArgumentException(
-//                        String.format("插入值类型不匹配：列 `%s` 期望 %s，实际 %s",
-//                                col,
-//                                expectedType.getSimpleName(),
-//                                v.getClass().getSimpleName()));
-//            }
+            // 获取列的类型信息
+            Field field = schema.getField(columnIndex);
+            String fieldType = field.getType();
 
-            castedValues.add(v);
+            // 根据字段类型转换原始值为对应的Value对象
+            Value value = convertToValue(fieldType, rawValue);
+            orderedValues[columnIndex] = value;
         }
 
-        return castedValues;
+        // 检查并填充缺失的列（使用默认值或NULL）
+        for (int i = 0; i < orderedValues.length; i++) {
+            if (orderedValues[i] == null) {
+                // 可以实现默认值逻辑，这里简化为使用NULL
+                orderedValues[i] = new NullValue();
+            }
+        }
+
+        // 确定主键值
+        Value primaryValue = null;
+        String primaryKey = schema.getPrimaryKey();
+        System.out.println("P K:"+primaryKey);
+        if (primaryKey != null) {
+            int primaryIndex = schema.getIndex(primaryKey);
+            if (primaryIndex != -1 && orderedValues[primaryIndex] != null) {
+                primaryValue = orderedValues[primaryIndex];
+                System.out.println("P index:"+primaryIndex);
+                System.out.println("P value:"+primaryValue);
+            } else {
+                throw new IllegalArgumentException("主键值不能为空");
+            }
+        }
+
+        // 创建并返回Tuple对象
+        return new Tuple(orderedValues, primaryValue);
     }
+
+    /**
+     * 将原始值转换为对应的Value对象
+     * @param fieldType 字段类型
+     * @param rawValue 原始值
+     * @return 转换后的Value对象
+     * @throws Exception 如果转换失败
+     */
+    public static Value convertToValue(String fieldType, Object rawValue) throws Exception {
+        if (rawValue == null) {
+            return new NullValue();
+        }
+
+        switch (fieldType.toLowerCase()) {
+            case "int":
+            case "integer":
+                return new IntValue(Integer.parseInt(rawValue.toString()));
+
+            case "long":
+            case "bigint":
+                return new LongValue(Long.parseLong(rawValue.toString()));
+
+            case "string":
+            case "varchar":
+            case "char":
+                return new StringValue(rawValue.toString());
+
+            case "boolean":
+                return new BooleanValue(Boolean.parseBoolean(rawValue.toString()));
+
+            default:
+                throw new IllegalArgumentException("不支持的字段类型: " + fieldType);
+        }
+    }
+
+
+    //    public static List<Value> validateAndConvertValues(
+//            List<String> columns,
+//            List<Object> rawValues,
+//            Schema schema) {
+//        System.out.println("columns in validate"+columns);
+//
+//        List<Field> fields = schema.getFields();
+//
+//        List<Value> columnTypes=new ArrayList();
+//        for(int i=0;i<fields.size();i++){
+////            Class<? extends Value> value=Value.parse(commandParser.findClass(schema.getField(fields.get(i).getName()).getType()),schema.getField(fields.get(i).getName()).getType());
+//
+//            columnTypes.add(i,Value.parse(commandParser.findClass(schema.getField(fields.get(i).getName()).getType()),schema.getField(fields.get(i).getName()).getType()));
+//
+//        }
+//
+//        // 构建“列名 → 下标”映射
+//        Map<String,Integer> colIdxMap = new HashMap<>();
+//        for (int i = 0; i < fields.size(); i++) {
+//            colIdxMap.put(fields.get(i).getName().toLowerCase(), i);
+//        }
+//
+//        // 列和值数量必须一致
+//        if (columns.size() != rawValues.size()) {
+//            throw new IllegalArgumentException(
+//                    "INSERT 列和值数量不匹配：列 " + columns.size() + " vs 值 " + rawValues.size());
+//        }
+//
+//        List<Value> castedValues = new ArrayList<>(columns.size());
+//        for (int i = 0; i < columns.size(); i++) {
+//            String col = columns.get(i).toLowerCase();
+//            Object raw = rawValues.get(i);
+//            System.out.println("raw"+raw);
+//
+//            System.out.println("class"+raw.getClass());
+//            Class<?extends Value>val=commandParser.findClass(raw.getClass().getName());
+//            raw=Value.parse(val,raw.toString());
+//            Integer idx = colIdxMap.get(col);
+//            if (idx == null) {
+//                throw new IllegalArgumentException(
+//                        "列 `" + col + "` 在表中不存在");
+//            }
+//            //Class<Value> expectedType = columnTypes.get(idx);
+//            Value v;
+//            System.out.println("raw instance of value?"+(raw instanceof Value));
+//            if (raw instanceof Value) {
+//                v = (Value) raw;
+//                System.out.println("v"+v.getType());
+//                System.out.println("v"+v);
+//            } else {
+//                System.out.println("null");
+//                return null;
+////                // 按照预期类型做一次转换
+////                v = ValueParser.parse(raw.toString(), expectedType);
+//            }
+//
+////            if (!expectedType.isInstance(v)) {
+////                throw new IllegalArgumentException(
+////                        String.format("插入值类型不匹配：列 `%s` 期望 %s，实际 %s",
+////                                col,
+////                                expectedType.getSimpleName(),
+////                                v.getClass().getSimpleName()));
+////            }
+//
+//            castedValues.add(v);
+//        }
+//
+//        return castedValues;
+//    }
     private static boolean isValueUnique(String table, String column, String value) {
         Path filePath = Paths.get("../TestData", "DatabaseManager", DatabaseManager.getCurrentDatabase(), table + ".json");
         if (!Files.exists(filePath)) {

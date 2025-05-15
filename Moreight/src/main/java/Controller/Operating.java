@@ -31,7 +31,9 @@ public class Operating { // implements CommandHandler
 
     private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)\\s*\\(([^\\)]+)\\)\\s*values\\s*\\(([^\\)]+)\\);?");
 
-    private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile("(?i)create\\s+table\\s(\\w+)\\s?\\(((?:\\s?\\w+\\s\\w+,?)+)\\)\\s?;");
+    private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile(
+            "(?i)create\\s+table\\s+(\\w+)\\s*\\(((?:\\s*\\w+\\s+\\w+(?:\\([^)]+\\))?\\s*,\\s*)*\\w+\\s+\\w+(?:\\([^)]+\\))?\\s*)\\);"
+    );
     // 说明：(?i)表示不区分大小写；(?:column\s+)? 表示可选的 "column" 关键字及其后的空白字符
     private static final Pattern PATTERN_ALTER_TABLE = Pattern.compile(
             "(?i)alter\\s+table\\s+(\\w+)\\s+" +            // group1: 表名
@@ -71,7 +73,7 @@ public class Operating { // implements CommandHandler
     private static final Pattern PATTERN_USE_DATABASE = Pattern.compile("(?i)use\\s+(\\w+)\\s*;");
     private static final Pattern PATTERN_DROP_DATABASE = Pattern.compile("(?i)drop\\s+database\\s+(\\w+)\\s*;");
     private static final Pattern PATTERN_DESC =
-            Pattern.compile("(?i)^\\s*(?:DESC|DESCRIBE)\\s+(\\w+)\\s*;?\\s*$");
+            Pattern.compile("(?i)^\\s*(DESC|DESCRIBE)\\s+(\\w+)(\\s*;)?\\s*$");
 
 
 
@@ -123,12 +125,14 @@ public class Operating { // implements CommandHandler
 //        SwingUtilities.invokeLater(() -> { // 在 Swing 线程中执行 UI 相关操作
 //            ui = new UI(this); // 创建 UI 对象并传入自身作为命令处理
 //        });
-        if(UserManager.getCurrentUser().hasPermission("admin")){
-            do{
-                UserAuthentication.permissionManagement(sc);
-            }while(!UserAuthentication.quit);
-
-        }
+//        if(UserManager.getCurrentUser().hasPermission("admin")){
+//            //System.out.println("start permission");
+//           // System.out.println(UserAuthentication.quit);
+//            while(!UserAuthentication.quit){
+//                UserAuthentication.permissionManagement(sc);
+//            }
+//
+//        }
 
 
 
@@ -138,6 +142,7 @@ public class Operating { // implements CommandHandler
         String cmd;
         //尝试把这里的命令行输入变为ui里传来的字符串
         while (!"exit".equals(cmd = sc.nextLine()) && enter_database == false) {
+            System.out.println("=== 数据库操作 ===");
 
             boolean matched = false;  // 标记是否匹配成功
             Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(cmd);
@@ -149,6 +154,11 @@ public class Operating { // implements CommandHandler
             if (matcherCreateDB.find()) {
                 matched = true;
                 String dbName = matcherCreateDB.group(1);
+
+                if(TypeFilter.databaseExist(dbName)){
+                    System.out.println(dbName+" 已经存在!");
+                    continue;
+                }
                 if(UserManager.getCurrentUser().ddlOK()){
                     System.out.println("创建数据库: " + dbName);
                     DatabaseManager.createDataBase(dbName);
@@ -156,12 +166,8 @@ public class Operating { // implements CommandHandler
                 }else{
                     System.out.println("只有管理员可以创建数据库");
                 }
-                System.out.println("创建数据库: " + dbName);
 
-                if(TypeFilter.databaseExist(dbName)){
-                    System.out.println(dbName+" 已经存在!");
-                    continue;
-                }
+
 
                 // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
                 continue;
@@ -264,15 +270,11 @@ public class Operating { // implements CommandHandler
                     create(fieldList,tableName);
 
 
+
                 }else{
                     System.out.println("只有管理员可以建表");
                 }
-
-
-
-
-
-
+                continue;
 
 
 
@@ -384,8 +386,12 @@ public class Operating { // implements CommandHandler
 
 
             }else if(matcherDESC.find()){
-                String tableName=matcherDESC.group(1);
-                TableManager.desc( new Table(tableName));
+                String tableName=matcherDESC.group(2);
+                Table table =new Table(tableName);
+                //System.out.println(table.getSchema());
+                TableManager.desc(table);
+                continue;
+
 
             }
 
@@ -1017,44 +1023,65 @@ public class Operating { // implements CommandHandler
 
 
     }
+
     private void insert(Matcher matcherInsert) throws IOException {
         String tableName   = matcherInsert.group(1);
         List<String> columns   = commandParser.parseInsertColumn(matcherInsert.group(2));
         List<Object> rawValues = commandParser.parseInsertValue(matcherInsert.group(3));
-
-        if(!TypeFilter.tableExist(tableName)){
-            System.out.println(tableName+" not exist!");
-
-        }else{
-            // --- load schema ---
-            Table table=new Table(tableName);
-            Schema schema  = table.getSchema();
-
-            // 1. 校验并转换
-            List<Value> castedValues = TypeFilter.validateAndConvertValues(columns, rawValues, schema);
-
-            Tuple keyTuple = buildTuple(columns, castedValues, schema);
-            // 2. 真正调用插入
-            if (table.hasForeignKeyConstraints()) {
-                for (Field field : schema.getFields()) {
-                    if (field.isForeignKey()) {
-                        Value fkValue = castedValues.get(columns.indexOf(field.getName()));
-                        Table refTable = new Table(field.getReferenceTable());
-                        if (!refTable.containsValue(field.getReferenceColumn(), fkValue)) {
-                            System.out.println("违反外键约束: 值 " + fkValue + " 在表 " +
-                                    field.getReferenceTable() + " 的 " +
-                                    field.getReferenceColumn() + " 列中不存在");
-                            return;
-                        }
-                    }
-                }
-            }
+        System.out.println(tableName);
+        System.out.println(columns);
+        System.out.println(rawValues );
+        Table table=new Table(tableName);
+        Schema schema  = table.getSchema();
 
 
+        try{
+            Tuple t=TypeFilter.createTupleFromInsertValues(schema, columns, rawValues);
+            t.showAll();
+            table.insert(t);
+            System.out.println("插入成功");
 
-            table.insert(keyTuple);
-
+        }catch (Exception e){
+            System.out.println("fail to create tuple");
         }
+//
+//        if(!TypeFilter.tableExist(tableName)){
+//            System.out.println(tableName+" not exist!");
+//
+//
+//        }else if(true){
+        // --- load schema ---
+
+
+//            // 1. 校验并转换
+//            List<Value> castedValues = TypeFilter.validateAndConvertValues(columns, rawValues, schema);
+//
+//           System.out.println(castedValues.get(1).getType());
+//           System.out.println(columns.get(1));
+//
+//            Tuple keyTuple = buildTuple(columns, castedValues, schema);
+
+//            // 2. 真正调用插入
+//            if (table.hasForeignKeyConstraints()) {
+//                for (Field field : schema.getFields()) {
+//                    if (field.isForeignKey()) {
+//                        Value fkValue = castedValues.get(columns.indexOf(field.getName()));
+//                        Table refTable = new Table(field.getReferenceTable());
+//                        if (!refTable.containsValue(field.getReferenceColumn(), fkValue)) {
+//                            System.out.println("违反外键约束: 值 " + fkValue + " 在表 " +
+//                                    field.getReferenceTable() + " 的 " +
+//                                    field.getReferenceColumn() + " 列中不存在");
+//                            return;
+//                        }
+//                    }
+//                }
+//            }
+
+
+
+
+
+//        }
 
     }
     private Tuple buildTuple(
@@ -1080,6 +1107,8 @@ public class Operating { // implements CommandHandler
             String col = columns.get(i).toLowerCase();
             int idx    = colIdx.get(col);    // 一定存在，否则前面 validate 就会报错
             arr[idx]   = values.get(i);
+
+            System.out.println(values.get(i).getType());
         }
 
         // 4. 用这个数组构造一个 Tuple 返回

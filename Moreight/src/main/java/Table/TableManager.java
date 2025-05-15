@@ -224,6 +224,42 @@ public class TableManager {
         schema.getField(fieldName).setName(newFieldName);
     }
 
+    public static void modifyColumn(Table table, String name, Field newField) throws IOException {
+        Meta meta = table.getPageManager().getMeta();
+        Schema schema = table.getSchema();
+        List<Field> fieldList = schema.getFields();
+        int index = -1;
+
+        // 先处理有无该列
+        for (int i = 0; i < fieldList.size(); i++) {
+            if (fieldList.get(i).getName().equals(name)) {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1) {
+            throw new IllegalArgumentException("字段 " + name + " 不存在！");
+        }
+
+        // 处理是否有主键冲突
+        if (newField.isPrimaryKey()) {
+            for (Field field : fieldList) {
+                if (field.isPrimaryKey() && field.getName().equals(name)) {
+                    throw new IllegalArgumentException("已有主键 " + field.getName() + "，不能设定多个主键！");
+                }
+            }
+        }
+        fieldList.set(index, newField);
+        if(newField.isPrimaryKey()) schema.setPrimaryKeyName(newField.getName());
+
+        meta.getColumnNames().set(index,newField.getName());
+        meta.getColumnTypes().set(index,newField.mapFieldTypeToInt());
+        meta.getColumnConstraints().set(index,newField.constraintToString());
+
+        RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
+        meta.writeMetaToDisk(raf);
+    }
+
     public static void desc(Table table) throws IOException {
         ArrayList<String> fieldNames = new ArrayList<>();
         ArrayList<Tuple> tuples = new ArrayList<>();
