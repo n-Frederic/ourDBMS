@@ -143,10 +143,13 @@ public class UserAuthentication {
 
             System.out.println("login successful! welcome "+username);
             UserManager.SetCurrentUser(new User(username,password,level));
+            return true;
 
 
         }else if(result==3){
+
             System.out.println("valid levels are : admin|user|visitor,please check!");
+
         }
         else if(result==0){
             System.out.println("register failed ,please check !");

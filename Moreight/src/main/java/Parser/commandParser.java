@@ -351,8 +351,8 @@ public class commandParser {
 
         return result;
     }
-    public static ArrayList<String[]> parseSelectColumn(String str) {
-        ArrayList<String[]> columns = new ArrayList<>();
+    public static ArrayList<String> parseSelectColumn(String str) {
+        ArrayList<String> columns = new ArrayList<>();
         if (str == null || str.trim().isEmpty()) {
             return columns;
         }
@@ -364,26 +364,26 @@ public class commandParser {
             part = part.trim();
             if (part.isEmpty()) continue;
 
-            String[] colInfo = new String[2];
-            colInfo[0] = part; // 原始表达式
+            String colInfo = part;
 
-            // 检查是否是聚合函数
-            Matcher aggMatcher = Pattern.compile(
-                    "(?i)(count|sum|avg|min|max)\\s*\\(([^)]+)\\)(?:\\s+as\\s+(\\w+))?"
-            ).matcher(part);
 
-            if (aggMatcher.find()) {
-                // 如果有AS别名，使用别名
-                if (aggMatcher.group(3) != null) {
-                    colInfo[1] = aggMatcher.group(3);
-                } else {
-                    // 否则生成默认列名
-                    colInfo[1] = "Column" + colNum++;
-                }
-            } else {
-                // 不是聚合函数，直接使用列名
-                colInfo[1] = part;
-            }
+//            // 检查是否是聚合函数
+//            Matcher aggMatcher = Pattern.compile(
+//                    "(?i)(count|sum|avg|min|max)\\s*\\(([^)]+)\\)(?:\\s+as\\s+(\\w+))?"
+//            ).matcher(part);
+//
+//            if (aggMatcher.find()) {
+//                // 如果有AS别名，使用别名
+//                if (aggMatcher.group(3) != null) {
+//                    colInfo[1] = aggMatcher.group(3);
+//                } else {
+//                    // 否则生成默认列名
+//                    colInfo[1] = "Column" + colNum++;
+//                }
+//            } else {
+//                // 不是聚合函数，直接使用列名
+//                colInfo[1] = part;
+//            }
 
             columns.add(colInfo);
         }

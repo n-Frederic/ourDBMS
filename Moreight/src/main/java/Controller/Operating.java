@@ -851,8 +851,8 @@ public class Operating { // implements CommandHandler
 
 
             } else {
-//                columns = commandParser.parseSelectColumn(columnsStr);
-                columns.add("hhh");
+                columns = commandParser.parseSelectColumn(columnsStr);
+
                 checkColumnsExist(table,columns);
                 for(Object column:columns){
                     if(!TypeFilter.columnExist(table,column.toString())){

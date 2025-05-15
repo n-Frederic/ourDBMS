@@ -48,7 +48,7 @@ class RegisterFrame extends JFrame {
         // 设置权限下拉框
         levelComboBox.setPreferredSize(new Dimension(300, 40));
         levelComboBox.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        levelComboBox.setModel(new DefaultComboBoxModel<>(new String[]{"0", "1","2","3"}));
+        levelComboBox.setModel(new DefaultComboBoxModel<>(new String[]{"admin", "user","visitor"}));
 
         // 设置注册按钮
         registerButton.setPreferredSize(new Dimension(300, 40));
@@ -69,8 +69,8 @@ class RegisterFrame extends JFrame {
                 // 模拟注册成功
                 if (passwordStr.equals(confirmPasswordStr)) {
                     login = UserAuthentication.register1(username, passwordStr, level);
+                    System.out.println(level);
                     System.out.println(login);
-
                     registerSuccess = login; // 实际应用中根据后端验证结果设置
 
                     if (registerSuccess) {
@@ -81,7 +81,7 @@ class RegisterFrame extends JFrame {
                         // 关闭当前注册窗口
                         dispose();
                     } else {
-                        System.out.println("注册失败");
+                        //System.out.println("注册失败");
                         // 显示错误提示
                     }
                 } else {
