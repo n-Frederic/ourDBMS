@@ -4,8 +4,11 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.io.IOException;
 
 import Controller.Operating;
+import Util.Func.Render;
+
 
 
 public class DBMSMainFrame extends JFrame {
@@ -27,6 +30,8 @@ public class DBMSMainFrame extends JFrame {
 
     // 当前活动的查询标签页
     private BlankQueryTab activeQueryTab;
+
+    public boolean enterDB=false;
 
     public DBMSMainFrame() {
         // 设置窗口
@@ -218,14 +223,49 @@ public class DBMSMainFrame extends JFrame {
         }
     }
 
+    private void updateUserQueryTab() {
+        int selectedIndex = tabbedPane.getSelectedIndex();
+        if (selectedIndex >= 0 && selectedIndex < tabbedPane.getTabCount()) {
+            Component selectedComponent = tabbedPane.getComponentAt(selectedIndex);
+            if (selectedComponent instanceof BlankQueryTab) {
+                activeQueryTab = (BlankQueryTab) selectedComponent;
+            } else {
+                activeQueryTab = null;
+            }
+        } else {
+            activeQueryTab = null;
+        }
+    }
+
     // 执行选中的查询内容
-    public void executeSelectedQuery() {
+    public void executeSelectedQuery() throws IOException {
+        updateActiveQueryTab(); // 确保获取当前活动的查询标签页
+        if (activeQueryTab != null) {
+            String selectedText = activeQueryTab.getSelectedText();
+            activeQueryTab.setQueryResult(" ");
+            if (selectedText != null && !selectedText.isEmpty()) {
+
+                // 处理选中的文本
+                String result = handleSelectedQuery(selectedText);
+                activeQueryTab.setQueryResult(" ");
+                activeQueryTab.setQueryResult(result);
+            } else {
+                JOptionPane.showMessageDialog(this, "请选择要执行的内容", "提示", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "没有活动的标签页", "提示", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    public void executeUserQuery() throws IOException {
         updateActiveQueryTab(); // 确保获取当前活动的查询标签页
         if (activeQueryTab != null) {
             String selectedText = activeQueryTab.getSelectedText();
             if (selectedText != null && !selectedText.isEmpty()) {
+                activeQueryTab.setQueryResult(" ");
                 // 处理选中的文本
                 String result = handleSelectedQuery(selectedText);
+                activeQueryTab.setQueryResult(" ");
                 activeQueryTab.setQueryResult(result);
             } else {
                 JOptionPane.showMessageDialog(this, "请选择要执行的内容", "提示", JOptionPane.INFORMATION_MESSAGE);
@@ -236,11 +276,24 @@ public class DBMSMainFrame extends JFrame {
     }
 
     // 处理选中的查询内容
-    private String handleSelectedQuery(String query) {
+    private String handleSelectedQuery(String query) throws IOException {
+
         // 在这里添加处理查询的逻辑
-        String result=Operating.logAndRegister(query);
+        String result=" ";
+        Operating operating=new Operating();
+        result=operating.isDB(query);
+//
+//        Operating operating=new Operating();
+//        operating.logAndRegister(query);
+//        result=result+Operating.str1;
+//        enterDB=operating.enter_database;
+//        if(enterDB){
+//            operating.logAndRegister1(query);
+//            result=result+Operating.str1;
+//        }
+
         // 模拟查询结果
-        return "结果：\n" + result + "\n执行成功";
+        return "结果：\n" + result + "\n";
     }
 
     // 创建内容面板
@@ -295,6 +348,12 @@ public class DBMSMainFrame extends JFrame {
         tabbedPane.removeAll();
         tabbedPane.addTab("用户管理", new UserManagementTab());
     }
+
+    public void setUserManagementDialog() {
+        tabbedPane.removeAll();
+        tabbedPane.addTab("用户管理", new UserManagementDialog());
+    }
+
 
     // 设置数据库管理标签页
     public void setDatabaseManagementTab() {

@@ -1,4 +1,5 @@
 package Conditions;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import Storage.Page.Tuple;
@@ -34,9 +35,10 @@ public class ConditionOperator extends ConditionNode {
     }
 
     @Override
-    public ArrayList<Tuple>  evaluate() {
+    public ArrayList<Tuple>  evaluate() throws IOException {
         ArrayList<Tuple> leftResult = left.evaluate();
         ArrayList<Tuple>rightResult = right.evaluate();
+
 
         return table.where(leftResult,rightResult,this.operator);
 

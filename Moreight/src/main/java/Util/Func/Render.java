@@ -13,6 +13,8 @@ import java.util.function.Consumer;
  */
 public class Render {
 
+    public static StringBuilder stringBuilder = new StringBuilder(" ");
+
     /**
      * 判断字符是否为全角字符。
      * @param c 要判断的字符。
@@ -100,7 +102,10 @@ public class Render {
 
      */
     public static void DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
+        stringBuilder= new StringBuilder(" ");
+        stringBuilder.append("\n");
         Map<String, Integer> columnWidths=new HashMap<>();
+
         for (String column : columns) {
             columnWidths.put(column, column.length());
         }
@@ -120,21 +125,27 @@ public class Render {
 
         Runnable printSeparator = () -> {
             System.out.print("+");
+            stringBuilder.append("+");
             for (String col : columns) {
                 int width = columnWidths.get(col);
                 System.out.print("-".repeat(width + 2) + "+");
+                stringBuilder.append("-".repeat(width + 2) + "+");
             }
             System.out.println();
+            stringBuilder.append("\n");
         };
 
         Consumer<Map<String, String>> printRow = rowMap -> {
             System.out.print("|");
+            stringBuilder.append("|");
             for (String col : columns) {
                 String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
                 int width = columnWidths.get(col);
                 System.out.print(" " + padRight(val, width) + " |");
+                stringBuilder.append(" " + padRight(val, width) + " |");
             }
             System.out.println();
+            stringBuilder.append("\n");
         };
 
         printSeparator.run();
@@ -154,4 +165,5 @@ public class Render {
         printSeparator.run();
 
     }
+
 }

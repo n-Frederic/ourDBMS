@@ -28,7 +28,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
 public class Operating { // implements CommandHandler
-
     private static final Pattern PATTERN_INSERT = Pattern.compile("(?i)insert\\s+into\\s+(\\w+)\\s*\\(([^\\)]+)\\)\\s*values\\s*\\(([^\\)]+)\\);?");
 
     private static final Pattern PATTERN_CREATE_TABLE = Pattern.compile(
@@ -53,18 +52,29 @@ public class Operating { // implements CommandHandler
             Pattern.compile("(?i)^\\s*SHOW\\s+TABLES\\s*;?\\s*$");
 
     private static final Pattern PATTERN_DELETE = Pattern.compile("(?i)delete\\s+from\\s(\\w+)(?:\\s+where\\s([^\\;]+\\s?;))?");
-    private static final Pattern PATTERN_UPDATE = Pattern.compile("(?i)^\\s*UPDATE\\s+" + "([\\w\\.]+)\\s+" + "SET\\s+" + "(.+?)" + "(?:\\s+FROM\\s+(.+?))?" + "(?:\\s+WHERE\\s+(.+?))?" + "\\s*;?\\s*$");
+    private static final Pattern PATTERN_UPDATE = Pattern.compile(
+            "(?i)^\\s*UPDATE\\s+" +                     // UPDATE 关键字
+                    "([\\w\\.]+)\\s+" +                         // group(1): 表名（支持带点的表名，如 schema.table）
+                    "SET\\s+" +                                 // SET 关键字
+                    "([^=]+?)\\s*=\\s*(.+?)\\s*" +              // group(2): 列名，group(3): 值
+                    "(?:\\s+WHERE\\s+(.+?))?" +                 // group(4): 可选的 WHERE 子句
+                    "\\s*;?\\s*$",                              // 可选的结尾分号
+            Pattern.DOTALL
+    );
+
 
     private static final Pattern PATTERN_DROP_TABLE = Pattern.compile("(?i)drop\\s+table\\s+(\\w+)\\s*;?");
 
+
     private static final Pattern PATTERN_SELECT = Pattern.compile(
-            "(?i)^\\s*SELECT\\s+" +                     // SELECT 关键字
-                    "(.+?)\\s+" +                               // group(1): 列名列表
-                    "FROM\\s+" +                                // FROM 关键字
-                    "(\\w+)" +                                  // group(2): 表名
-                    "(?:\\s+WHERE\\s+(.+?))?" +                 // group(3): 可选的 WHERE 条件
-                    "(?:\\s+GROUP\\s+BY\\s+(.+?))?" +          // group(4): 可选的 GROUP BY 子句
-                    "\\s*;?\\s*$"                              // 可选的结尾分号
+            "(?i)^\\s*SELECT\\s+(.+?)\\s+FROM\\s+(\\w+)" +                   // SELECT 和 FROM 子句
+                    "(?:\\s+WHERE\\s+(.+?))?" +                                      // 可选的 WHERE 子句
+                    "(?:\\s+GROUP\\s+BY\\s+(.+?))?" +                                // 可选的 GROUP BY 子句
+                    "(?:\\s+HAVING\\s+(.+?))?" +                                     // 可选的 HAVING 子句
+                    "(?:\\s+ORDER\\s+BY\\s+(.+?))?" +                                // 可选的 ORDER BY 子句
+                    "(?:\\s+LIMIT\\s+(\\d+))?" +                                     // 可选的 LIMIT 子句
+                    "\\s*;?\\s*$",                                                   // 可选的结尾分号
+            Pattern.DOTALL
     );
     private static final Pattern PATTERN_DELETE_INDEX = Pattern.compile("(?i)delete\\s+index\\s(\\w+)\\s?;");
     private static final Pattern PATTERN_GRANT_ADMIN = Pattern.compile("(?i)grant\\s+admin\\s+to\\s([^;\\s]+)\\s?;");
@@ -76,11 +86,11 @@ public class Operating { // implements CommandHandler
             Pattern.compile("(?i)^\\s*(DESC|DESCRIBE)\\s+(\\w+)(\\s*;)?\\s*$");
 
 
-
-
     private static Scanner sc = new Scanner(System.in);
     private boolean login = false;
-    private boolean enter_database = false;
+
+    private String log;
+    public boolean enter_database = false;
 
     private UI ui; // 定义 UI 对象
 
@@ -88,13 +98,20 @@ public class Operating { // implements CommandHandler
     String cmd1;
     public Schema schema;
 
+    public static String str1=" ";
+
     public Operating(String cmd1){
         this.cmd1=cmd1;
     }
     public Operating(){
 
     }
+    public void writeLog(String log){
 
+        String line=log+"\n";
+        logUtil.log(line);
+
+    }
 
     public void dbms() throws IOException {
 
@@ -144,6 +161,7 @@ public class Operating { // implements CommandHandler
         while (!"exit".equals(cmd = sc.nextLine()) && enter_database == false) {
             System.out.println("=== 数据库操作 ===");
 
+            log=cmd;
             boolean matched = false;  // 标记是否匹配成功
             Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(cmd);
             Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(cmd);
@@ -152,6 +170,7 @@ public class Operating { // implements CommandHandler
 
 
             if (matcherCreateDB.find()) {
+                writeLog(log);
                 matched = true;
                 String dbName = matcherCreateDB.group(1);
 
@@ -173,6 +192,7 @@ public class Operating { // implements CommandHandler
                 continue;
             } else if (matcherUserDB.find()) {
 
+                writeLog(log);
                 matched = true;
                 String dbName = matcherUserDB.group(1);
                 if(!TypeFilter.databaseExist(dbName)){
@@ -194,6 +214,7 @@ public class Operating { // implements CommandHandler
                 continue;
             } else if (matcherDropDB.find()) {
 
+                writeLog(log);
                 matched = true;
                 String dbName = matcherDropDB.group(1);
 
@@ -214,15 +235,17 @@ public class Operating { // implements CommandHandler
 //                // 执行删除逻辑
 //                continue;
             }else if(matcherShowDB.find()){
+                writeLog(log);
                 System.out.println("show");
 
                 List databases=DatabaseManager.listDatabases();
                 Render.drawDatabaseList(databases);
+                str1=str1+"show"+"\n"+Render.stringBuilder;
                 matched=true;
 
             } else if (!matched) {
                 System.out.println("无效命令，请重新输入。");
-                continue;
+
             }
 
 
@@ -232,6 +255,7 @@ public class Operating { // implements CommandHandler
         while (!"exit".equals(cmd = sc.nextLine())) {
 
 
+            log=cmd;
             boolean matched = false;  // 标记是否匹配成功
             Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(cmd);
             Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(cmd);
@@ -313,6 +337,7 @@ public class Operating { // implements CommandHandler
                 System.out.println("tables:");
                 List<String >tables=TableManager.showTables();
                 Render.drawTablesList(tables);
+                str1=str1+"tables:"+"\n"+Render.stringBuilder;
                 continue;
 
 
@@ -828,6 +853,7 @@ public class Operating { // implements CommandHandler
     }
 
     private boolean select(Matcher matcherSelect) throws IOException{
+        str1=" ";
         String tableName = matcherSelect.group(2);
         if(!TypeFilter.tableExist(tableName)){
             System.out.println(tableName+" not exist!");
@@ -846,6 +872,7 @@ public class Operating { // implements CommandHandler
                 Schema schema=table.getSchema();
                 columns = new ArrayList<>();
                 columns=schema.getColumns();
+                data=table.selectAll();
 
 
 
@@ -877,12 +904,10 @@ public class Operating { // implements CommandHandler
                 System.out.println(logicTree);
 
 
+
             }else{
-
                 data=table.selectAll();
-
             }
-
 
             // 解析 GROUP BY 子句
 //            if (matcherSelect.group(4) != null) {
@@ -895,19 +920,11 @@ public class Operating { // implements CommandHandler
 
 
             System.out.println(columns);
-            // TODO:待修改
+
+            data = table.select(data,columns);
             Render.DrawSelectedTable(data,columns);
             System.out.println("draw");
-
-
-
-
-
-
-            //Table.SelectFromTable(tableName,columns,conditions);
-
-            //Table.From(tableName);
-            //Table.DrawSelectedTable();
+            str1=str1+"draw:"+"\n"+Render.stringBuilder;
 
 
         }
@@ -915,8 +932,6 @@ public class Operating { // implements CommandHandler
 
 
     }
-
-
 
 
     private void alter(Matcher matcherAlter)throws IOException{
@@ -931,6 +946,7 @@ public class Operating { // implements CommandHandler
         System.out.println(tableName);
         if(!TypeFilter.tableExist(tableName)){
             System.out.println(tableName+" not exist!");
+            str1=str1+tableName+" not exist!";
 
         }else{
             column = matcherAlter.group(3);//name
@@ -956,6 +972,7 @@ public class Operating { // implements CommandHandler
                 // 检查该列是否被其他表的外键引用
                 if (table.isColumnReferenced(column)) {
                     System.out.println("无法删除列 " + column + ": 被其他表的外键引用");
+                    str1=str1+tableName+"无法删除列 " + column + ": 被其他表的外键引用";
                     return;
                 }
                 TableManager.dropColumn(column, table);
@@ -963,12 +980,18 @@ public class Operating { // implements CommandHandler
                 // 检查该列是否是外键或被外键引用
                 if (table.isColumnForeignKey(column) || table.isColumnReferenced(column)) {
                     System.out.println("无法修改外键列 " + column + " 的类型");
+                    str1=str1+tableName+"无法修改外键列 " + column + " 的类型";
                     return;
                 }
                 details=matcherAlter.group(4);
                 Field field=new Field(column,details);
                 TableManager.modifyColumn(table,column,field);
                 // ...执行修改...
+            }else if(operation.equals("rename")||operation.equals("RENAME")){
+                details=matcherAlter.group(4);
+                Field field=new Field(column,details);
+                TableManager.renameColumn(column,details,table);
+
             }
             // "age int
 
@@ -993,36 +1016,46 @@ public class Operating { // implements CommandHandler
         String conditionStr=mathcerUpdate.group(4);
         ArrayList<Tuple> data;
         System.out.println(":"+tableName+":"+statement+":"+conditionStr);
-        if(!TypeFilter.tableExist(tableName)){
-            System.out.println(tableName+" not exist!");
+        str1=str1+":"+tableName+":"+statement+":"+conditionStr;
+        if (!TypeFilter.tableExist(tableName)) {
+            System.out.println(tableName + " not exist!");
 
-        }else{
-            conditionStr=commandParser.parseBetweenAnd(conditionStr);
+            str1=str1+tableName + " not exist!";
+        } else {
+            conditionStr = commandParser.parseBetweenAnd(conditionStr);
             ConditionNode logicTree;
-            Table table=new Table(tableName);
-            ConditionParser parser=new ConditionParser(table);
+            Table table = new Table(tableName);
+            ConditionParser parser = new ConditionParser(table);
             List<String> tokens = parser.tokenizeWhere(conditionStr);
             logicTree = parser.parseConditionTree(tokens);
             System.out.println(logicTree);
-            //data=logicTree.evaluate();
+            data = logicTree.evaluate();
 
-            HashMap<String,String> statements=commandParser.parseUpdateSet(statement);
-            if (table.hasForeignKeyConstraints()) {
-                for (Map.Entry<String, String> entry : statements.entrySet()) {
-                    Field field = schema.getField(entry.getKey());
-                    if (field != null && field.isForeignKey()) {
-                        Table refTable = new Table(tableName);
-//                        if (!refTable.containsValue(field.getReferenceColumn(), entry.getValue())) {
-//                            System.out.println("违反外键约束: 值 " + entry.getValue() + " 在表 " +
-//                                    field.getReferenceTable() + " 的 " +
-//                                    field.getReferenceColumn() + " 列中不存在");
-//                            return;
-//                        }
-                    }
-                }
-            }
+//            HashMap<String,String> statements=commandParser.parseUpdateSet(statement);
+//            if (table.hasForeignKeyConstraints()) {
+//                for (Map.Entry<String, String> entry : statements.entrySet()) {
+//                    Field field = schema.getField(entry.getKey());
+//                    if (field != null && field.isForeignKey()) {
+//                        Table refTable = new Table(tableName);
+////                        if (!refTable.containsValue(field.getReferenceColumn(), entry.getValue())) {
+////                            System.out.println("违反外键约束: 值 " + entry.getValue() + " 在表 " +
+////                                    field.getReferenceTable() + " 的 " +
+////                                    field.getReferenceColumn() + " 列中不存在");
+////                            return;
+////                        }
+//                    }
+//                }
+//            }
+            //System.out.println("taaaaa"+table.getSchema().getPrimaryKeyName()+"group2"+mathcerUpdate.group(2));
+            String type = table.getSchema().getField(mathcerUpdate.group(2)).getType();
 
-//            table.update(tableName,statements,logicTree);
+            Class<? extends Value> classtype = commandParser.findClass(type);
+            String valueWithoutQuotes = mathcerUpdate.group(3).replaceAll("'", "");
+
+            table.update(data, Value.parse(classtype, valueWithoutQuotes), mathcerUpdate.group(2));
+            Render.DrawSelectedTable(data,table.getSchema().getColumns());
+
+            str1=str1+Render.stringBuilder;
 
         }
 
@@ -1048,14 +1081,17 @@ public class Operating { // implements CommandHandler
             if(table.samePK(t.getPrimaryV())){
                 table.insert(t);
                 System.out.println("插入成功");
+                str1=str1+"插入成功";
             }else{
                 System.out.println("相同主键");
+                str1=str1+"相同主键，插入失败！";
             }
 
 
 
         }catch (Exception e){
             System.out.println("fail to create tuple");
+            str1=str1+"fail to create tuple";
         }
 //
 //        if(!TypeFilter.tableExist(tableName)){
@@ -1193,90 +1229,322 @@ public class Operating { // implements CommandHandler
         return "   ";
     }
 
-    public static String logAndRegister(String str) {
-        while (!"exit".equals(str) && enter_database == false) {
-            System.out.println("=== 数据库操作 ===");
 
-            boolean matched = false;  // 标记是否匹配成功
+    public void logAndRegister(String str) throws IOException {
+//        str1=" ";
+//        if(!"exit".equals(str) && enter_database == false) {
+//            System.out.println("=== 数据库操作 ===");
+//            str1=str1+"=== 数据库操作 ==="+"\n";
+//
+//            boolean matched = false;  // 标记是否匹配成功
+            str1=" ";
+            System.out.println("=== 数据库操作 ===");
+            str1 = str1 + "=== 数据库操作 ===" + "\n";
             Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(str);
             Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(str);
             Matcher matcherDropDB = PATTERN_DROP_DATABASE.matcher(str);
-            Matcher matcherShowDB=PATTERN_SHOW_DATABASES.matcher();
+            Matcher matcherShowDB=PATTERN_SHOW_DATABASES.matcher(str);
 
 
+            log=str;
             if (matcherCreateDB.find()) {
-                matched = true;
+                writeLog(log);
+//                matched = true;
                 String dbName = matcherCreateDB.group(1);
 
                 if(TypeFilter.databaseExist(dbName)){
                     System.out.println(dbName+" 已经存在!");
-                    continue;
-                }
-                if(UserManager.getCurrentUser().ddlOK()){
-                    System.out.println("创建数据库: " + dbName);
-                    DatabaseManager.createDataBase(dbName);
+                    str1=str1+dbName+"已经存在!"+"\n";
 
-                }else{
-                    System.out.println("只有管理员可以创建数据库");
+                } else {
+                    if(UserManager.getCurrentUser().ddlOK()){
+                        System.out.println("创建数据库: " + dbName);
+                        DatabaseManager.createDataBase(dbName);
+                        str1=str1+"创建数据库: " + dbName;
+
+                    }else{
+                        System.out.println("只有管理员可以创建数据库");
+                        str1=str1+"只有管理员可以删除数据库";
+                    }
                 }
-                // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
-                continue;
+
             } else if (matcherUserDB.find()) {
-
-                matched = true;
+                writeLog(log);
+//                matched = true;
                 String dbName = matcherUserDB.group(1);
-                if(!TypeFilter.databaseExist(dbName)){
-                    System.out.println(dbName+" 不存在!");
-                    continue;
-                }
-                //System.out.println("使用数据库: " + dbName);
+//                if(TypeFilter.databaseExist(dbName)){
+//                    enter_database=true;
+//                    System.out.println("使用数据库: " + dbName);
+//                    str1=str1+"\"使用数据库: \" + dbName";
+//                }else {
+//                    System.out.println(dbName+" 不存在!");
+//                    str1=str1+"\n"+dbName+" 不存在!";
+//                }
+
                 boolean dbexist = false;
                 dbexist = DatabaseManager.useDatabase(dbName);
                 if (dbexist) {
                     enter_database = true;
                     System.out.println("使用数据库: " + dbName);
-                    break;
+                    str1=str1+"使用数据库: " + dbName;
+
                 } else {
                     System.out.println("数据库不存在");
+                    str1=str1+"数据库不存在";
                 }
                 // 设置 enter_database = true，表示已进入数据库
 
-                continue;
-            } else if (matcherDropDB.find()) {
 
-                matched = true;
+            } else if (matcherDropDB.find()) {
+                writeLog(log);
+//                matched = true;
                 String dbName = matcherDropDB.group(1);
 
                 if(!TypeFilter.databaseExist(dbName)){
                     System.out.println(dbName+" not exist!");
-                    continue;
+                    str1=str1+dbName+" not exist!"+"\n";
+
+                } else {
+
+                    if(UserManager.getCurrentUser().ddlOK()){
+                        System.out.println("删除数据库: " + dbName);
+                        DatabaseManager.dropDatabase(dbName);
+                        str1=str1+"删除数据库: " + dbName;
+
+                    }else{
+                        System.out.println("只有管理员可以删除数据库");
+                        str1=str1+"只有管理员可以删除数据库";
+                    }
                 }
 
-                if(UserManager.getCurrentUser().ddlOK()){
-                    System.out.println("删除数据库: " + dbName);
-                    DatabaseManager.dropDatabase(dbName);
 
-                }else{
-                    System.out.println("只有管理员可以删除数据库");
-                }
-                continue;
 
 //                // 执行删除逻辑
 //                continue;
-            }else if(matcherShowDB.find()){
+            } else if(matcherShowDB.find()){
+                writeLog(log);
                 System.out.println("show");
+
 
                 List databases=DatabaseManager.listDatabases();
                 Render.drawDatabaseList(databases);
-                matched=true;
 
-            } else if (!matched) {
-                System.out.println("无效命令，请重新输入。");
-                continue;
+//                matched=true;
+                str1=str1+"show"+"\n"+Render.stringBuilder;
+
+//            } else if (!matched) {
+//                System.out.println("无效命令，请重新输入。");
+//                str1=str1+"无效命令，请重新输入。";
+//            }
             }
+    }
+
+    public String isDB(String str)throws IOException{
+        str1=" ";
+        if(!"exit".equals(str) && enter_database == false) {
+
+
+            boolean matched = false;  // 标记是否匹配成功
+            Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(str);
+            Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(str);
+            Matcher matcherDropDB = PATTERN_DROP_DATABASE.matcher(str);
+            Matcher matcherShowDB = PATTERN_SHOW_DATABASES.matcher(str);
+
+            Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(str);
+            Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(str);
+            Matcher matcherSelectTable = PATTERN_SELECT.matcher(str);
+            Matcher matcherInsertTable = PATTERN_INSERT.matcher(str);
+            Matcher matcherAlterTable = PATTERN_ALTER_TABLE.matcher(str);
+            Matcher matcherDelete = PATTERN_DELETE.matcher(str);
+            Matcher matcherUpdate = PATTERN_UPDATE.matcher(str);
+            Matcher matcherShowTB=PATTERN_SHOW_TABLES.matcher(str);
+            Matcher matcherDESC=PATTERN_DESC.matcher(str);
+
+
+            log=str;
+            if (matcherCreateDB.find()||matcherUserDB.find()||matcherDropDB.find()||matcherShowDB.find()) {
+
+                writeLog(log);
+                Operating operating=new Operating();
+                operating.logAndRegister(str);
+            } else if (matcherCreateTable.find() || matcherDropTable.find() || matcherSelectTable.find() || matcherInsertTable.find() || matcherAlterTable.find() || matcherDelete.find() || matcherUpdate.find() || matcherShowTB.find() || matcherDESC.find()) {
+                Operating operating=new Operating();
+                operating.logAndRegister1(str);
+            } else {
+                str1="无效命令！";
+            }
+
         }
+        return str1;
+    }
+
+    public void logAndRegister1(String str) throws IOException {
+//        str1=" ";
+//        //System.out.println("请输入sql语句");
+//        if (!"exit".equals(str)) {
+
+
+//            boolean matched = false;  // 标记是否匹配成功
+        Matcher matcherCreateTable = PATTERN_CREATE_TABLE.matcher(str);
+        Matcher matcherDropTable = PATTERN_DROP_TABLE.matcher(str);
+        Matcher matcherSelectTable = PATTERN_SELECT.matcher(str);
+        Matcher matcherInsertTable = PATTERN_INSERT.matcher(str);
+        Matcher matcherAlterTable = PATTERN_ALTER_TABLE.matcher(str);
+        Matcher matcherDelete = PATTERN_DELETE.matcher(str);
+        Matcher matcherUpdate = PATTERN_UPDATE.matcher(str);
+        Matcher matcherShowTB = PATTERN_SHOW_TABLES.matcher(str);
+        Matcher matcherDESC = PATTERN_DESC.matcher(str);
+
+
+        log=str;
+        if (matcherCreateTable.find()) {
+            writeLog(log);
+            System.out.println("create");
+//                matched = true;
+            // ✅ 取出表名
+            String tableName = matcherCreateTable.group(1);
+            if (TypeFilter.tableExist(tableName)) {
+                System.out.println("表已经存在!");
+                str1 = str1 + "表已经存在!";
+
+            } else {
+                // ✅ 取出字段定义并解析
+                String fieldsStr = matcherCreateTable.group(2);
+                ArrayList<Field> fieldList = commandParser.parseCreateTable(fieldsStr);
+                if (UserManager.getCurrentUser().ddlOK()) {
+                    System.out.println("建表: " + tableName);
+                    create(fieldList, tableName);
+                    str1 = str1 + "建表: " + tableName;
+
+                } else {
+                    System.out.println("只有管理员可以建表");
+                    str1 = str1 + "只有管理员可以建表";
+                }
+            }
+        } else if (matcherDropTable.find()) {
+            writeLog(log);
+            System.out.println("drop");
+            // matched = true;
+            String tableName = matcherDropTable.group(1);  //
+            if (!TypeFilter.tableExist(tableName)) {
+                System.out.println("Table 不存在!");
+                str1 = str1 + "Table 不存在!";
+            }else {
+
+                if (UserManager.getCurrentUser().ddlOK()) {
+
+                    System.out.println("删除表: " + tableName);
+                    TableManager.DropTable(tableName, 2);
+                    str1 = str1 + "删除表: " + tableName;
+
+
+                } else {
+                    System.out.println("只有管理员可以删除表");
+                    str1 = str1 + "只有管理员可以删除表";
+                }
+
+            }
+        } else if (matcherSelectTable.find()) {
+            writeLog(log);
+            System.out.println("select");
+            //matched = true;
+            select(matcherSelectTable);
+
+        } else if (matcherShowTB.find()) {
+            writeLog(log);
+            System.out.println("tables:");
+            List<String> tables = TableManager.showTables();
+            Render.drawTablesList(tables);
+            str1 = str1 + "tables:" + "\n" + Render.stringBuilder;
+
+
+        } else if (matcherInsertTable.find()) {
+            writeLog(log);
+
+            if (UserManager.getCurrentUser().dmlOK()) {
+
+                System.out.println("insert");
+                //matched = true;
+                insert(matcherInsertTable);
+
+
+            } else {
+                System.out.println("只有用户可以插入数据");
+                str1 = str1 + "只有用户可以插入数据";
+            }
+
+
+        } else if (matcherAlterTable.find()) {
+            writeLog(log);
+
+            if (UserManager.getCurrentUser().ddlOK()) {
+                System.out.println("alter");
+                alter(matcherAlterTable);
+
+
+            } else {
+                System.out.println("只有管理员可以修改表结构");
+                str1 = str1 + "只有管理员可以修改表结构";
+            }
+
+
+            // matched = true;
+
+
+        } else if (matcherDelete.find()) {
+            writeLog(log);
+
+            if (UserManager.getCurrentUser().dmlOK()) {
+                String tableName = matcherDelete.group(1);
+                String conditionstr = matcherDelete.group(2);
+                ArrayList<Condition> conditions;
+
+                Table table = new Table(tableName);
+                ConditionParser parser = new ConditionParser(table);
+                parser.tokenizeWhere(matcherSelectTable.group(3));
+
+            } else {
+                System.out.println("只有用户可以删除数据");
+                str1 = str1 + "只有用户可以删除数据";
+
+            }
+
+
+        } else if (matcherUpdate.find()) {
+            writeLog(log);
+
+
+            if (UserManager.getCurrentUser().dmlOK()) {
+                String tableName;
+                String conditionstr;
+
+                update(matcherUpdate);
+
+
+            } else {
+                System.out.println("只有用户可以更新数据");
+                str1 = str1 + "只有用户可以更新数据";
+            }
+
+
+//                matched = true;
+
+
+        } else if (matcherDESC.find()) {
+            writeLog(log);
+            String tableName = matcherDESC.group(2);
+            Table table = new Table(tableName);
+            //System.out.println(table.getSchema());
+            TableManager.desc(table);
+            str1 = str1 + Render.stringBuilder;
+
+
+        }
+
     }
 }
+
+
 
 
 

@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Table类用于管理数据库表的操作。
@@ -76,6 +77,22 @@ public class Table {
         Page dirPage = pageManager.getPage(pageId);
         pageManager.remove(dirPage, tuple, tree);
     }
+    public boolean samePK(Value value){
+        try{
+            ArrayList<Tuple>tuples=selectAll();
+            for(Tuple t:tuples){
+                System.out.println("primaryV:"+t.getPrimaryV()+" "+value);
+                if(t.getPrimaryV().toString().equals(value.toString())||(t.getPrimaryV().toString())==value.toString()){
+                    System.out.println("false");
+                    return false;
+                }
+            }
+        }catch (IOException e){
+            System.out.println("io exception");
+        }
+        System.out.println("true");
+        return true;
+    }
 
 
 
@@ -136,6 +153,11 @@ public class Table {
         int index = schema.getIndex(field);
         Value keyValue = condition.getValue();
 
+        if(index == -1) {
+            System.out.println("没有该列");
+            return tuples;
+        }
+
 
         if (field.isPrimaryKey()) {
             if (page.isLeaf()) {
@@ -151,7 +173,7 @@ public class Table {
                                 tuples.addAll(where(temp1, condition));
                             }
                         }
-                        Page temp1 = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        Page temp1 = getPageManager().getPage(page.getChildren().get(page.getChildren().size()-1).getPageId());
                         tuples.addAll(where(temp1, condition));
                     case "!=":
                         tuples = selectAll();
@@ -171,7 +193,7 @@ public class Table {
                                 tuples.addAll(where(temp3, condition));
                             }
                         }
-                        Page temp3 = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        Page temp3 = getPageManager().getPage(page.getChildren().get(page.getChildren().size()-1).getPageId());
                         tuples.addAll(where(temp3, condition));
                     case "<=":
                         Condition sc = new Condition(condition.getColumn(), condition.getValue(), "<");
@@ -183,8 +205,6 @@ public class Table {
                         tuples.addAll(where(page, bc));
                         Condition ec2 = new Condition(condition.getColumn(), condition.getValue(), "=");
                         tuples.addAll(where(page, ec2));
-//                    case "LIKE":
-                        
 
                 }
                 return tuples;
@@ -204,6 +224,58 @@ public class Table {
 
             return tuples;
         }
+    }
+
+    public ArrayList<Tuple> whereLike(Condition condition) throws IOException {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        if(!condition.getOperator().equals("LIKE")) {
+            System.out.println("不要用whereLike");
+            return tuples;
+        }
+
+        Field field = schema.getField(condition.getColumn());
+        int index = schema.getIndex(field);
+        Value keyValue = condition.getValue();
+
+        ArrayList<Tuple> temp = this.selectAll();
+        for(Tuple tuple : temp) {
+            if(sqlLike(condition.getValue().toString(),tuple.getValues().get(index).toString())){
+                tuples.add(tuple);
+            }
+        }
+
+        return tuples;
+    }
+
+    public ArrayList<Tuple> whereIn(ArrayList<Tuple> subTuples, Condition condition) throws IOException {
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        if(!condition.getOperator().equals("IN")) {
+            System.out.println("不要用whereIn");
+            return tuples;
+        }
+
+        Field field = schema.getField(condition.getColumn());
+        int index = schema.getIndex(field);
+
+        ArrayList<Tuple> temp = this.selectAll();
+        if(temp.get(0).getValues().size() != 1) {
+            System.out.println("子查询里有不止一列，不能用IN");
+            return tuples;
+        }
+
+        ArrayList<Value> values = new ArrayList<>();
+        for(Tuple tuple : temp) {
+            values.add(tuple.getValues().get(0));
+        }
+
+        for(Tuple tuple : subTuples) {
+            if(values.contains(tuple.getValues().get(index))){
+                tuples.add(tuple);
+            }
+        }
+
+        return tuples;
+
     }
 
     public ArrayList<Tuple> where(ArrayList<Tuple> t1, ArrayList<Tuple> t2, String mode) {
@@ -275,6 +347,8 @@ public class Table {
             if (columnIndex == -1) {
                 throw new IllegalArgumentException("列不存在: " + columnName);
             }
+
+
             // 主键更新
             for (Tuple tuple : tuples) {
                 System.out.println("目标主键值：" + tuple.getPrimaryV());
@@ -288,6 +362,7 @@ public class Table {
                         System.out.println("匹配成功，准备更新！");
                         System.out.println("修改前: " + t.getValues().get(columnIndex));
                         t.getValues().set(columnIndex,newValue);
+                        tuple.getValues().set(columnIndex,newValue);
                         System.out.println("修改后: " + t.getValues().get(columnIndex));
                         pageManager.updatePageToManager(page, true);
                         break;
@@ -316,6 +391,7 @@ public class Table {
                         if (t.getPrimaryV().toString().equals(target.getPrimaryV().toString())) {
                             System.out.println("匹配成功！开始更新 " + columnName + " -> " + newValue);
                             t.getValues().set(columnIndex,newValue);
+                            target.getValues().set(columnIndex,newValue);
                             pageManager.updatePageToManager(page, true);
                             break;
                         }
@@ -340,6 +416,35 @@ public class Table {
 
     public BpTree getTree() {
         return tree;
+    }
+
+    public static boolean sqlLike(String input, String likePattern) {
+        // 第一步：转义 Java 正则的特殊字符（除了 % 和 _）
+        StringBuilder regex = new StringBuilder();
+        for (int i = 0; i < likePattern.length(); i++) {
+            char c = likePattern.charAt(i);
+            switch (c) {
+                case '%':
+                    regex.append(".*");
+                    break;
+                case '_':
+                    regex.append(".");
+                    break;
+                case '\\':
+                    regex.append("\\\\");
+                    break;
+                case '.': case '*': case '+': case '?': case '|':
+                case '{': case '}': case '[': case ']': case '(': case ')':
+                case '^': case '$':
+                    regex.append("\\").append(c);
+                    break;
+                default:
+                    regex.append(c);
+            }
+        }
+
+        Pattern pattern = Pattern.compile(regex.toString(), Pattern.DOTALL);
+        return pattern.matcher(input).matches();
     }
 
 
