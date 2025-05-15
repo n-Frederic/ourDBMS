@@ -905,6 +905,7 @@ public class Operating { // implements CommandHandler
 
             System.out.println(columns);
 
+            data = table.select(data,columns);
             Render.DrawSelectedTable(data,columns);
             System.out.println("draw");
 

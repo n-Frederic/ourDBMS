@@ -238,9 +238,10 @@ public class DBMSMainFrame extends JFrame {
     // 处理选中的查询内容
     private String handleSelectedQuery(String query) {
         // 在这里添加处理查询的逻辑
-        String result=Operating.logAndRegister(query);
+//        String result=Operating.logAndRegister(query);
         // 模拟查询结果
-        return "结果：\n" + result + "\n执行成功";
+//        return "结果：\n" + result + "\n执行成功";
+        return "";
     }
 
     // 创建内容面板

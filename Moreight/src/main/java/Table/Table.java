@@ -108,6 +108,7 @@ public class Table {
         for (String name : fieldNames) {
             indexes.add(schema.getIndex(name));
         }
+        System.out.println();
 
         for (Tuple t : tuples) {
             Value[] selected = new Value[fieldNames.size()];
