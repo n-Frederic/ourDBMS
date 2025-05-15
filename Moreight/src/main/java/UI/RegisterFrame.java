@@ -1,5 +1,7 @@
 package UI;
 
+import Controller.UserAuthentication;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -13,12 +15,14 @@ class RegisterFrame extends JFrame {
     private final JTextField usernameTextField = new JTextField();
     private final JPasswordField passwordField = new JPasswordField();
     private final JPasswordField confirmPasswordField = new JPasswordField();
-    private final JTextField databaseAddressTextField = new JTextField();
+    private final JComboBox<String> levelComboBox = new JComboBox<>(); // 权限下拉框
 
     private final JButton registerButton = new JButton();
     private final JButton backToLoginButton = new JButton();
 
     public boolean registerSuccess = false; // 实际应用中根据后端验证结果设置
+
+    private boolean login = false;
 
     public RegisterFrame() {
         // 设置窗口
@@ -41,6 +45,11 @@ class RegisterFrame extends JFrame {
         // 设置确认密码输入框
         confirmPasswordField.setPreferredSize(new Dimension(300, 40));
 
+        // 设置权限下拉框
+        levelComboBox.setPreferredSize(new Dimension(300, 40));
+        levelComboBox.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        levelComboBox.setModel(new DefaultComboBoxModel<>(new String[]{"0", "1","2","3"}));
+
         // 设置注册按钮
         registerButton.setPreferredSize(new Dimension(300, 40));
         registerButton.setText("注册");
@@ -50,19 +59,19 @@ class RegisterFrame extends JFrame {
 
                 // 注册逻辑
                 String username = getUsernameTextField();
-                char[] password = getPasswordField();
-                char[] confirmPassword = getConfirmPasswordField();
+                String password = getPasswordField();
+                String confirmPassword = getConfirmPasswordField();
+                String level = getLevel();
 
                 String passwordStr = new String(password);
                 String confirmPasswordStr = new String(confirmPassword);
 
                 // 模拟注册成功
                 if (passwordStr.equals(confirmPasswordStr)) {
+                    login = UserAuthentication.register1(username, passwordStr, level);
+                    System.out.println(login);
 
-                    //实际逻辑registerSuccess=bool fun(String username, char[] password,char[] confirmPassword){}//来自后端方法
-
-
-                    registerSuccess=true;//实际
+                    registerSuccess = login; // 实际应用中根据后端验证结果设置
 
                     if (registerSuccess) {
                         System.out.println("注册成功");
@@ -123,6 +132,12 @@ class RegisterFrame extends JFrame {
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         registerBox.add(confirmPasswordField, gbc);
 
+        // 第五行：权限级别
+        gbc.gridwidth = 1;
+        registerBox.add(new JLabel("权限级别"), gbc);
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        registerBox.add(levelComboBox, gbc);
+
         // 第六行：注册按钮
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         registerBox.add(registerButton, gbc);
@@ -148,28 +163,22 @@ class RegisterFrame extends JFrame {
     }
 
     // 留出函数接口：获取密码输入框的值
-    public char[] getPasswordField() {
-        return passwordField.getPassword();
+    public String getPasswordField() {
+        return passwordField.getText();
     }
 
     // 留出函数接口：获取确认密码输入框的值
-    public char[] getConfirmPasswordField() {
-        return confirmPasswordField.getPassword();
+    public String getConfirmPasswordField() {
+        return confirmPasswordField.getText();
+    }
+
+    // 留出函数接口：获取权限级别
+    public String getLevel() {
+        return levelComboBox.getSelectedItem().toString();
     }
 
     // 留出函数接口：设置密码输入框的值
-    public void setPasswordField() {
-        // 注意：密码字段通常不显示明文，所以不建议直接设置密码文本
-        // 这里只提供一个空的设置方法作为示例
-    }
-
-    // 留出函数接口：获取数据库地址输入框的值
-    public String getDatabaseAddressTextField() {
-        return databaseAddressTextField.getText();
-    }
-
-    // 留出函数接口：设置数据库地址输入框的值
-    public void setDatabaseAddressTextField(String text) {
-        databaseAddressTextField.setText(text);
+    public void setPasswordField(String text) {
+        passwordField.setText(text);
     }
 }

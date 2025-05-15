@@ -19,6 +19,10 @@ import java.util.RandomAccess;
 public class Main {
     public static void main(String[] args) throws IOException {
 
+        Operating operating = new Operating();
+        operating.dbms();
+
+
         /**
          * 比较麻烦的检查某页的信息，读文件，有根页，有非根页
          */

@@ -74,6 +74,14 @@ public class Schema {
         return fields.get(id);
     }
 
+    public ArrayList<String> getColumns(){
+        ArrayList<String> columns=new ArrayList<>();
+        for (Field f:fields){
+            columns.add(f.getName());
+
+        }
+        return columns;
+    }
     public String getPrimaryKey(){
         return this.primaryKeyName;
     }

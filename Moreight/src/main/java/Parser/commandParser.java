@@ -44,11 +44,12 @@ public class commandParser {
         String[] lines = fieldsStr.trim().split("\\s*,\\s*");//分隔字符串去除首尾空格
         ArrayList<Field>fieldList = new ArrayList<>();
         //解析字段为3组
+        // 改进的字段解析正则
         Pattern fieldPattern = Pattern.compile(
-                "(\\w+)\\s+" +
-                        "([^\\s]+(?:\\([^)]+\\))?)" +
-                        "(?:\\s+(.*))?"
-        );//分123组
+                "(\\w+)\\s+" +                  // 字段名
+                        "([a-zA-Z]+(?:\\([^)]+\\))?)" + // 类型
+                        "(.*)"                          // 约束部分
+        );
         for(String line:lines){
             line=line.trim();//去除空格影响
 
@@ -61,6 +62,8 @@ public class commandParser {
 
 
             Field field = new Field(matcher.group(1),matcher.group(2));
+            System.out.println("group1:"+matcher.group(1)+matcher.group(2));
+
 
             if (!validTypes.contains(field.getType())){
                 System.out.println("类型不合法");
@@ -69,6 +72,7 @@ public class commandParser {
 
             // 解析约束（组3）
             String constraints = matcher.group(3);
+            System.out.println("group3:"+constraints);
             if (constraints != null) {
                 String upperConstraints = constraints.toUpperCase();
                 field.setPrimaryKey(upperConstraints.contains("PRIMARY KEY"));

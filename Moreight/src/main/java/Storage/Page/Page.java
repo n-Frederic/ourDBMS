@@ -150,7 +150,6 @@ public class Page {
         return tuples;
     }
 
-
     public ArrayList<Tuple> getTuples(Condition condition, int index) {
         ArrayList<Tuple> temp=new ArrayList<>();
         for(Tuple t:tuples){

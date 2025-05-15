@@ -1,5 +1,6 @@
 package UI;
 
+import Controller.UserAuthentication;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -15,6 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import Controller.UserAuthentication;
+
 // 登录界面类
 class LoginFrame extends JFrame {
 
@@ -27,6 +30,8 @@ class LoginFrame extends JFrame {
     private final JButton registerButton = new JButton(); // 添加注册按钮
 
     public boolean loginSuccess =false; // 实际应用中根据后端验证结果设置
+
+    private boolean login = false;
 
     public LoginFrame() {
         // 设置窗口
@@ -46,7 +51,7 @@ class LoginFrame extends JFrame {
 
         // 设置密码输入框
         passwordField.setPreferredSize(new Dimension(300, 40));
-        setPasswordField();
+        setPasswordField("");
 
 
         // 设置登录按钮
@@ -55,40 +60,47 @@ class LoginFrame extends JFrame {
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Path path = Paths.get("your_file_path.json");
-                Reader reader = null;
-                try {
-                    reader = Files.newBufferedReader(path);
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-
-                JsonElement rootElement = JsonParser.parseReader(reader);
-                if (!rootElement.isJsonObject()) {
-                    throw new IllegalArgumentException("文件不是一个 JsonObject！");
-                }
-                JsonArray data = rootElement.getAsJsonArray();
+//                Path path = Paths.get("your_file_path.json");
+//                Reader reader = null;
+//                try {
+//                    reader = Files.newBufferedReader(path);
+//                } catch (IOException ex) {
+//                    throw new RuntimeException(ex);
+//                }
+//
+//                JsonElement rootElement = JsonParser.parseReader(reader);
+//                if (!rootElement.isJsonObject()) {
+//                    throw new IllegalArgumentException("文件不是一个 JsonObject！");
+//                }
+//                JsonArray data = rootElement.getAsJsonArray();
 
                 // 登录逻辑
                 String username = getUsernameTextField();
-                char[] password = getPasswordField();
+                String password = getPasswordField();
+                //char[] password = getPasswordField();
+//
+//                for (JsonElement element : data) {
+//                    JsonObject object = element.getAsJsonObject();
+//                    String name = object.get("userName").getAsString();
+//                    if(username.equals(name)) {
+//                        String pw = object.get("password").getAsString();
+//                        if(pw.equals(new String(password))) {
+//                            loginSuccess = true;
+//                        }
+//                    }
+//                }
+//
+//                try {
+//                    reader.close();
+//                } catch (IOException ex) {
+//                    throw new RuntimeException(ex);
+//                }
 
-                for (JsonElement element : data) {
-                    JsonObject object = element.getAsJsonObject();
-                    String name = object.get("userName").getAsString();
-                    if(username.equals(name)) {
-                        String pw = object.get("password").getAsString();
-                        if(pw.equals(new String(password))) {
-                            loginSuccess = true;
-                        }
-                    }
-                }
-
-                try {
-                    reader.close();
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
+                loginSuccess= UserAuthentication.login1(username,password.toString());
+                //System.out.println(password.toString());
+                login=loginSuccess;
+                System.out.println(login);
+                //System.out.println(loginSuccess);
 
                 //登录成功
                 if (loginSuccess) {
@@ -167,17 +179,20 @@ class LoginFrame extends JFrame {
     }
 
     // 留出函数接口：获取密码输入框的值
-    public char[] getPasswordField() {
-        return passwordField.getPassword();
+//    public char[] getPasswordField() {
+//        return passwordField.getPassword();
+//    }
+
+    public String getPasswordField() {
+        return passwordField.getText();
     }
 
 
 
 
     // 留出函数接口：设置密码输入框的值
-    public void setPasswordField() {
-        // 注意：密码字段通常不显示明文，所以不建议直接设置密码文本
-        // 这里只提供一个空的设置方法作为示例
+    public void setPasswordField(String text) {
+        passwordField.setText(text);
     }
 
 
