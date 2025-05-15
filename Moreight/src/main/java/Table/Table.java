@@ -64,6 +64,11 @@ public class Table {
 
     }
 
+    public void delete(ArrayList<Tuple> tuples) throws IOException {
+        for(Tuple tuple : tuples) {
+            delete(tuple);
+        }
+    }
 
     public void delete(Tuple tuple) throws IOException {
         Value primaryV = tuple.getPrimaryV();

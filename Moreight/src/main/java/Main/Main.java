@@ -239,12 +239,16 @@ public class Main {
         /**
          * 检查Modify column
          */
-        Field updatedField = new Field("name", "int");
+        Field updatedField = new Field("name", "string");
         updatedField.setPrimaryKey(false);
 
         TableManager.modifyColumn(table, "name", updatedField);
 
-        meta.showInfo();
+//        meta.showInfo();  // 程序内的meta
+
+//        Meta meta1 = Meta.readMetaFromDisk(table.getPageManager().getPageIO().getFile());
+//        meta1.showInfo();  // 文件内的meta
+
 
 
 

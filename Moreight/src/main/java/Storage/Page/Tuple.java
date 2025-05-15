@@ -20,6 +20,11 @@ public class Tuple {
 
     public Tuple() {}
 
+    public Tuple(Value value) {
+        this.values = new ArrayList<Value>();
+        this.values.add(value);
+    }
+
     public Tuple(Value[] values) {
         this.values = new ArrayList<Value>();
         this.values.addAll(Arrays.asList(values));

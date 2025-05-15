@@ -1,6 +1,7 @@
 package Util.Func;
 
 import Storage.Page.Tuple;
+import Storage.Value.StringValue;
 
 
 import java.util.*;
@@ -28,12 +29,10 @@ public class Render {
     }
 
     public static void drawDatabaseList(List<String> dbNames) {
-
-        // 1. 先把 List<String> 转成 JsonArray，其中每一行只有一列：Database
         ArrayList<Tuple> data = new ArrayList<>();
+
         for (String name : dbNames) {
-            Tuple obj = new Tuple();
-            // obj.addProperty("Database", name);
+            Tuple obj = new Tuple(new StringValue(name));
             data.add(obj);
         }
 
@@ -44,13 +43,11 @@ public class Render {
         // 3. 直接复用现有的 DrawSelectedTable
         DrawSelectedTable(data, columns);
     }
-    public static void drawTablesList(List<String> tbNames) {
 
-        // 1. 先把 List<String> 转成 JsonArray，其中每一行只有一列：Database
+    public static void drawTablesList(List<String> tbNames) {
         ArrayList<Tuple> data = new ArrayList<>();
         for (String name : tbNames) {
-            Tuple obj = new  Tuple();
-            // obj.addProperty("Table", name);
+            Tuple obj = new  Tuple(new StringValue(name));
             data.add(obj);
         }
 
