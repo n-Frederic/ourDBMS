@@ -204,7 +204,7 @@ public class TableManager {
     }
 
 
-    public static void  renameColumn(String fieldName, String newFieldName, Table table) {
+    public static void  renameColumn(String fieldName, String newFieldName, Table table) throws IOException {
         Meta meta = table.getPageManager().getMeta();
         Schema schema = table.getSchema();
         int index = schema.getIndex(fieldName);
@@ -216,9 +216,7 @@ public class TableManager {
         meta.getColumnNames().set(index,newFieldName);
 
         RandomAccessFile raf = table.getPageManager().getPageIO().getFile();
-
-
-
+        meta.writeMetaToDisk(raf);
     }
 
     public static void modifyColumn(Table table, String name, Field newField) throws IOException {

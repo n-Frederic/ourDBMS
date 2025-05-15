@@ -43,6 +43,11 @@ public class Operating { // implements CommandHandler
                     "(?:\\s+(.*?))?\\s*;"                           // group4: 其余部分，如列定义、数据类型、约束等（可选），以非贪婪方式匹配直到分号
     );
 
+//    private static final Pattern PATTERN_TWO_LEVEL_NESTED_SUBQUERY = Pattern.compile(
+//            "(?i)SELECT\\s+[^;]+\\s+FROM\\s+\\w+\\s*(WHERE\\s+[^;]+\\s*(AND\\s+[^;]+\\s*)?\\(\\s*SELECT\\s+[^;]+\\s+FROM\\s+\\w+\\s*(WHERE\\s+[^;]+\\s*)?\\)\\s*)?;",
+//            Pattern.DOTALL
+//    );
+
 
     // SHOW DATABASES;
     private static final Pattern PATTERN_SHOW_DATABASES =
@@ -66,6 +71,7 @@ public class Operating { // implements CommandHandler
                     "(?:\\s+GROUP\\s+BY\\s+(.+?))?" +          // group(4): 可选的 GROUP BY 子句
                     "\\s*;?\\s*$"                              // 可选的结尾分号
     );
+
     private static final Pattern PATTERN_DELETE_INDEX = Pattern.compile("(?i)delete\\s+index\\s(\\w+)\\s?;");
     private static final Pattern PATTERN_GRANT_ADMIN = Pattern.compile("(?i)grant\\s+admin\\s+to\\s([^;\\s]+)\\s?;");
     private static final Pattern PATTERN_REVOKE_ADMIN = Pattern.compile("(?i)revoke\\s+admin\\s+from\\s([^;\\s]+)\\s?;");
@@ -242,6 +248,7 @@ public class Operating { // implements CommandHandler
             Matcher matcherUpdate = PATTERN_UPDATE.matcher(cmd);
             Matcher matcherShowTB=PATTERN_SHOW_TABLES.matcher(cmd);
             Matcher matcherDESC=PATTERN_DESC.matcher(cmd);
+//            Matcher matcherNest=PATTERN_TWO_LEVEL_NESTED_SUBQUERY.matcher(cmd);
 
 
 
@@ -399,6 +406,9 @@ public class Operating { // implements CommandHandler
                 System.out.println("错误输入: " + cmd);  // 调试输出，查看具体输入的命令
                 continue;
             }
+//            }else if(matcherNest.find()){
+//
+//            }
 
             System.out.println("matched?" + matched);
 
@@ -846,6 +856,7 @@ public class Operating { // implements CommandHandler
                 Schema schema=table.getSchema();
                 columns = new ArrayList<>();
                 columns=schema.getColumns();
+                data=table.selectAll();
 
 
 
@@ -877,12 +888,10 @@ public class Operating { // implements CommandHandler
                 System.out.println(logicTree);
 
 
+
             }else{
-
                 data=table.selectAll();
-
             }
-
 
             // 解析 GROUP BY 子句
 //            if (matcherSelect.group(4) != null) {
@@ -895,7 +904,7 @@ public class Operating { // implements CommandHandler
 
 
             System.out.println(columns);
-            // TODO:待修改
+
             Render.DrawSelectedTable(data,columns);
             System.out.println("draw");
 
@@ -915,8 +924,6 @@ public class Operating { // implements CommandHandler
 
 
     }
-
-
 
 
     private void alter(Matcher matcherAlter)throws IOException{
@@ -969,6 +976,11 @@ public class Operating { // implements CommandHandler
                 Field field=new Field(column,details);
                 TableManager.modifyColumn(table,column,field);
                 // ...执行修改...
+            }else if(operation.equals("rename")||operation.equals("RENAME")){
+                details=matcherAlter.group(4);
+                Field field=new Field(column,details);
+                TableManager.renameColumn(column,details,table);
+
             }
             // "age int
 
@@ -1193,89 +1205,8 @@ public class Operating { // implements CommandHandler
         return "   ";
     }
 
-    public static String logAndRegister(String str) {
-        while (!"exit".equals(str) && enter_database == false) {
-            System.out.println("=== 数据库操作 ===");
-
-            boolean matched = false;  // 标记是否匹配成功
-            Matcher matcherCreateDB = PATTERN_CREATE_DATABASE.matcher(str);
-            Matcher matcherUserDB = PATTERN_USE_DATABASE.matcher(str);
-            Matcher matcherDropDB = PATTERN_DROP_DATABASE.matcher(str);
-            Matcher matcherShowDB=PATTERN_SHOW_DATABASES.matcher();
 
 
-            if (matcherCreateDB.find()) {
-                matched = true;
-                String dbName = matcherCreateDB.group(1);
-
-                if(TypeFilter.databaseExist(dbName)){
-                    System.out.println(dbName+" 已经存在!");
-                    continue;
-                }
-                if(UserManager.getCurrentUser().ddlOK()){
-                    System.out.println("创建数据库: " + dbName);
-                    DatabaseManager.createDataBase(dbName);
-
-                }else{
-                    System.out.println("只有管理员可以创建数据库");
-                }
-                // 这里你可以调用 parseCreateDatabase(cmd) 或执行创建逻辑
-                continue;
-            } else if (matcherUserDB.find()) {
-
-                matched = true;
-                String dbName = matcherUserDB.group(1);
-                if(!TypeFilter.databaseExist(dbName)){
-                    System.out.println(dbName+" 不存在!");
-                    continue;
-                }
-                //System.out.println("使用数据库: " + dbName);
-                boolean dbexist = false;
-                dbexist = DatabaseManager.useDatabase(dbName);
-                if (dbexist) {
-                    enter_database = true;
-                    System.out.println("使用数据库: " + dbName);
-                    break;
-                } else {
-                    System.out.println("数据库不存在");
-                }
-                // 设置 enter_database = true，表示已进入数据库
-
-                continue;
-            } else if (matcherDropDB.find()) {
-
-                matched = true;
-                String dbName = matcherDropDB.group(1);
-
-                if(!TypeFilter.databaseExist(dbName)){
-                    System.out.println(dbName+" not exist!");
-                    continue;
-                }
-
-                if(UserManager.getCurrentUser().ddlOK()){
-                    System.out.println("删除数据库: " + dbName);
-                    DatabaseManager.dropDatabase(dbName);
-
-                }else{
-                    System.out.println("只有管理员可以删除数据库");
-                }
-                continue;
-
-//                // 执行删除逻辑
-//                continue;
-            }else if(matcherShowDB.find()){
-                System.out.println("show");
-
-                List databases=DatabaseManager.listDatabases();
-                Render.drawDatabaseList(databases);
-                matched=true;
-
-            } else if (!matched) {
-                System.out.println("无效命令，请重新输入。");
-                continue;
-            }
-        }
-    }
 }
 
 

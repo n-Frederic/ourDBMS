@@ -3,6 +3,7 @@ import Storage.Page.Tuple;
 import Storage.Value.Value;
 import Table.Table;
 
+import java.io.IOException;
 import java.util.*;
 
 public class Condition extends ConditionNode {
@@ -51,10 +52,11 @@ public class Condition extends ConditionNode {
                 "}";
     }
 
-//    @Override
-    public  ArrayList<Tuple> evaluate() {
+    //    @Override
+    public  ArrayList<Tuple> evaluate() throws IOException {
 
-        ArrayList<Tuple>tuples= new ArrayList<>();
+        ArrayList<Tuple>tuples= table.where(table.getPageManager().getPage(table.getPageManager().getPageIO().getRootPageId()),this);
+
         return tuples;
 
 

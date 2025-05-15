@@ -76,20 +76,36 @@ public class ConditionParser {
             tokens.remove(0);
             return node;
         } else {
+
             String raw = tokens.remove(0);
-            Matcher m = Pattern.compile("(\\w+)\\s*(=|!=|<=|>=|<|>)\\s*(.+)").matcher(raw);
 
-            String type=table.getSchema().getField(m.group(1)).getType();;
-            Class<? extends Value> classtype= commandParser.findClass(type);
+            Pattern pattern = Pattern.compile(
+                    "\\s*(\\w+)\\s*([=!<>]=?|LIKE)\\s*('([^']*)'|(\\S+))\\s*"
+            ); // 允许首尾空格，不强制完全匹配
+
+            Matcher m = pattern.matcher(raw);
+            if (m.matches()) { // 检查是否匹配成功
+                System.out.println("Matched!");
+
+                // 假设 table 和 commandParser 已经正确初始化
+                // String type = table.getSchema().getField(m.group(1)).getType();
+                // Class<? extends Value> classtype = commandParser.findClass(type);
+                String type=table.getSchema().getField(m.group(1)).getType();
+                Class<? extends Value> classtype= commandParser.findClass(type);
 
 
 
-            if (m.matches()) {
-
-                return new Condition(m.group(1),Value.parse(classtype,m.group(3)), m.group(2),table);
+                String valueWithoutQuotes = m.group(3).replaceAll("'", "");
+                return new Condition(m.group(1),Value.parse(classtype,valueWithoutQuotes), m.group(2),table);
             } else {
+                System.out.println("No match found.");
                 throw new IllegalArgumentException("非法条件: " + raw);
             }
+
+
+
+
+
         }
     }
 }

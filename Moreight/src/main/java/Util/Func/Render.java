@@ -154,4 +154,64 @@ public class Render {
         printSeparator.run();
 
     }
+
+    public static String newDrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
+        Map<String, Integer> columnWidths=new HashMap<>();
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String column : columns) {
+            columnWidths.put(column, column.length());
+        }
+        for (var tuple : tuples) {
+            for (int i = 0; i < columns.size(); i++) {
+                String val = tuple.getValue(i).toString();
+                columnWidths.put(columns.get(i), Math.max(columnWidths.get(columns.get(i)), getDisplayWidth(val)));
+            }
+        }
+
+/*        for (var rowElement : data) {
+            for (int i = 0; i < tuples.size(); i++) {
+                String val = row.has(col) ? row.get(col).getAsString() : "";
+                columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
+            }
+        }*/
+
+        Runnable printSeparator = () -> {
+            stringBuilder.append("+");
+            for (String col : columns) {
+                int width = columnWidths.get(col);
+                stringBuilder.append("-".repeat(width + 2) + "+");
+            }
+            stringBuilder.append("\n");
+        };
+
+        Consumer<Map<String, String>> printRow = rowMap -> {
+            stringBuilder.append("|");
+            for (String col : columns) {
+                String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
+                int width = columnWidths.get(col);
+                stringBuilder.append(" " + padRight(val, width) + " |");
+            }
+            stringBuilder.append("\n");
+        };
+
+        printSeparator.run();
+        Map<String, String> headerMap = new LinkedHashMap<>();
+        for (String col : columns) headerMap.put(col, col);
+        printRow.accept(headerMap);
+        printSeparator.run();
+
+        for (var tuple : tuples) {
+            Map<String, String> rowMap = new LinkedHashMap<>();
+            for (int i = 0; i < columns.size(); i++) {
+                String val = tuple.getValue(i).toString();
+                rowMap.put(columns.get(i), val);
+            }
+            printRow.accept(rowMap);
+        }
+        printSeparator.run();
+
+        return stringBuilder.toString();
+
+    }
+
 }
