@@ -31,7 +31,8 @@ class LeftPanelUI extends JPanel {
                     button.addActionListener(e -> mainFrame.setHomePageTab());
                     break;
                 case "用户管理":
-                    button.addActionListener(e -> mainFrame.setUserManagementTab());
+                    //button.addActionListener(e -> mainFrame.setUserManagementTab());
+                    button.addActionListener(e -> mainFrame.setUserManagementDialog());
                     break;
                 case "数据库管理":
                     button.addActionListener(e -> mainFrame.setDatabaseManagementTab());

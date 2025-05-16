@@ -83,17 +83,21 @@ public class PageManager {
             // 一开始放进去的时候，叶子少前后，非叶子少孩子，最小值序列
             // 不少父亲，因为除了根节点，其他在栈中的节点都已经在下面被初始化好父亲了
 
+//            current.showInfo();
 
             if (!current.isLeaf) {
                 int num = current.getChildren().size();
                 for (int i = 0; i < num; i++) {
                     int childId = current.children.get(i).getPageId();
                     Page child = this.getPage(childId);
+//                    child.showInfo();
+
 
                     child.setParent(current);
                     current.children.set(i, child);
 
                     Value id = child.getMinValue();
+                    System.out.println("页号"+child.getPageId() +"的最小值"+id);
                     insertInParent(current,id);
                     temp.push(child);
                 }
@@ -103,7 +107,7 @@ public class PageManager {
             pages.set(pageId, current);
         }
 
-        Page head = leafPages.getFirst();
+        Page head = leafPages.get(0);
         for(Page page : leafPages) {
             if(page.minValue.compare(head.minValue) < 0) {
                 head = page;
@@ -301,7 +305,9 @@ public class PageManager {
             if (!isLeafToSplit(page)) {
                 System.out.println("直接插入叶节点");
                 insertInLeaf(page, key);
+                updateMinValue(page);
                 updatePageToManager(page, true);
+
             } else {
                 System.out.println("要分裂了！");
                 Page left = this.createPage(true);
@@ -478,7 +484,7 @@ public class PageManager {
             }
         } else {
             // 非叶子节点，继续向下递归查找
-            if (key.getPrimaryV().compare(page.entries.getFirst()) >= 0) {
+            if (key.getPrimaryV().compare(page.entries.get(0)) >= 0) {
                 // 中间节点递归查找
                 for (int i = 0; i < (page.entries.size() - 1); i++) {
                     if (key.getPrimaryV().compare(page.entries.get(i)) >= 0 && key.getPrimaryV().compare(page.entries.get(i + 1)) < 0) {
@@ -607,8 +613,8 @@ public class PageManager {
 //            }
 //        } else {
 //            // 非叶子节点,继续向下搜索
-//            if (key.getPrimaryV().compare(page.entries.getFirst()) < 0) {
-//                if (remove(page.children.getFirst(), key, tree)) {
+//            if (key.getPrimaryV().compare(page.entries.get(0)) < 0) {
+//                if (remove(page.children.get(0), key, tree)) {
 //                    isFound = true;
 //                }
 //            } else if (key.getPrimaryV().compare(page.entries.getLast()) >= 0) {
@@ -640,7 +646,7 @@ public class PageManager {
                     return;
                 } else {
                     // 如果根节点只有一个指针,则删除 根节点,让其孩子节点作为根节点
-                    Page rootPage = page.children.getFirst();
+                    Page rootPage = page.children.get(0);
                     tree.setRoot(rootPage);
                     rootPage.isRoot = true;
                     rootPage.parent = null;
@@ -744,13 +750,13 @@ public class PageManager {
         page.entries.add(downKey);
         page.parent.entries.remove(parentKeyIdx);
 
-        Value upKey = nextPage.entries.getFirst();
+        Value upKey = nextPage.entries.get(0);
         page.parent.entries.add(parentKeyIdx, upKey);
-        nextPage.entries.removeFirst();
+        nextPage.entries.remove(0);
         // 后继节点的第一个指针移到当前节点最后面
-        Page borrowPoint = nextPage.children.getFirst();
+        Page borrowPoint = nextPage.children.get(0);
         page.children.add(borrowPoint);
-        nextPage.children.removeFirst();
+        nextPage.children.remove(0);
     }
 
     /**

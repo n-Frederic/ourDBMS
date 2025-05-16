@@ -11,7 +11,7 @@ public class NullValue extends Value{
 
     @Override
     public byte getType() {
-        return 0;
+        return NULL;
     }
 
     @Override

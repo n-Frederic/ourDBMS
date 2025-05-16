@@ -123,7 +123,9 @@ public class Schema {
 
     public Field getField(String fieldName) {
         for (Field field : fields) {
+            System.out.println("filed in get "+field);
             if (field.getName().equals(fieldName))
+
                 return field;
         }
         return null;

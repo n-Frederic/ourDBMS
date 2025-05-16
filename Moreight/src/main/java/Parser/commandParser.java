@@ -17,7 +17,7 @@ public class commandParser {
 
     public static  Class<? extends Value>  findClass(String type){
         Class<? extends Value> valueClass;
-        switch (type) {
+        switch (type.toLowerCase()) {
             case "int":
                 valueClass = IntValue.class;
                 break;

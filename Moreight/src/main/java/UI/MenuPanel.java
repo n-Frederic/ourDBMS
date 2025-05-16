@@ -1,9 +1,13 @@
 package UI;
 
+import Database.DatabaseManager;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.*;
+import java.io.IOException;
+import java.util.List;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.Action;
@@ -22,6 +26,9 @@ public class MenuPanel extends JPanel {
         JLabel dbLabel = new JLabel("选择数据库:");
         dbLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
         add(dbLabel);
+        List databases= DatabaseManager.listDatabases();
+        //DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>(databases.toArray(new String[0]));
+        //JComboBox<String> dbComboBox = new JComboBox<>(model);
 
         JComboBox<String> dbComboBox = new JComboBox<>(new String[]{"mysql", "test_db"});
         dbComboBox.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -51,9 +58,15 @@ public class MenuPanel extends JPanel {
         executeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                mainFrame.executeSelectedQuery();
+                try {
+                    mainFrame.executeSelectedQuery();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         });
+
+
     }
 
     // 创建带有图标的按钮

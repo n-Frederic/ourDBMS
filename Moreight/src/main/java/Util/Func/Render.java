@@ -13,6 +13,8 @@ import java.util.function.Consumer;
  */
 public class Render {
 
+    public static StringBuilder stringBuilder = new StringBuilder(" ");
+
     /**
      * 判断字符是否为全角字符。
      * @param c 要判断的字符。
@@ -100,7 +102,10 @@ public class Render {
 
      */
     public static void DrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
+        stringBuilder= new StringBuilder(" ");
+        stringBuilder.append("\n");
         Map<String, Integer> columnWidths=new HashMap<>();
+
         for (String column : columns) {
             columnWidths.put(column, column.length());
         }
@@ -120,77 +125,26 @@ public class Render {
 
         Runnable printSeparator = () -> {
             System.out.print("+");
+            stringBuilder.append("+");
             for (String col : columns) {
                 int width = columnWidths.get(col);
                 System.out.print("-".repeat(width + 2) + "+");
+                stringBuilder.append("-".repeat(width + 2) + "+");
             }
             System.out.println();
+            stringBuilder.append("\n");
         };
 
         Consumer<Map<String, String>> printRow = rowMap -> {
             System.out.print("|");
-            for (String col : columns) {
-                String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
-                int width = columnWidths.get(col);
-                System.out.print(" " + padRight(val, width) + " |");
-            }
-            System.out.println();
-        };
-
-        printSeparator.run();
-        Map<String, String> headerMap = new LinkedHashMap<>();
-        for (String col : columns) headerMap.put(col, col);
-        printRow.accept(headerMap);
-        printSeparator.run();
-
-        for (var tuple : tuples) {
-            Map<String, String> rowMap = new LinkedHashMap<>();
-            for (int i = 0; i < columns.size(); i++) {
-                String val = tuple.getValue(i).toString();
-                rowMap.put(columns.get(i), val);
-            }
-            printRow.accept(rowMap);
-        }
-        printSeparator.run();
-
-    }
-
-    public static String newDrawSelectedTable(ArrayList<Tuple> tuples, ArrayList<String> columns) {
-        Map<String, Integer> columnWidths=new HashMap<>();
-        StringBuilder stringBuilder = new StringBuilder();
-        for (String column : columns) {
-            columnWidths.put(column, column.length());
-        }
-        for (var tuple : tuples) {
-            for (int i = 0; i < columns.size(); i++) {
-                String val = tuple.getValue(i).toString();
-                columnWidths.put(columns.get(i), Math.max(columnWidths.get(columns.get(i)), getDisplayWidth(val)));
-            }
-        }
-
-/*        for (var rowElement : data) {
-            for (int i = 0; i < tuples.size(); i++) {
-                String val = row.has(col) ? row.get(col).getAsString() : "";
-                columnWidths.put(col, Math.max(columnWidths.get(col), getDisplayWidth(val)));
-            }
-        }*/
-
-        Runnable printSeparator = () -> {
-            stringBuilder.append("+");
-            for (String col : columns) {
-                int width = columnWidths.get(col);
-                stringBuilder.append("-".repeat(width + 2) + "+");
-            }
-            stringBuilder.append("\n");
-        };
-
-        Consumer<Map<String, String>> printRow = rowMap -> {
             stringBuilder.append("|");
             for (String col : columns) {
                 String val = rowMap.getOrDefault(col, "").replace("\t", "    ");
                 int width = columnWidths.get(col);
+                System.out.print(" " + padRight(val, width) + " |");
                 stringBuilder.append(" " + padRight(val, width) + " |");
             }
+            System.out.println();
             stringBuilder.append("\n");
         };
 
@@ -209,8 +163,6 @@ public class Render {
             printRow.accept(rowMap);
         }
         printSeparator.run();
-
-        return stringBuilder.toString();
 
     }
 

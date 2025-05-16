@@ -108,7 +108,6 @@ public class Table {
         for (String name : fieldNames) {
             indexes.add(schema.getIndex(name));
         }
-        System.out.println();
 
         for (Tuple t : tuples) {
             Value[] selected = new Value[fieldNames.size()];
@@ -174,7 +173,7 @@ public class Table {
                                 tuples.addAll(where(temp1, condition));
                             }
                         }
-                        Page temp1 = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        Page temp1 = getPageManager().getPage(page.getChildren().get(page.getChildren().size()-1).getPageId());
                         tuples.addAll(where(temp1, condition));
                     case "!=":
                         tuples = selectAll();
@@ -194,7 +193,7 @@ public class Table {
                                 tuples.addAll(where(temp3, condition));
                             }
                         }
-                        Page temp3 = getPageManager().getPage(page.getChildren().getLast().getPageId());
+                        Page temp3 = getPageManager().getPage(page.getChildren().get(page.getChildren().size()-1).getPageId());
                         tuples.addAll(where(temp3, condition));
                     case "<=":
                         Condition sc = new Condition(condition.getColumn(), condition.getValue(), "<");
@@ -259,14 +258,14 @@ public class Table {
         int index = schema.getIndex(field);
 
         ArrayList<Tuple> temp = this.selectAll();
-        if(temp.getFirst().getValues().size() != 1) {
+        if(temp.get(0).getValues().size() != 1) {
             System.out.println("子查询里有不止一列，不能用IN");
             return tuples;
         }
 
         ArrayList<Value> values = new ArrayList<>();
         for(Tuple tuple : temp) {
-            values.add(tuple.getValues().getFirst());
+            values.add(tuple.getValues().get(0));
         }
 
         for(Tuple tuple : subTuples) {
@@ -348,6 +347,8 @@ public class Table {
             if (columnIndex == -1) {
                 throw new IllegalArgumentException("列不存在: " + columnName);
             }
+
+
             // 主键更新
             for (Tuple tuple : tuples) {
                 System.out.println("目标主键值：" + tuple.getPrimaryV());
@@ -361,6 +362,7 @@ public class Table {
                         System.out.println("匹配成功，准备更新！");
                         System.out.println("修改前: " + t.getValues().get(columnIndex));
                         t.getValues().set(columnIndex,newValue);
+                        tuple.getValues().set(columnIndex,newValue);
                         System.out.println("修改后: " + t.getValues().get(columnIndex));
                         pageManager.updatePageToManager(page, true);
                         break;
@@ -389,6 +391,7 @@ public class Table {
                         if (t.getPrimaryV().toString().equals(target.getPrimaryV().toString())) {
                             System.out.println("匹配成功！开始更新 " + columnName + " -> " + newValue);
                             t.getValues().set(columnIndex,newValue);
+                            target.getValues().set(columnIndex,newValue);
                             pageManager.updatePageToManager(page, true);
                             break;
                         }

@@ -128,10 +128,11 @@ public class Page {
             System.out.println();
         } else {
             System.out.println("页的行数 : "+ tuples.size());
+            System.out.println("该页的主键最小值 ： " + minValue);
             System.out.println();
 
             for(Tuple tuple : tuples) {
-                System.out.println(tuple.getPrimaryV());
+                System.out.println(tuple.getPrimaryV() + " " + tuple.getValues().size());
                 for(Value value : tuple.getValues()) {
                     System.out.print(value.toString() + " ");
                 }
@@ -459,7 +460,7 @@ public class Page {
         } else dataOut.writeInt(-1);
 
         dataOut.writeInt(entries.size());
-        dataOut.writeInt(entries.getFirst().getType());
+        dataOut.writeInt(entries.get(0).getType());
 
         int offset = 0;
         for(Value value : entries) {

@@ -1,5 +1,6 @@
 package Table;
 
+import Controller.Operating;
 import Database.DatabaseManager;
 import Storage.BPlusTree.BpTree;
 import Storage.Page.*;
@@ -75,7 +76,7 @@ public class TableManager {
             System.out.println("表 " + tableName + " 不存在。");
         }
 
-        Files.deleteIfExists(Paths.get(DIRECTORY + "/" + DatabaseManager.getCurrentDatabase() + "/" +tableName));
+        Files.delete(Paths.get(DIRECTORY + "/" + DatabaseManager.getCurrentDatabase() + "/" +tableName));
     }
 
 
